@@ -37,6 +37,8 @@ manifest = {'status':'pinned source acquisition; full dependency rebuild not per
 (root/'packaging/source-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(f'Pinned {len(records)} source components; full static closure still requires binary/build verification.')
 if '--download' not in sys.argv: raise SystemExit(0)
+# SIMDe's upstream test submodule is part of the source archive.
+subprocess.run(['git','-C',str(root/'vendor/simde'),'submodule','update','--init','--recursive'],check=True)
 destination = root/'vendor/corresponding-source'
 destination.mkdir(exist_ok=True)
 for record in records:

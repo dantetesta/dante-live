@@ -34,7 +34,7 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-O snapshot inicial corresponde à versão local **0.1.1**, em estágio experimental, com funcionalidades reais:
+O build local **0.1.2** recompila a base funcional 0.1.1, em estágio experimental, com funcionalidades reais:
 
 - Cenas e fontes com criação, duplicação, renomeação, ordenação, visibilidade e bloqueio.
 - Preview, seleção de elementos, arrasto, redimensionamento proporcional, crop, rotação, ajuste ao canvas e centralização.

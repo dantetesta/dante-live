@@ -7,6 +7,7 @@ stage = build/'distribution-stage'
 if stage.exists(): shutil.rmtree(stage)
 stage.mkdir()
 shutil.copytree(build/'Dante Live.app',stage/'Dante Live.app',symlinks=True)
+(stage/'Applications').symlink_to('/Applications', target_is_directory=True)
 (root/'dist').mkdir(exist_ok=True)
 for path in stage.rglob('*'):
     name = path.name.lower()

@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Snapshot inicial: versão local 0.1.1. O objetivo é um estúdio audiovisual nativo, com evolução em direção à cobertura funcional do OBS para Mac. Equivalência completa ainda não foi atingida.
+Build local atual: **0.1.2 (3)**, recompilação da base 0.1.1 com atalho Aplicativos no DMG. Não acrescenta convidados nem novas funcionalidades de edição. O objetivo é um estúdio audiovisual nativo, com evolução em direção à cobertura funcional do OBS para Mac. Equivalência completa ainda não foi atingida.
 
 | Área | Estado atual |
 |---|---|

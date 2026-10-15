@@ -1,0 +1,16 @@
+{
+  "version": "0.1.8",
+  "build": 9,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.8/Dante-Live-0.1.8-macOS-universal.dmg",
+  "length": 53713764,
+  "sha256": "d782a14a514c746fc3f306133104f3ca0ff9fff8dceca67f00f00126554981ba",
+  "signature": "IfWZqUcrKIfTaDlyvE77IGvg2bCL1ZDiOwTEq2wTelnkA/6tw1VHYUE8oxv8UrwhHpwjJeA+NWYoYyFGFiOcBA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-15T23:10:45.919190+00:00",
+  "changelog": "## Novidades da 0.1.8\n\n- Primeira distribuição oficial assinada com Developer ID e notarizada pela Apple.\n- Hardened Runtime e timestamp seguro no aplicativo, motor, plugins e componentes do atualizador.\n- Tickets da Apple anexados ao aplicativo e ao DMG, com validação do Gatekeeper.\n- Publicação bloqueada se a assinatura, notarização ou integridade dos arquivos não passar nas verificações.\n- Chaves privadas e credenciais permanecem no Keychain do mantenedor; nenhuma credencial de assinatura acompanha o repositório ou os pacotes. Forks podem usar suas próprias credenciais.\n- Atualizador mantém a mesma chave pública Ed25519 e o mesmo identificador do aplicativo.\n\n## Atualizar\n\nNa versão 0.1.7, finalize sua live e use Dante Live → Verificar atualizações…. Quem usa 0.1.6 ou anterior pode instalar o DMG corrente em Aplicativos. Projetos e configurações permanecem fora do aplicativo e não precisam ser apagados. A mudança de assinatura pode solicitar novamente autorização do macOS para dispositivos ou Keychain.\n\n## Validação e limites\n\nBuild Universal 2, deployment target macOS 14.0. Testes de motor/editor com Hardened Runtime e suíte Swift/Python passaram; a aprovação Apple e os tickets são conferidos antes de publicar. Notarização não substitui testes funcionais: Intel físico, macOS 14 real, todos os dispositivos e sessões prolongadas continuam pendentes. Release experimental; convidados por link ainda não disponíveis.\n",
+  "notarized": true
+}

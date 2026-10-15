@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Prepare a signed Sparkle appcast. Publication occurs only after release assets are verified."""
-import argparse, base64, datetime, email.utils, hashlib, json, os, pathlib, plistlib, re, shutil, subprocess, tempfile
+import argparse, base64, datetime, email.utils, hashlib, importlib.util, json, os, pathlib, plistlib, re, shutil, subprocess, tempfile
 import xml.etree.ElementTree as ET
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REPOSITORY = 'https://github.com/dantetesta/dante-live'
@@ -42,6 +42,11 @@ def appcast(records):
     ET.indent(rss)
     return ET.tostring(rss, encoding='utf-8', xml_declaration=True)+b'\n'
 def prepare(dmg, notes, destination, root=ROOT):
+    spec = importlib.util.spec_from_file_location('dante_notarization',root/'packaging/notarize.py')
+    notarization = importlib.util.module_from_spec(spec);spec.loader.exec_module(notarization)
+    # Official releases must be notarized before Ed25519 signs the final immutable bytes.
+    notarization.identity(dmg)
+    notarization.validate_ticket(dmg,'dmg')
     info = plistlib.loads((root/'packaging/Info.plist').read_bytes())
     version = info['CFBundleShortVersionString']; build = int(info['CFBundleVersion'])
     sdk = tools(root)
@@ -57,11 +62,14 @@ def prepare(dmg, notes, destination, root=ROOT):
                 if packaged.get(key) != info[key]: raise ValueError('Packaged update mismatch: '+key)
             if set(run('lipo','-archs',app/'Contents/MacOS/DanteLive').split()) != {'arm64','x86_64'}: raise ValueError('Update must be Universal 2')
             subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+            notarization.audit_app(app)
+            notarization.validate_ticket(app,'app')
         finally: subprocess.run(['hdiutil','detach',str(mount)],check=True,stdout=subprocess.DEVNULL)
     signature = run(sdk/'sign_update','--account',ACCOUNT,'-p',dmg)
     subprocess.run([str(sdk/'sign_update'),'--account',ACCOUNT,'--verify',str(dmg),signature],check=True,stdout=subprocess.DEVNULL)
     record = dict(version=version,build=build,url=f'{REPOSITORY}/releases/download/v{version}/Dante-Live-{version}-macOS-universal.dmg',length=dmg.stat().st_size,sha256=digest(dmg),signature=signature,minimumSystemVersion='14.0',architectures=['arm64','x86_64'],publishedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(),changelog=notes.read_text())
     validate_record(record)
+    record['notarized'] = True
     previous = root/'updates'
     records = [json.loads(p.read_text()) for p in (previous/'releases').glob('*.json')]
     if any(r['version']==version or r['build']>=build for r in records): raise ValueError('Release version/build must advance; existing releases are immutable')

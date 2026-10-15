@@ -16,7 +16,7 @@ Sparkle **2.10.0**, fixado por SHA-256 em `packaging/sparkle-lock.json`, fornece
 
 O catálogo público é `https://raw.githubusercontent.com/dantetesta/dante-live/main/updates/appcast.xml`. Os DMGs, fontes e checksums ficam nas Releases, com URLs versionadas. Todos os itens deste canal são experimentais até que a política de estabilidade seja alterada explicitamente.
 
-Assinatura de atualização **não equivale** a Developer ID/notarização Apple. Os pacotes atuais continuam ad hoc; a primeira abertura em outra máquina pode exigir a autorização habitual do macOS. Intel físico, macOS 14 real e instalação em máquina limpa ainda precisam de validação.
+Assinatura Ed25519 de atualização e notarização Apple são verificações distintas. A partir da **0.1.8**, a publicação oficial exige Developer ID, Hardened Runtime e notarização do app e do DMG, além de Ed25519. A chave Ed25519 existente é preservada na transição da 0.1.7. Veja [NOTARIZATION.md](NOTARIZATION.md). Intel físico, macOS 14 real e instalação em máquina limpa ainda precisam de validação.
 
 ## Publicar a próxima versão
 

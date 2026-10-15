@@ -41,8 +41,9 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.7** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.8** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
+- Distribuição oficial assinada com Developer ID e notarizada pela Apple a partir da 0.1.8.
 - Atualizações pelo menu do Mac, aviso ao abrir, changelog e instalação/reinício com proteção durante a live.
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
 - Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
@@ -119,11 +120,11 @@ Mais detalhes em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Estado de distribuição
 
-O botão no topo baixa o **DMG experimental corrente**. Abra o DMG, arraste Dante Live para Aplicativos e execute-o quando os dispositivos estiverem disponíveis. Se o macOS bloquear a abertura por falta de notarização, use **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo Assim**, após conferir a origem do download. Não desative o Gatekeeper globalmente.
+O botão no topo baixa o **DMG experimental corrente**. Abra o DMG, arraste Dante Live para Aplicativos e execute-o quando os dispositivos estiverem disponíveis. A distribuição oficial 0.1.8+ usa Developer ID e notarização Apple. Confira a origem oficial; não desative as proteções do macOS.
 
-As [Releases](https://github.com/dantetesta/dante-live/releases) incluem o instalador, fontes correspondentes com dependências fixadas e SHA-256. A assinatura é **ad hoc**, sem Developer ID ou notarização. Testes prolongados e compatibilidade física Intel/macOS 14 permanecem pendentes. Os builds não substituem o OBS instalado.
+As [Releases](https://github.com/dantetesta/dante-live/releases) incluem o instalador, fontes correspondentes com dependências fixadas e SHA-256. A partir da 0.1.8, o aplicativo e o DMG oficiais são **assinados com Developer ID e notarizados pela Apple**. Builds locais sem credenciais continuam ad hoc. Testes prolongados e compatibilidade física Intel/macOS 14 permanecem pendentes. Os builds não substituem o OBS instalado.
 
-A partir da 0.1.7, use **Dante Live → Verificar atualizações…** para as próximas versões. O aplicativo avisa ao abrir, mostra as novidades e instala após sua confirmação, preservando o projeto. Quem usa 0.1.6 ou anterior precisa instalar a 0.1.7 uma vez pelo DMG. [Como funcionam as atualizações](docs/UPDATES.md).
+A partir da 0.1.7, use **Dante Live → Verificar atualizações…** para as próximas versões. O aplicativo avisa ao abrir, mostra as novidades e instala após sua confirmação, preservando o projeto. Quem usa 0.1.6 ou anterior precisa instalar a versão corrente uma vez pelo DMG. [Como funcionam as atualizações](docs/UPDATES.md).
 
 Para mantenedores: `scripts/release.sh` compila, testa, empacota e publica uma versão experimental com fontes e checksums; o botão é atualizado para a versão publicada. Veja [RELEASING.md](docs/RELEASING.md).
 
@@ -134,3 +135,5 @@ Dante Live é disponibilizado sob a **GNU General Public License, versão 2 ou p
 O projeto utiliza o trabalho do [OBS Project e seus colaboradores](https://github.com/obsproject/obs-studio), além das bibliotecas de terceiros identificadas no inventário. A referência atual é **OBS Studio 32.2.2**, commit `ba2f32bdf791005443988a4955e963663e16b1ed`.
 
 Dante Live é um projeto independente; não é uma versão oficial nem possui afiliação anunciada com o OBS Project. A interface e a identidade visual são próprias.
+
+Forks não recebem nossas credenciais. Para notarizar e distribuir uma versão própria, cada mantenedor usa sua conta Apple, identidade e chaves de atualização. Veja [assinatura, notarização e forks](docs/NOTARIZATION.md).

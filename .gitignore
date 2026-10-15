@@ -22,3 +22,5 @@ CLAUDE.md
 MEMORY.md
 docs/CONTINUITY.md
 evidence/
+*.cer
+*.mobileprovision

@@ -1,4 +1,4 @@
-Dante Live 0.1.7 — componentes de terceiros
+Dante Live 0.1.8 — componentes de terceiros
 
 OBS Studio / libobs / módulos OBS 32.2.2
 Copyright OBS Project contributors. GPL version 2 or later.

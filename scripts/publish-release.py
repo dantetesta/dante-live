@@ -74,7 +74,7 @@ button=f"""<!-- current-download:start -->
 [![Baixar Dante Live para Mac](https://img.shields.io/badge/BAIXAR_PARA_MAC-v{version}-18B7C7?style=for-the-badge&logo=apple&logoColor=white)]({url})
 
 **macOS 14+ · Apple Silicon e Intel · Universal 2**
-Versão experimental **{version}**. Assinatura local (ad hoc), sem notarização Apple. [Notas e fontes](https://github.com/{repo}/releases/tag/{tag}).
+Versão experimental **{version}**. Assinado com Developer ID e notarizado pela Apple. [Notas e fontes](https://github.com/{repo}/releases/tag/{tag}).
 <!-- current-download:end -->"""
 if start not in text or end not in text: raise SystemExit('Missing README download markers')
 text=text[:text.index(start)]+button+text[text.index(end)+len(end):]

@@ -56,3 +56,5 @@ Rascunhos são locais até a ação explícita Agendar ou Confirmar e transmitir
 ## Atualização do aplicativo
 
 `AppUpdateCoordinator` integra Sparkle ao menu AppKit e à consulta de inicialização. `UpdateInstallationGate` serializa decisão de instalar, impede reinício durante transmissão/preparação/operação YouTube e exige salvamento do projeto. Um download adiado requer retomada explícita. O catálogo assinado em `updates/` aponta para assets imutáveis do GitHub, publicados e verificados antes de atualizar o feed. Sparkle substitui somente o bundle e relança o processo; dados persistentes continuam fora dele.
+
+A distribuição 0.1.8+ assina todo o código nativo com Developer ID/Hardened Runtime e preserva a validação de bibliotecas. App e DMG são notarizados e recebem tickets antes de assinar o download com Ed25519. O publicador valida a assinatura, tickets e Gatekeeper de ambos; não usa um marcador textual como prova de aprovação. Nenhuma chave privada integra este repositório.

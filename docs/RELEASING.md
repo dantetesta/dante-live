@@ -3,6 +3,8 @@
 Publicar somente a partir do checkout público limpo, branch `main`. Aumente `CFBundleShortVersionString` e `CFBundleVersion`, atualize os avisos/estado, revise e envie o código ao GitHub antes de iniciar. Uma versão publicada nunca deve ter seus arquivos sobrescritos.
 
 ```sh
+export DANTE_SIGN_IDENTITY="IDENTIDADE_DEVELOPER_ID_DO_KEYCHAIN"
+export DANTE_NOTARY_PROFILE="PERFIL_LOCAL_DO_NOTARYTOOL"
 bash scripts/release.sh /caminho/absoluto/notas-da-versao.txt
 ```
 
@@ -12,7 +14,7 @@ A publicação começa como rascunho. Os três assets (DMG, fontes e SHA256SUMS)
 
 O botão usa a URL versionada do DMG, pois o endpoint GitHub `latest` não seleciona pré-releases. O fluxo atualiza essa URL a cada publicação bem-sucedida. `scripts/package.sh` permanece útil para builds locais sem publicar acidentalmente artefatos de desenvolvimento.
 
-Os instaladores atuais têm assinatura ad hoc, sem notarização. Não anunciar estabilidade, execução física Intel/macOS 14 ou equivalência completa ao OBS sem evidência. Não iniciar captura ou transmissão pública como parte do build.
+A partir da 0.1.8, instaladores oficiais exigem Developer ID e notarização Apple validada. Não anunciar estabilidade, execução física Intel/macOS 14 ou equivalência completa ao OBS sem evidência. Não iniciar captura ou transmissão pública como parte do build.
 
 Para validar um artefato preparado anteriormente, use `scripts/publish-release.py --dmg ... --source ... --notes ...`; o ZIP deve referenciar exatamente o commit público corrente. A versão 0.1.3 foi verificada também por montagem somente leitura e comparação integral do conteúdo com o aplicativo compilado.
 
@@ -21,3 +23,5 @@ Para validar um artefato preparado anteriormente, use `scripts/publish-release.p
 A chave Ed25519 de produção precisa estar no Keychain sob a conta `com.dantetesta.DanteLive.updates` e corresponder ao `SUPublicEDKey` empacotado. O script falha antes de publicar se não corresponder. Nunca gerar outra chave para contornar essa falha. Se o SDK estiver em outro checkout, definir `DANTE_SPARKLE_TOOLS` para o diretório `bin` da versão fixada.
 
 `packaging/update-feed.py` inspeciona o DMG montado, verifica Universal 2, versão e assinatura, assina o arquivo e prepara `updates/releases`, `updates/changelogs` e `updates/appcast.xml`. O publicador envia esses arquivos somente depois de conferir os hashes dos assets remotos. Os builds precisam ser inteiros crescentes; os anteriores permanecem no catálogo. Nunca editar diretamente o XML assinado. Ver [UPDATES.md](UPDATES.md).
+
+O fluxo oficial notariza e anexa ticket ao app antes de gerar o DMG; depois assina/notariza/anexa ticket ao DMG. O publicador recusa assinatura ad hoc, ticket ausente e falha do Gatekeeper antes de publicar assets ou catálogo. As credenciais ficam no Keychain local; scripts genéricos não contêm certificados privados. Instruções de forks em [NOTARIZATION.md](NOTARIZATION.md). `package.sh` isoladamente não notariza nem publica.

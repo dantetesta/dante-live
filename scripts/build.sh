@@ -63,4 +63,4 @@ DANTE_INSTALL_OUTPUTS=1 scripts/build-outputs.sh
 python3 packaging/runtime.py audit
 python3 packaging/sign.py
 codesign --verify --deep --strict --verbose=2 "$APP"
-echo "Built locally (ad hoc signed): $APP"
+echo "Built locally: $APP (signing mode reported above)"

@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.7</string>
+	<string>0.1.8</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>9</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>NSHighResolutionCapable</key>
@@ -33,7 +33,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>O Dante Live usa a câmera selecionada para compor suas cenas.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>O Dante Live usa o microfone selecionado para gravar e transmitir áudio.</string>
+	<string>O Dante Live usa o microfone selecionado para transmitir áudio.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>O Dante Live captura áudio do sistema quando você adiciona uma fonte compatível.</string>
 	<key>NSScreenCaptureUsageDescription</key>

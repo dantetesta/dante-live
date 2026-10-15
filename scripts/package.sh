@@ -14,4 +14,4 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/
 hdiutil create -volname "Dante Live $VERSION" -srcfolder "$DANTE_BUILD_DIR/distribution-stage" -ov -format UDZO "dist/Dante-Live-$VERSION-local.dmg"
 hdiutil verify "dist/Dante-Live-$VERSION-local.dmg"
 shasum -a 256 "dist/Dante-Live-$VERSION-local.dmg" "dist/Dante-Live-$VERSION-source-preparation.zip" > dist/SHA256SUMS.txt
-echo 'Local ad hoc distribution prepared; not published or notarized.'
+echo 'Local distribution prepared; notarization status must be verified separately.'

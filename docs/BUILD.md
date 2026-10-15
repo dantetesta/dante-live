@@ -68,3 +68,7 @@ O fluxo atual recompila o aplicativo, a ponte e módulos modificados sobre runti
 ## Atualizador nativo
 
 O build baixa e verifica o SDK Sparkle 2.10.0 por hash fixado, incorpora somente framework/helpers de runtime e os assina com o app. Não exige a chave privada de publicação para compilar. A atualização interna fica desativada em execuções com `--validation-directory`. `test-app.sh` também testa a barreira de instalação e o catálogo. A chave privada Ed25519 é necessária somente para publicar um novo catálogo/DMG oficial. Veja [UPDATES.md](UPDATES.md).
+
+## Releases oficiais 0.1.8+
+
+Builds locais sem identidade continuam ad hoc. Para uma release oficial, configure `DANTE_SIGN_IDENTITY` com uma identidade Developer ID Application instalada e `DANTE_NOTARY_PROFILE` com um perfil local existente do notarytool. `scripts/release.sh` exige essas referências e notariza app/DMG antes de publicar. A chave privada e a credencial nunca são copiadas para o Git ou para o instalador. Forks usam credenciais próprias. Veja [NOTARIZATION.md](NOTARIZATION.md).

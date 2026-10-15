@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Release experimental atual: **0.1.7 (8)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
+Release experimental atual: **0.1.8 (9)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
@@ -18,7 +18,7 @@ Release experimental atual: **0.1.7 (8)**. Foco exclusivo em produção de lives
 | Outros destinos simultâneos | Fora da prioridade atual; não implementado |
 | Browser e câmera virtual | Pendentes; nenhum módulo Qt carregado |
 | Editor avançado | Propriedades em modal e drag-and-drop de camadas disponíveis; grupos, seleção múltipla e guias completas pendentes |
-| Distribuição | DMG experimental público, fontes e checksums; assinatura ad hoc, sem notarização |
+| Distribuição | DMG experimental público, fontes e checksums; Developer ID e notarização obrigatórios na release 0.1.8+ |
 
 ## Validação disponível
 
@@ -77,4 +77,8 @@ Atualizador nativo Sparkle 2.10.0, menu Verificar atualizações junto de Sobre 
 
 Catálogo em `updates/`, DMGs imutáveis em Releases e fontes correspondentes incluem Sparkle. A publicação verifica assets antes de enviar o catálogo. Instalação inicial da 0.1.7 é manual para quem tem versões anteriores. Assinatura ad hoc/notarização e demais pendências de hardware permanecem. Consulte UPDATES.md.
 
-Validação 0.1.7: build Universal 2, suíte Swift e 3 testes Python passaram. Harness nativo isolado mostrou changelog, baixou DMG assinado, substituiu o aplicativo e relançou build 2 após build 1, preservando projeto sintético. O operador interagiu com o popup durante o teste. Verificador oficial rejeitou feed/DMG adulterados e chave diferente. A tela final “já atualizado” não foi conferida visualmente por falha de acessibilidade após o reinício. Atualização entre duas releases públicas do Dante e máquina limpa permanecem pendentes.
+## Incremento 0.1.8
+
+Distribuição oficial com Developer ID, Hardened Runtime e timestamp seguro em todo o código nativo. App e DMG recebem tickets de notarização; publicador exige validação do Gatekeeper e dos tickets antes de atualizar Releases e catálogo. Credenciais continuam exclusivamente no Keychain local. Forks podem compilar localmente ou usar credenciais próprias. A chave pública Ed25519 e o bundle ID do Dante foram preservados. Nenhum recurso de gravação foi reintroduzido.
+
+Validação local 0.1.8: assinatura Developer ID/Hardened Runtime/timestamp seguro e mesmo Team ID em 35 componentes nativos; suíte Swift/Python passou, incluindo carregamento de previews/editor/libobs com library validation habilitada. A Apple aprovou o app sem issues; ticket anexado e Gatekeeper aprovado. O publicador exige também a aprovação e o ticket do DMG final. Não houve testes físicos de dispositivos, Intel ou sessões prolongadas nesta alteração.

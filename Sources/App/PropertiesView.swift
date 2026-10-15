@@ -4,6 +4,7 @@ import AppKit
 struct PropertyFields: View {
     let properties: [[String: Any]]
     @Binding var settings: [String: Any]
+    var onEdit: (Bool) -> Void = { _ in }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             ForEach(properties.filter { $0.flag("visible", true) }, id: \.entryName) { property in
@@ -15,11 +16,11 @@ struct PropertyFields: View {
         let key = p.string("name"), label = p.string("description", p.string("label", key))
         switch Int(p.number("type")) {
         case 1:
-            Toggle(label, isOn: Binding(get: { settings.flag(key) }, set: { settings[key] = $0 }))
+            Toggle(label, isOn: Binding(get: { settings.flag(key) }, set: { set(key, $0) }))
         case 2, 3:
             VStack(alignment: .leading, spacing: 4) {
                 Text(label).font(.caption).foregroundStyle(.secondary)
-                TextField(label, value: Binding<Double>(get: { settings.number(key) }, set: { settings[key] = min(p.number("max", Double.greatestFiniteMagnitude), max(p.number("min", -Double.greatestFiniteMagnitude), $0)) }), format: .number).textFieldStyle(.roundedBorder)
+                TextField(label, value: Binding<Double>(get: { settings.number(key) }, set: { set(key, min(p.number("max", Double.greatestFiniteMagnitude), max(p.number("min", -Double.greatestFiniteMagnitude), $0)), immediate: false) }), format: .number).textFieldStyle(.roundedBorder)
             }
         case 4:
             VStack(alignment: .leading, spacing: 4) {
@@ -40,7 +41,7 @@ struct PropertyFields: View {
             let options = p.array("items")
             VStack(alignment: .leading, spacing: 4) {
                 Text(label).font(.caption).foregroundStyle(.secondary)
-                Picker(label, selection: Binding(get: { optionIndex(options, value: settings[key]) }, set: { if options.indices.contains($0) { settings[key] = options[$0]["value"] } })) {
+                Picker(label, selection: Binding(get: { optionIndex(options, value: settings[key]) }, set: { if options.indices.contains($0) { set(key, options[$0]["value"] ?? "") } })) {
                     Text("Selecionar…").tag(-1)
                     ForEach(Array(options.enumerated()), id: \.offset) { index, option in
                         Text(option.string("name", option.string("label")).isEmpty ? "Selecionar…" : option.string("name", option.string("label")))
@@ -56,37 +57,41 @@ struct PropertyFields: View {
             }, set: { color in
                 let c = NSColor(color).usingColorSpace(.deviceRGB) ?? .white
                 let r = UInt32(c.redComponent * 255), g = UInt32(c.greenComponent * 255), b = UInt32(c.blueComponent * 255), a = UInt32(c.alphaComponent * 255)
-                settings[key] = NSNumber(value: r | (g << 8) | (b << 16) | (a << 24))
+                set(key, NSNumber(value: r | (g << 8) | (b << 16) | (a << 24)), immediate: false)
             }), supportsOpacity: p.number("type") == 13)
         case 9:
             VStack(alignment: .leading, spacing: 4) {
                 Text(label).font(.caption).foregroundStyle(.secondary)
-                TextField("Família da fonte", text: Binding(get: { settings.object(key).string("face", "Helvetica") }, set: { var font = settings.object(key); font["face"] = $0; settings[key] = font })).textFieldStyle(.roundedBorder)
-                TextField("Tamanho", value: Binding<Double>(get: { settings.object(key).number("size", 48) }, set: { var font = settings.object(key); font["size"] = max(1, $0); settings[key] = font }), format: .number).textFieldStyle(.roundedBorder)
+                TextField("Família da fonte", text: Binding(get: { settings.object(key).string("face", "Helvetica") }, set: { var font = settings.object(key); font["face"] = $0; set(key, font, immediate: false) })).textFieldStyle(.roundedBorder)
+                TextField("Tamanho", value: Binding<Double>(get: { settings.object(key).number("size", 48) }, set: { var font = settings.object(key); font["size"] = max(1, $0); set(key, font, immediate: false) }), format: .number).textFieldStyle(.roundedBorder)
             }
         case 10:
             VStack(alignment: .leading) {
                 Text(label).font(.caption)
                 ForEach(Array(settings.array(key).enumerated()), id: \.offset) { index, item in
-                    HStack { Text(item.string("value")).font(.caption).lineLimit(1); Spacer(); Button { var files = settings.array(key); files.remove(at: index); settings[key] = files } label: { Image(systemName: "minus.circle") } }
+                    HStack { Text(item.string("value")).font(.caption).lineLimit(1); Spacer(); Button { var files = settings.array(key); files.remove(at: index); set(key, files) } label: { Image(systemName: "minus.circle") } }
                 }
                 Button("Adicionar arquivos…") {
                     let panel = NSOpenPanel(); panel.allowsMultipleSelection = true
-                    if panel.runModal() == .OK { settings[key] = settings.array(key) + panel.urls.map { ["value": $0.path, "selected": false, "hidden": false] as [String: Any] } }
+                    if panel.runModal() == .OK { set(key, settings.array(key) + panel.urls.map { ["value": $0.path, "selected": false, "hidden": false] as [String: Any] }) }
                 }
             }
         case 12:
-            DisclosureGroup(label) { AnyView(PropertyFields(properties: p.array("children"), settings: $settings).padding(.top, 8)) }
+            DisclosureGroup(label) { AnyView(PropertyFields(properties: p.array("children"), settings: $settings, onEdit: onEdit).padding(.top, 8)) }
         case 8:
             Text("\(label): ação específica do módulo ainda não integrada.").font(.caption).foregroundStyle(.secondary)
         default:
             Text("\(label): configure no JSON avançado.").font(.caption).foregroundStyle(.secondary)
         }
     }
-    func text(_ key: String) -> Binding<String> { Binding(get: { settings.string(key) }, set: { settings[key] = $0 }) }
+    func set(_ key: String, _ value: Any, immediate: Bool = true) {
+        settings[key] = value
+        onEdit(immediate)
+    }
+    func text(_ key: String) -> Binding<String> { Binding(get: { settings.string(key) }, set: { set(key, $0, immediate: false) }) }
     func choosePath(_ key: String, directory: Bool) {
         let panel = NSOpenPanel(); panel.canChooseDirectories = directory; panel.canChooseFiles = !directory
-        if panel.runModal() == .OK, let url = panel.url { settings[key] = url.path }
+        if panel.runModal() == .OK, let url = panel.url { set(key, url.path) }
     }
     func optionIndex(_ options: [[String: Any]], value: Any?) -> Int {
         guard let value else { return -1 }
@@ -161,9 +166,12 @@ struct AddSourceView: View {
 
 struct InspectorView: View {
     @ObservedObject var model: StudioModel
+    var allowsSecondarySheets = true
     @LegacyState private var settings: [String: Any] = [:]
     @LegacyState private var properties: [[String: Any]] = []
     @LegacyState private var advanced = "{}"
+    @LegacyState private var loadedSource = ""
+    @StateObject private var edits = PropertyEditQueue()
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack { Text("PROPRIEDADES").font(.caption.weight(.bold)); Spacer(); Button { reload() } label: { Image(systemName: "arrow.clockwise") }.help("Atualizar propriedades") }.padding(12)
@@ -172,7 +180,7 @@ struct InspectorView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(item.string("name")).font(.headline)
-                        if isCameraSource(item.string("type")) {
+                        if allowsSecondarySheets && isCameraSource(item.string("type")) {
                             Button("Escolher câmera e visualizar…") {
                                 model.cameraSourceName = model.selectedName; model.showingCamera = true
                             }.buttonStyle(.borderedProminent)
@@ -203,22 +211,21 @@ struct InspectorView: View {
                                 Button("Ajustar ao canvas") { _ = model.command("item.fit", ["scene": model.sceneName, "id": item.sceneItemID]) }.disabled(item.flag("locked"))
                             }.padding(.top, 8)
                         }
-                        Button("Filtros (\(item.array("filters").count))") { model.showingFilters = true }
+                        if allowsSecondarySheets { Button("Filtros (\(item.array("filters").count))") { model.showingFilters = true } }
                         if item.flag("audio") { AudioAdvancedView(model: model, item: item) }
                         if item.number("mediaDuration") > 0 || item.string("type").contains("ffmpeg") {
                             HStack { Button("Reproduzir") { _ = model.command("media.play", ["name": model.selectedName], undo: false) }; Button("Pausar") { _ = model.command("media.pause", ["name": model.selectedName], undo: false) }; Button { _ = model.command("media.restart", ["name": model.selectedName], undo: false) } label: { Image(systemName: "backward.end") } }.controlSize(.small)
                         }
                         Divider()
-                        PropertyFields(properties: properties, settings: $settings)
-                        Button("Aplicar propriedades") {
-                            if model.command("source.update", ["name": model.selectedName, "settings": settings]) { reload() }
-                        }.buttonStyle(.borderedProminent)
+                        PropertyFields(properties: properties, settings: $settings, onEdit: applyChange)
+                        Text("Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary)
                         DisclosureGroup("JSON avançado") {
                             VStack {
                                 TextEditor(text: $advanced).font(.system(.caption, design: .monospaced)).frame(height: 150)
                                 Button("Aplicar JSON") {
                                     guard let data = advanced.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data), let dictionary = object as? [String: Any] else { model.error = "Informe um objeto JSON válido."; return }
-                                    if model.command("source.update", ["name": model.selectedName, "settings": dictionary]) { reload() }
+                                    edits.flush()
+                                    if model.command("source.update", ["name": loadedSource, "settings": dictionary]) { reload() }
                                 }
                             }
                         }
@@ -228,15 +235,41 @@ struct InspectorView: View {
                 ContentUnavailableView("Nenhuma fonte selecionada", systemImage: "cursorarrow", description: Text("Selecione no canvas ou na lista de fontes."))
                 Spacer()
             }
-        }.onChange(of: model.selectedName) { _, _ in reload() }.onChange(of: model.inspectorRevision) { _, _ in reload() }
-        .task(id: model.selectedName + jsonString(settings)) {
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled, !model.selectedName.isEmpty, let engine = model.engine else { return }
-            let result = jsonObject(copied(dante_engine_properties_with_settings(engine, model.selectedName, jsonString(settings))))
-            properties = result.array("properties")
+        }.onAppear(perform: reload)
+        .onChange(of: model.selectedName) { _, _ in reload() }
+        .onChange(of: model.inspectorRevision) { _, _ in
+            // The sheet's final edit must flush before its closing reload.
+            if allowsSecondarySheets || model.showingProperties { edits.cancel(); reload() }
+        }
+        .onDisappear {
+            edits.flush()
+            if !allowsSecondarySheets { model.inspectorRevision += 1 }
         }
     }
-    func reload() { let value = model.properties(); settings = value.object("settings"); properties = value.array("properties"); advanced = jsonString(settings) }
+    func applyChange(immediate: Bool) {
+        let name = loadedSource
+        guard !name.isEmpty, name == model.selectedName else { return }
+        let candidate = settings
+        edits.submit(immediate: immediate) {
+            guard model.scenes.contains(where: { $0.array("items").contains(where: { $0.string("name") == name }) }) else { return }
+            guard let engine = model.engine else { return }
+            let normalized = jsonObject(copied(dante_engine_properties_with_settings(engine, name, jsonString(candidate))))
+            let values = normalized.object("settings")
+            if model.command("source.update", ["name": name, "settings": values, "autoPlace": true]), loadedSource == name {
+                if immediate { settings = values }
+                let value = model.properties(name: name)
+                properties = value.array("properties")
+                // Keep typed values/caret stable; only update dependent choices.
+                advanced = jsonString(value.object("settings"))
+            }
+        }
+    }
+    func reload() {
+        edits.flush()
+        loadedSource = model.selectedName
+        let value = model.properties(name: loadedSource)
+        settings = value.object("settings"); properties = value.array("properties"); advanced = jsonString(settings)
+    }
     func transformLabel(_ key: String) -> String { ["x":"Posição X", "y":"Posição Y", "scaleX":"Escala X", "scaleY":"Escala Y", "rotation":"Rotação", "cropLeft":"Corte esquerdo", "cropTop":"Corte superior", "cropRight":"Corte direito", "cropBottom":"Corte inferior"][key] ?? key }
 }
 

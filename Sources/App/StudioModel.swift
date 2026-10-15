@@ -15,6 +15,7 @@ final class StudioModel: ObservableObject {
     @Published var showingOutput = false
     @Published var showingFilters = false
     @Published var showingCamera = false
+    @Published var showingProperties = false
     @Published var cameraSourceName = ""
     @Published var inspectorRevision = 0
     @Published var undoCount = 0
@@ -141,13 +142,13 @@ final class StudioModel: ObservableObject {
     func undo() {
         guard !active, let engine, let previous = undoStack.last else { return }
         let current = copied(dante_engine_save(engine))
-        if dante_engine_load(engine, previous) { undoStack.removeLast(); redoStack.append(current); updateHistory(); refresh(); scheduleSave() }
+        if dante_engine_load(engine, previous) { undoStack.removeLast(); redoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
     }
     func redo() {
         guard !active, let engine, let next = redoStack.last else { return }
         let current = copied(dante_engine_save(engine))
-        if dante_engine_load(engine, next) { redoStack.removeLast(); undoStack.append(current); updateHistory(); refresh(); scheduleSave() }
+        if dante_engine_load(engine, next) { redoStack.removeLast(); undoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
     }
     private func scheduleSave() {
@@ -195,7 +196,15 @@ final class StudioModel: ObservableObject {
     }
     func removeSelected() {
         guard let selectedItem else { return }
-        confirm("Remover a fonte desta cena?") { _ = command("source.remove", ["scene": sceneName, "id": selectedItem]) }
+        removeSource(id: selectedItem, scene: sceneName)
+    }
+    func removeSource(id: Int64, scene: String) {
+        confirm("Remover a fonte desta cena?") { _ = command("source.remove", ["scene": scene, "id": id]) }
+    }
+    func moveSources(in scene: String, ids: [Int64], from offsets: IndexSet, to destination: Int) {
+        guard scene == sceneName, ids == items.reversed().map(\.sceneItemID),
+              let reordered = SourceOrder.moving(ids, from: offsets, to: destination), reordered != ids else { return }
+        _ = command("scene.reorderSources", ["scene": scene, "ids": Array(reordered.reversed())])
     }
     func exportProject() {
         guard let engine else { return }

@@ -50,6 +50,13 @@ struct StudioView: View {
             model.cameraSourceName = ""; model.inspectorRevision += 1
         }) { CameraSetupView(model: model, sourceName: model.cameraSourceName) }
         .sheet(isPresented: $model.showingOutput) { OutputSettingsView(model: model) }
+        .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
+            VStack(spacing: 0) {
+                InspectorView(model: model, allowsSecondarySheets: false)
+                Divider()
+                HStack { Spacer(); Button("Fechar") { model.showingProperties = false }.keyboardShortcut(.cancelAction) }.padding(14)
+            }.frame(width: 480, height: 650)
+        }
         .sheet(isPresented: $model.showingFilters) { FilterView(model: model) }
         .alert("Dante Live", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) { Button("Entendi") { model.error = nil } } message: { Text(model.error ?? "") }
     }
@@ -110,27 +117,7 @@ struct StudioView: View {
                 Button { model.removeSelected() } label: { Image(systemName: "minus") }.disabled(model.selected == nil).help("Remover fonte")
             }.padding(12)
             if model.items.isEmpty { ContentUnavailableView("Sua cena começa aqui", systemImage: "rectangle.stack.badge.plus", description: Text("Adicione uma imagem, câmera, tela ou outra fonte.")) }
-            else {
-                List {
-                    ForEach(Array(model.items.reversed()), id: \.sceneItemID) { item in
-                        HStack(spacing: 8) {
-                            Image(systemName: iconForSource(item.string("type"))).foregroundStyle(.secondary)
-                            Text(item.string("name")).lineLimit(1)
-                            Spacer()
-                            Button { _ = model.command("item.visible", ["scene": model.sceneName, "id": item.sceneItemID, "value": !item.flag("visible", true)]) } label: { Image(systemName: item.flag("visible", true) ? "eye" : "eye.slash") }.buttonStyle(.plain).help("Visibilidade")
-                            Button { _ = model.command("item.locked", ["scene": model.sceneName, "id": item.sceneItemID, "value": !item.flag("locked")]) } label: { Image(systemName: item.flag("locked") ? "lock.fill" : "lock.open") }.buttonStyle(.plain).help("Bloquear transformação")
-                        }.padding(.vertical, 5).contentShape(Rectangle())
-                            .onTapGesture { model.selectedItem = item.sceneItemID; model.inspectorRevision += 1 }
-                            .listRowBackground(model.selectedItem == item.sceneItemID ? Color.teal.opacity(0.14) : Color.clear)
-                            .contextMenu {
-                                Button("Ajustar ao canvas") { _ = model.command("item.fit", ["scene": model.sceneName, "id": item.sceneItemID]) }
-                                Button("Trazer à frente") { _ = model.command("item.order", ["scene": model.sceneName, "id": item.sceneItemID, "index": model.items.count - 1]) }
-                                Button("Enviar ao fundo") { _ = model.command("item.order", ["scene": model.sceneName, "id": item.sceneItemID, "index": 0]) }
-                                Button("Renomear") { model.askName(title: "Renomear fonte", initial: item.string("name")) { _ = model.command("source.rename", ["name": item.string("name"), "newName": $0]) } }
-                            }
-                    }
-                }.listStyle(.plain)
-            }
+            else { SourceListView(model: model) }
         }
     }
     var statusBar: some View {
@@ -148,8 +135,8 @@ struct StudioView: View {
 }
 
 func iconForSource(_ type: String) -> String {
-    if type.contains("capture") { return type.contains("screen") ? "display" : "video" }
     if type.contains("audio") { return "mic" }
+    if type.contains("capture") { return type.contains("screen") || type.contains("display") || type.contains("window") ? "display" : "video" }
     if type.contains("image") { return "photo" }
     if type.contains("text") { return "textformat" }
     if type.contains("ffmpeg") { return "film" }

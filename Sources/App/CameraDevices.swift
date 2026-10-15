@@ -21,7 +21,7 @@ enum CameraDevices {
     static var authorizationMessage: String? {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized: return nil
-        case .notDetermined: return "A permissão de câmera será solicitada quando você clicar em Aplicar e visualizar."
+        case .notDetermined: return "A permissão de câmera será solicitada quando você selecionar uma câmera."
         case .denied: return "Acesso à câmera negado. Autorize o Dante Live em Ajustes do Sistema › Privacidade e Segurança › Câmera."
         case .restricted: return "O acesso à câmera está restrito pelas configurações deste Mac."
         @unknown default: return "Não foi possível determinar a permissão da câmera."

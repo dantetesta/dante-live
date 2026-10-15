@@ -7,6 +7,7 @@ struct CameraSetupView: View {
     @ObservedObject var model: StudioModel
     let sourceName: String
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var edits = PropertyEditQueue()
     @LegacyState private var devices: [CameraDeviceChoice] = []
     @LegacyState private var settings: [String: Any] = [:]
     @LegacyState private var properties: [[String: Any]] = []
@@ -51,7 +52,7 @@ struct CameraSetupView: View {
                         } else {
                             VStack(spacing: 10) {
                                 Image(systemName: "video").font(.largeTitle)
-                                Text("Escolha o dispositivo e clique em Aplicar e visualizar.")
+                                Text("Escolha o dispositivo para visualizar. As alterações são aplicadas automaticamente.")
                                     .multilineTextAlignment(.center).font(.callout)
                             }.padding(30).foregroundStyle(.white.opacity(0.8))
                         }
@@ -67,10 +68,10 @@ struct CameraSetupView: View {
                         Button("Fechar prévia") { previewEnabled = false }
                             .help("Fecha somente esta prévia; a fonte continua na cena.")
                     }
-                    Text("A prévia reutiliza a fonte da cena. Aplicar altera também a imagem usada na gravação ou transmissão.")
+                    Text("A prévia reutiliza a fonte da cena. Alterações são aplicadas também à gravação ou transmissão.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     if previewEnabled && !applied {
-                        Text("Há alterações pendentes. A prévia mantém a configuração já aplicada.")
+                        Text("Aguardando uma configuração válida para atualizar a câmera.")
                             .font(.caption).foregroundStyle(.orange)
                     }
                     if model.active {
@@ -90,23 +91,18 @@ struct CameraSetupView: View {
             if let message { Text(message).font(.callout).foregroundStyle(applied ? Color.secondary : Color.orange) }
             Divider()
             HStack {
-                Text("Selecionar opções não abre uma nova captura.").font(.caption).foregroundStyle(.secondary)
+                Text(applying ? "Aguardando permissão…" : "Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Fechar") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(applying ? "Aplicando…" : "Aplicar e visualizar") { apply() }
-                    .buttonStyle(.borderedProminent).disabled(applying || selectedDevice.isEmpty || missingDevice)
             }
         }.padding(24).frame(width: 830)
             .onAppear(perform: load)
-            .onDisappear { sheetActive = false; previewEnabled = false }
-            .task(id: applied) {
-                guard applied else { return }
-                try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled, applied, sheetActive else { return }
-                // OBS may normalize device_name/FPS asynchronously after Apply.
-                let current = model.properties(name: sourceName)
-                settings = current.object("settings"); properties = current.array("properties")
-            }
+            .onDisappear { edits.flush(); sheetActive = false; previewEnabled = false }
+    }
+
+    private func changed(immediate: Bool = true) {
+        applied = false
+        edits.submit(immediate: immediate) { apply() }
     }
 
     private var configuration: some View {
@@ -122,7 +118,7 @@ struct CameraSetupView: View {
                 settings["device_name"] = devices.first { $0.id == value }?.name ?? ""
                 settings["supported_format"] = ""
                 refreshOptions()
-                applied = false
+                changed()
             })) {
                 Text("Selecionar dispositivo…").tag("")
                 ForEach(devices) { Text($0.name).tag($0.id) }
@@ -135,7 +131,7 @@ struct CameraSetupView: View {
             }
             if !isFast {
                 Toggle("Usar resolução predefinida", isOn: Binding(get: { usePreset }, set: {
-                    settings["use_preset"] = $0; refreshOptions(); applied = false
+                    settings["use_preset"] = $0; refreshOptions(); changed()
                 }))
             }
             if usePreset {
@@ -145,7 +141,7 @@ struct CameraSetupView: View {
                 fpsFields
             }
             if properties.contains(where: { $0.string("name") == "enable_audio" }) || settings["enable_audio"] != nil {
-                Toggle("Incluir áudio do dispositivo", isOn: Binding(get: { settings.flag("enable_audio", true) }, set: { settings["enable_audio"] = $0; applied = false }))
+                Toggle("Incluir áudio do dispositivo", isOn: Binding(get: { settings.flag("enable_audio", true) }, set: { settings["enable_audio"] = $0; changed() }))
             }
             if width > 0 && height > 0, let sceneItem = model.items.first(where: { $0.string("name") == sourceName }) {
                 Button("Ajustar fonte ao canvas") {
@@ -160,7 +156,7 @@ struct CameraSetupView: View {
         return VStack(alignment: .leading, spacing: 5) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Picker(title, selection: Binding(get: { settings.string(key) }, set: {
-                settings[key] = $0; refreshOptions(); applied = false
+                settings[key] = $0; refreshOptions(); changed()
             })) {
                 Text("Selecionar…").tag("")
                 ForEach(Array(choices.enumerated()), id: \.offset) { _, option in
@@ -175,11 +171,11 @@ struct CameraSetupView: View {
             Text("Taxa de quadros (FPS)").font(.caption).foregroundStyle(.secondary)
             HStack {
                 TextField("Numerador", value: Binding(get: { Int(settings.object("frame_rate").number("numerator", 30)) }, set: {
-                    var fps = settings.object("frame_rate"); fps["numerator"] = max(1, min(240_000, $0)); settings["frame_rate"] = fps; applied = false
+                    var fps = settings.object("frame_rate"); fps["numerator"] = max(1, min(240_000, $0)); settings["frame_rate"] = fps; changed(immediate: false)
                 }), format: .number)
                 Text("/")
                 TextField("Denominador", value: Binding(get: { Int(settings.object("frame_rate").number("denominator", 1)) }, set: {
-                    var fps = settings.object("frame_rate"); fps["denominator"] = max(1, min(10_000, $0)); settings["frame_rate"] = fps; applied = false
+                    var fps = settings.object("frame_rate"); fps["denominator"] = max(1, min(10_000, $0)); settings["frame_rate"] = fps; changed(immediate: false)
                 }), format: .number)
             }.textFieldStyle(.roundedBorder)
             Text("Ex.: 30 / 1 ou 30000 / 1001. O valor precisa ser compatível com o formato selecionado.")
@@ -209,21 +205,29 @@ struct CameraSetupView: View {
         if settings.object("frame_rate").isEmpty { settings["frame_rate"] = ["numerator": 30, "denominator": 1] }
         refreshDevices()
         refreshOptions()
+        previewEnabled = !selectedDevice.isEmpty && width > 0 && height > 0
+        applied = previewEnabled
     }
     private func refreshOptions() {
         // Reviewed modern OBS callbacks enumerate lists only; no session updates.
         guard isModern, let engine = model.engine else { return }
         let value = jsonObject(copied(dante_engine_properties_with_settings(engine, sourceName, jsonString(settings))))
         properties = value.array("properties")
-        if usePreset {
-            let choices = options("preset").filter { !$0.flag("disabled") }
-            if !choices.contains(where: { $0.string("value") == settings.string("preset") }) {
-                settings["preset"] = choices.first?.string("value") ?? ""
-            }
+        let key = usePreset ? "preset" : "supported_format"
+        let choices = options(key).filter { !$0.flag("disabled") }
+        if !choices.contains(where: { $0.string("value") == settings.string(key) }) {
+            settings[key] = choices.first?.string("value") ?? ""
+            let updated = jsonObject(copied(dante_engine_properties_with_settings(engine, sourceName, jsonString(settings))))
+            properties = updated.array("properties")
         }
     }
     private func apply() {
         applied = false; message = nil
+        guard sheetActive, !missingDevice else { return }
+        if selectedDevice.isEmpty {
+            if model.command("source.update", ["name": sourceName, "settings": settings]) { previewEnabled = false; applied = true }
+            return
+        }
         let key = usePreset ? "preset" : "supported_format"
         guard options(key).contains(where: { !$0.flag("disabled") && $0.string("value") == settings.string(key) }) else {
             message = "Selecione uma resolução ou formato disponível para esta câmera."; return

@@ -41,9 +41,11 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.3** mantém a base funcional 0.1.1, em estágio experimental, com funcionalidades reais:
+A versão **0.1.4** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
-- Cenas e fontes com criação, duplicação, renomeação, ordenação, visibilidade e bloqueio.
+- Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
+- Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
+- Menu de contexto com propriedades em modal, filtros, renomear, ocultar, bloquear, transformar, ordenar e remover.
 - Preview, seleção de elementos, arrasto, redimensionamento proporcional, crop, rotação, ajuste ao canvas e centralização.
 - Integração de tela, janela, câmera, microfone, mídia, imagem, cor e texto por módulos selecionados da libobs; a validação varia por fonte e dispositivo.
 - Painel de câmera com dispositivos, presets, formato/FPS e prévia da fonte.
@@ -60,7 +62,7 @@ O envio ao YouTube pela conexão manual foi testado pelo mantenedor. Isso ainda 
 
 ### Produção mais simples
 
-Melhorar organização das fontes com drag-and-drop, propriedades em modal, painéis recolhíveis, grupos, seleção múltipla, alinhamento e atalhos. Persistir conexões e configurações de forma previsível, mantendo credenciais protegidas.
+Evoluir a organização das fontes com painéis recolhíveis, grupos, seleção múltipla, alinhamento e atalhos. A ordenação por arrasto e as propriedades em modal já estão disponíveis. Persistir conexões e configurações de forma previsível, mantendo credenciais protegidas.
 
 ### Convidados por link
 

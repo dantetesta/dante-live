@@ -505,6 +505,18 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
             if(!created)return fail(e,"Falha ao criar cena."); e->scenes.push_back(created); return true;
         }
         if(!scene)return fail(e,"Cena não encontrada.");
+        if([op isEqual:@"scene.reorderSources"]) {
+            NSArray *ids=a[@"ids"];
+            if(![ids isKindOfClass:NSArray.class])return fail(e,"Ordem de fontes inválida.");
+            std::vector<obs_sceneitem_t *> order;
+            for(id identifier in ids) {
+                if(![identifier isKindOfClass:NSNumber.class])return fail(e,"Identificador de fonte inválido.");
+                auto *item=obs_scene_find_sceneitem_by_id(scene,[identifier longLongValue]);
+                if(!item || std::find(order.begin(),order.end(),item)!=order.end())return fail(e,"A lista de fontes mudou. Tente arrastar novamente.");
+                order.push_back(item);
+            }
+            return obs_scene_reorder_items(scene,order.data(),order.size()) || fail(e,"Não foi possível reordenar as fontes.");
+        }
         if([op isEqual:@"scene.rename"]) {
             if(!uniqueName(a[@"name"]))return fail(e,"Escolha um nome de cena exclusivo.");
             obs_source_set_name(obs_scene_get_source(scene),[a[@"name"] UTF8String]);return true;

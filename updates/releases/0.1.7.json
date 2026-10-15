@@ -1,0 +1,15 @@
+{
+  "version": "0.1.7",
+  "build": 8,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.7/Dante-Live-0.1.7-macOS-universal.dmg",
+  "length": 47878161,
+  "sha256": "65427a4302a0bd9850f296477b117be064baaa6d1a045fd62984ad07108c5049",
+  "signature": "BwKQy2nUw3xtyFMWHR7JtZTo9/l6ELSAZ3GNqO4rlEo+OZNBFB8wSmxYTa3w+0CW0eTTSZehB6NHp6Z+MKgaBQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-15T22:54:11.413081+00:00",
+  "changelog": "## Novidades da 0.1.7\n\n- Verificar atualizações no menu Dante Live, ao lado de Sobre.\n- Aviso de nova versão ao abrir, com changelog e escolha de baixar/instalar.\n- Instalação pelo aplicativo e reinício automático após confirmação.\n- Proteção de transmissão, preparação, contagem regressiva e operações do YouTube. Atualização baixada aguarda uma retomada explícita se uma live estiver ativa.\n- Salvamento do projeto e rascunhos antes da instalação; erro de persistência impede o reinício para atualizar.\n- Catálogo e DMGs assinados com Ed25519; versões e novidades preservadas em updates/ e GitHub Releases.\n\n## Instalar esta primeira versão\n\nQuem usa 0.1.6 ou anterior precisa instalar a 0.1.7 uma vez pelo DMG: encerre o Dante após finalizar a live e arraste o aplicativo para Aplicativos. Não precisa desinstalar nem apagar projetos. As próximas versões poderão ser atualizadas por Dante Live → Verificar atualizações….\n\n## Verificação e limites\n\nBuild Universal 2, deployment target macOS 14.0. Testes Swift/Python cobrem barreiras de instalação, persistência e catálogo. Um aplicativo nativo isolado baixou um DMG assinado, foi substituído e reiniciou em nova versão, com arquivo de projeto sintético preservado. Alterações no catálogo/DMG e assinatura de outra chave foram rejeitadas. Não houve interrupção do OBS ou transmissão pública.\n\nRelease experimental, assinatura ad hoc, sem notarização Apple. Intel físico, macOS 14 real e máquina limpa continuam sem validação. Integração YouTube requer configuração OAuth própria; convidados por link ainda não estão disponíveis.\n"
+}

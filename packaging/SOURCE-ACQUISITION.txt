@@ -1,0 +1,53 @@
+DANTE LIVE — INTERNAL CORRESPONDING-SOURCE PREPARATION
+
+This recipe identifies upstream sources. It is not itself corresponding source,
+and the source-preparation ZIP must not be advertised as a compliant public
+GPL source distribution. No public binary release is performed by these scripts.
+
+1. Run scripts/fetch-reference.sh. It verifies these immutable commits:
+   OBS 32.2.2: ba2f32bdf791005443988a4955e963663e16b1ed
+   obs-deps 2026-07-15: 8683107a02300923abe4f293920f4b5edc8cb624
+   SIMDe 0.8.2: 71fd833d9666141edcd1d3c109a80e228303d8d7
+
+2. Run python3 packaging/source-inventory.py to regenerate the manifest from
+   the exact obs-deps recipes. It resolves per-macOS Git commits and tarball
+   SHA-256 checksums; it does not download large component sources.
+   Run with --download to fetch the identified sources into the isolated
+   vendor/corresponding-source directory. Git dependencies use an exact commit;
+   tarball bytes must pass their pinned SHA-256. Existing mismatched checkouts
+   are rejected. Source archives are downloaded without extraction.
+
+3. Preserve the OBS source and the complete pinned obs-deps recipe checkout,
+   including patches, checksums, .gitmodules, build tools and utilities. Apply
+   the platform-matching patches using the original recipes, retaining patch
+   hashes. The acquisition manifest lists source URLs and build recipe paths.
+   Preserve recursively required submodules at the commits selected by each
+   dependency. Include the Dante Live modified sources, generated build config,
+   build scripts, Info.plist, entitlement files and original icon generator.
+
+4. OBS CMakePresets.json pins prebuilt macos-universal obs-deps SHA-256:
+   4ecb4c598dfa853168df6c2a0c4e0ffec8495a81fbd1ba051ef88ecd5e0f7e53
+   Base URL: https://github.com/obsproject/obs-deps/releases/download/2026-07-15
+   Confirm the actual release asset filename and this digest if downloading it.
+   A prebuilt dependency archive is not a substitute for corresponding source.
+
+5. Before any public binary distribution, compare actual FFmpeg configure flags
+   and each packaged binary version with this inventory, audit static libraries
+   and additional transitive sources, and reproduce both architecture builds.
+   Record toolchain/SDK/compiler versions and patch application. Include all
+   license texts and notices, including GPLv3 because FFmpeg enables version3.
+   Provide the complete matching source through the same distribution channel.
+
+Local source modifications shipped by this build:
+   packaging/DanteRTMP.c + pinned OBS rtmp-custom.c replaces rtmp-services module.
+   packaging/patches/obs-outputs-connect-lifecycle.patch changes ownership of the
+   RTMP connection thread; scripts/build-outputs.sh applies it to an isolated
+   source copy and compiles Universal2 without modifying the upstream checkout.
+   Jansson static library comes from the pinned Universal2 obs-deps archive;
+   libcaption is built from the pinned OBS checkout. Include all of these
+   sources, this patch and both build scripts in the corresponding-source set.
+
+Current evidence: both architecture runtimes come from OBS 32.2.2; Intel release
+DMG digest was checked against GitHub release metadata. Dependency source recipes
+are pinned by that OBS tag. Full rebuild from these recipes, closure verification,
+and a complete public corresponding-source archive remain pending.

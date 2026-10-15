@@ -1,0 +1,145 @@
+--- a/rtmp-stream.c
++++ b/rtmp-stream.c
+@@ -100,17 +100,45 @@
+ 	return os_atomic_load_bool(&stream->disconnected);
+ }
+ 
++/* Connection threads remain joinable. Holding connect_mutex across join is
++ * safe: connect_thread never acquires it. This serializes stop, restart and
++ * destruction and prevents joining a detached/recycled pthread_t. */
++static bool join_connect_thread(struct rtmp_stream *stream)
++{
++	if (!stream->connect_mutex_initialized)
++		return true;
++	pthread_mutex_lock(&stream->connect_mutex);
++	bool ok = true;
++	if (stream->connect_thread_valid) {
++		if (pthread_equal(stream->connect_thread, pthread_self())) {
++			warn("Refusing to join the current RTMP connection thread");
++			ok = false;
++		} else {
++			int result = pthread_join(stream->connect_thread, NULL);
++			if (result == 0)
++				stream->connect_thread_valid = false;
++			else {
++				warn("Failed to join RTMP connection thread: %d", result);
++				ok = false;
++			}
++		}
++	}
++	pthread_mutex_unlock(&stream->connect_mutex);
++	return ok;
++}
++
+ static void rtmp_stream_destroy(void *data)
+ {
+ 	struct rtmp_stream *stream = data;
++
++	/* Never unload/free the module context while a connector is alive. */
++	if (!join_connect_thread(stream))
++		return;
+ 
+ 	if (stopping(stream) && !connecting(stream)) {
+ 		pthread_join(stream->send_thread, NULL);
+ 
+ 	} else if (connecting(stream) || active(stream)) {
+-		if (stream->connecting)
+-			pthread_join(stream->connect_thread, NULL);
+-
+ 		stream->stop_ts = 0;
+ 		os_event_signal(stream->stop_event);
+ 
+@@ -148,6 +176,8 @@
+ 
+ 	if (stream->write_buf)
+ 		bfree(stream->write_buf);
++	if (stream->connect_mutex_initialized)
++		pthread_mutex_destroy(&stream->connect_mutex);
+ 	bfree(stream);
+ }
+ 
+@@ -156,6 +186,12 @@
+ 	struct rtmp_stream *stream = bzalloc(sizeof(struct rtmp_stream));
+ 	stream->output = output;
+ 	pthread_mutex_init_value(&stream->packets_mutex);
++	pthread_mutex_init_value(&stream->connect_mutex);
++	if (pthread_mutex_init(&stream->connect_mutex, NULL) != 0) {
++		bfree(stream);
++		return NULL;
++	}
++	stream->connect_mutex_initialized = true;
+ 
+ 	RTMP_LogSetCallback(log_rtmp);
+ 	RTMP_LogSetLevel(RTMP_LOGWARNING);
+@@ -207,8 +243,8 @@
+ 	if (stopping(stream) && ts != 0)
+ 		return;
+ 
+-	if (connecting(stream))
+-		pthread_join(stream->connect_thread, NULL);
++	if (!join_connect_thread(stream))
++		return;
+ 
+ 	stream->stop_ts = ts / 1000ULL;
+ 
+@@ -1505,7 +1541,7 @@
+ 
+ 	if (!init_connect(stream)) {
+ 		obs_output_signal_stop(stream->output, OBS_OUTPUT_BAD_PATH);
+-		return NULL;
++		goto finished;
+ 	}
+ 
+ 	// HDR streaming disabled for AV1
+@@ -1518,7 +1554,7 @@
+ 
+ 			if (info->colorspace == VIDEO_CS_2100_HLG || info->colorspace == VIDEO_CS_2100_PQ) {
+ 				obs_output_signal_stop(stream->output, OBS_OUTPUT_HDR_DISABLED);
+-				return NULL;
++				goto finished;
+ 			}
+ 		}
+ 	}
+@@ -1530,9 +1566,8 @@
+ 		info("Connection to %s failed: %d", stream->path.array, ret);
+ 	}
+ 
+-	if (!stopping(stream))
+-		pthread_detach(stream->connect_thread);
+-
++finished:
++	/* Join ownership belongs to start/stop/destroy, including early failures. */
+ 	os_atomic_set_bool(&stream->connecting, false);
+ 	return NULL;
+ }
+@@ -1546,8 +1581,16 @@
+ 	if (!obs_output_initialize_encoders(stream->output, 0))
+ 		return false;
+ 
++	if (!join_connect_thread(stream))
++		return false;
++	pthread_mutex_lock(&stream->connect_mutex);
+ 	os_atomic_set_bool(&stream->connecting, true);
+-	return pthread_create(&stream->connect_thread, NULL, connect_thread, stream) == 0;
++	int result = pthread_create(&stream->connect_thread, NULL, connect_thread, stream);
++	stream->connect_thread_valid = result == 0;
++	if (result != 0)
++		os_atomic_set_bool(&stream->connecting, false);
++	pthread_mutex_unlock(&stream->connect_mutex);
++	return result == 0;
+ }
+ 
+ static inline bool add_packet(struct rtmp_stream *stream, struct encoder_packet *packet)
+--- a/rtmp-stream.h
++++ b/rtmp-stream.h
+@@ -69,6 +69,10 @@
+ 
+ 	volatile bool connecting;
+ 	pthread_t connect_thread;
++	/* Dante Live: one owner joins each joinable connection thread. */
++	pthread_mutex_t connect_mutex;
++	bool connect_mutex_initialized;
++	bool connect_thread_valid;
+ 
+ 	volatile bool active;
+ 	volatile bool disconnected;

@@ -1,0 +1,66 @@
+# Compilar e testar
+
+Este guia descreve o código atual: aplicativo desktop SwiftUI/AppKit com libobs e deployment target macOS 14.0. Não há projeto iOS neste repositório.
+
+## Pré-requisitos
+
+- Mac com as ferramentas de desenvolvimento Apple: `xcrun`, `swiftc`, `clang++`, `lipo`, `codesign`, SDK macOS e `iconutil`.
+- Git, Python 3, Bash e acesso à internet para obter referências fixadas.
+- OBS Studio **32.2.2 para Apple Silicon**, usado como origem de runtime. Por padrão, em `/Applications/OBS.app`; `OBS_APP` aceita um caminho alternativo. Não substitua uma instalação em uso: mantenha uma cópia isolada da versão exigida.
+- FFmpeg e ffprobe disponíveis no PATH para testes de gravação/áudio e RTMP local.
+- Espaço livre para os downloads, dependências e artefatos de compilação.
+
+O fluxo foi usado em Apple Silicon com Command Line Tools e Swift 6.4. A menor versão de compilador compatível ainda não foi determinada. Deployment target do aplicativo e versão do SDK/compilador são requisitos distintos.
+
+## Build
+
+```sh
+git clone https://github.com/dantetesta/dante-live.git
+cd dante-live
+env DANTE_BUILD_DIR=build/dev bash scripts/build.sh
+```
+
+Para uma origem OBS isolada:
+
+```sh
+env OBS_APP="/caminho/OBS.app" DANTE_BUILD_DIR=build/dev bash scripts/build.sh
+```
+
+O script obtém o código OBS 32.2.2 e dependências fixadas, prepara o runtime permitido, compila Swift/Objective-C++, recompila os módulos RTMP modificados, verifica dependências e assina o aplicativo localmente com assinatura ad hoc.
+
+Por padrão, compila `arm64` e `x86_64` e gera `build/dev/Dante Live.app`. A referência Intel é baixada pelo script com verificação de digest. Para um build de desenvolvimento apenas Apple Silicon, use `DANTE_ARCHS=arm64`; esse resultado não é Universal 2.
+
+Nunca compile sobre um bundle que esteja aberto. Use outro `DANTE_BUILD_DIR` durante uma transmissão.
+
+## Testes
+
+```sh
+env DANTE_BUILD_DIR=build/dev bash scripts/test-app.sh
+env DANTE_APP_PATH="$PWD/build/dev/Dante Live.app" DANTE_TEST_RTMP=1 bash scripts/test-engine.sh
+env DANTE_APP_PATH="$PWD/build/dev/Dante Live.app" bash scripts/test-placement.sh
+env DANTE_APP_PATH="$PWD/build/dev/Dante Live.app" bash scripts/test-cancellation.sh
+```
+
+Os testes usam diretórios isolados, fontes sintéticas e receptores locais. As portas 19350 e 19351 precisam estar livres. Não executam transmissão pública. Leia os exit codes e os resultados gerados em `evidence/runtime/`; esse diretório não deve ser publicado.
+
+As suítes cobrem persistência, geometria, presets, processo de medição com fixtures, composição, gravação, mixer, replay e cancelamento de conexão. Não substituem testes de câmera/microfone físicos, permissões, longas sessões, latência fim a fim ou execução em um Mac Intel.
+
+## Execução
+
+Abra o aplicativo compilado. Câmera, microfone e captura de tela exigem as permissões correspondentes. Use um projeto e dispositivos de teste; respeite equipamentos ocupados por uma live.
+
+Para um projeto isolado de validação, o executável aceita:
+
+```sh
+"build/dev/Dante Live.app/Contents/MacOS/DanteLive" --validation-directory "/caminho/absoluto/projeto-de-teste"
+```
+
+## Pacotes locais e limites
+
+```sh
+env DANTE_BUILD_DIR=build/dev bash scripts/package.sh
+```
+
+O empacotamento gera DMG local e um ZIP separado de preparação de fontes. O ZIP é explicitamente parcial: ainda não reúne toda a fonte correspondente de cada dependência binária. Não distribua esses artefatos como release pública até fechar esse trabalho.
+
+O fluxo atual recompila o aplicativo, a ponte e módulos modificados sobre runtimes oficiais do OBS. Ainda não reconstrói todas as dependências a partir das fontes nem promete reprodução bit a bit. A assinatura é ad hoc, sem Developer ID ou notarização.

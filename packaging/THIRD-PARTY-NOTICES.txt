@@ -1,0 +1,34 @@
+Dante Live 0.1.0 — componentes de terceiros
+
+OBS Studio / libobs / módulos OBS 32.2.2
+Copyright OBS Project contributors. GPL version 2 or later.
+Source: https://github.com/obsproject/obs-studio
+Pinned commit: ba2f32bdf791005443988a4955e963663e16b1ed
+GPL text and OBS authors are included alongside this notice.
+
+The runtime also contains FFmpeg (GPL version 3 build), x264 (GPL version 2 or later),
+FreeType (FreeType License / GPL version 2), Mbed TLS (Apache 2.0 or GPL 2.0+),
+SRT (MPL 2.0), and librist (BSD 2-Clause), as supplied by OBS Studio 32.2.2.
+Dependency build recipes: https://github.com/obsproject/obs-deps
+Recipes release 2026-07-15, commit 8683107a02300923abe4f293920f4b5edc8cb624.
+FFmpeg 8.1.2 commit 38b88335f99e76ed89ff3c93f877fdefce736c13;
+upstream configuration enables --enable-gpl and --enable-version3.
+Additional statically linked codec/filter libraries have notices in this folder.
+
+The obs-outputs plugin is rebuilt from the pinned OBS source with the Dante Live
+connection-thread ownership patch. Jansson 2.14.1 and libcaption (MIT) are linked
+into this plugin; their copyright/license notices are included. The custom-only
+rtmp-services plugin is also rebuilt without background service update code.
+
+SIMDe 0.8.2 (header-only integration dependency), MIT license.
+Source: https://github.com/simd-everywhere/simde
+Pinned commit: 71fd833d9666141edcd1d3c109a80e228303d8d7
+MIT license text is included alongside this notice.
+
+This build is for local development. Public distribution requires a complete
+corresponding-source bundle for every redistributed GPL component, confirmation
+of dependency revisions/build recipes, and complete third-party notices.
+The local source archive is preparation, not a declaration that the public
+distribution compliance review is complete.
+
+No affiliation with or endorsement by the OBS Project is implied.

@@ -61,6 +61,6 @@ Para um projeto isolado de validação, o executável aceita:
 env DANTE_BUILD_DIR=build/dev bash scripts/package.sh
 ```
 
-O empacotamento gera DMG local e um ZIP separado de preparação de fontes. O ZIP é explicitamente parcial: ainda não reúne toda a fonte correspondente de cada dependência binária. Não distribua esses artefatos como release pública até fechar esse trabalho.
+O empacotamento gera DMG local e um ZIP separado de preparação de fontes. O ZIP é explicitamente parcial: ainda não reúne toda a fonte correspondente de cada dependência binária. As releases públicas usam outro ZIP, completo com as fontes fixadas e descrito em [RELEASING.md](RELEASING.md).
 
 O fluxo atual recompila o aplicativo, a ponte e módulos modificados sobre runtimes oficiais do OBS. Ainda não reconstrói todas as dependências a partir das fontes nem promete reprodução bit a bit. A assinatura é ad hoc, sem Developer ID ou notarização.

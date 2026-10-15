@@ -8,7 +8,7 @@ O código do Dante Live é disponibilizado sob GNU GPL versão 2 ou posterior. P
 | SIMDe | v0.8.2, commit `71fd833d9666141edcd1d3c109a80e228303d8d7`; licença MIT |
 | obs-deps | 2026-07-15, commit `8683107a02300923abe4f293920f4b5edc8cb624`; receitas e avisos de dependências |
 | FFmpeg, x264 e bibliotecas de codecs | Runtime oficial da referência OBS; composição e opções do build precisam ser consideradas no inventário de redistribuição |
-| FreeType/fontconfig | Renderização de texto e descoberta de fontes |
+| FreeType/CoreText | Renderização de texto; descoberta de fontes pelo sistema Apple |
 | RNNoise/SpeexDSP | Processamento de áudio nos módulos disponíveis |
 | Frameworks Apple | SwiftUI, AppKit, AVFoundation, Metal, ScreenCaptureKit, Core Audio, VideoToolbox e Security |
 
@@ -20,8 +20,10 @@ O módulo RTMP manual é recompilado sem o atualizador de catálogo de serviços
 
 ## Publicação de código e distribuição binária
 
-Este repositório contém o código local, as receitas e as referências de dependências. Os runtimes de terceiros são obtidos separadamente. A publicação deste repositório não significa que a coleta integral da fonte correspondente de cada biblioteca binária já esteja concluída.
+Cada release binária inclui um ZIP separado com as fontes Dante, OBS, SIMDe, receitas obs-deps e 18 dependências fixadas, incluindo submódulos necessários. `SOURCE-MANIFEST.json` registra commits, URLs, hashes e destinos de extração. O DMG contém apenas runtime e avisos legais.
 
-Antes de distribuir aplicativos/instaladores, é necessário fechar o inventário de fontes, versões, flags, patches e licenças que corresponda exatamente aos binários entregues. O ZIP gerado por `scripts/package.sh` é preparação parcial, identificado como tal. Não o apresente como cumprimento integral desse trabalho.
+Na versão 0.1.3, as 14 bibliotecas dinâmicas de terceiros correspondem aos UUIDs do SDK obs-deps fixado nas duas arquiteturas. O FFmpeg reportou n8.1.2, GPLv3 ou posterior e as opções de codecs previstas nas receitas. O conjunto binário inclui componentes GPLv3 ou posterior; o código próprio Dante permanece GPLv2 ou posterior. As licenças individuais são preservadas.
+
+O aplicativo e módulos modificados foram recompilados. A reconstrução integral de todas as dependências e a reprodução bit a bit **não foram executadas**. Receitas, patches, fontes e instruções estão no ZIP; `packaging/SOURCE-ACQUISITION.txt` descreve o procedimento e seus limites. O ZIP antigo `source-preparation` continua parcial e não é publicado nas releases.
 
 Browser CEF, plugins profissionais e câmera virtual ainda exigem implementação e análise próprias. Não há promessa de compatibilidade com todos os plugins do OBS.

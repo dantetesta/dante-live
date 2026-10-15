@@ -1,4 +1,4 @@
-Dante Live 0.1.0 — componentes de terceiros
+Dante Live 0.1.3 — componentes de terceiros
 
 OBS Studio / libobs / módulos OBS 32.2.2
 Copyright OBS Project contributors. GPL version 2 or later.
@@ -25,10 +25,14 @@ Source: https://github.com/simd-everywhere/simde
 Pinned commit: 71fd833d9666141edcd1d3c109a80e228303d8d7
 MIT license text is included alongside this notice.
 
-This build is for local development. Public distribution requires a complete
-corresponding-source bundle for every redistributed GPL component, confirmation
-of dependency revisions/build recipes, and complete third-party notices.
-The local source archive is preparation, not a declaration that the public
-distribution compliance review is complete.
+Corresponding source, pinned dependency archives and build recipes accompany each
+public release at https://github.com/dantetesta/dante-live/releases .
+The combined binary includes GPL version 3 or later components. Dante's own
+sources remain GPL version 2 or later; other components retain their licenses.
+The complete dependency rebuild has not been performed locally; builds reuse
+verified OBS runtime binaries and rebuild the Dante application and modified modules.
+
+Uthash 2.3.0, Khronos platform headers and NetSurf libnsgif are also included
+in the upstream engine. Their notices accompany this file.
 
 No affiliation with or endorsement by the OBS Project is implied.

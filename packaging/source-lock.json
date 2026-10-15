@@ -1,5 +1,5 @@
 {
-  "status": "internal source preparation; closure/rebuild pending",
+  "status": "pinned source acquisition; full dependency rebuild not performed",
   "obs_deps_commit": "8683107a02300923abe4f293920f4b5edc8cb624",
   "components": [
     {
@@ -137,6 +137,14 @@
       "git_commit": "085d8f484af6141b1b88281a4043fb9215cead01",
       "recipe": "deps.macos/70-rnnoise.zsh",
       "recipe_sha256": "c015c162a1d9d35657a60c4621662e3c7be5599dbc0c4cb6459d2b3b71923e85"
+    },
+    {
+      "name": "uthash",
+      "version": "2.3.0",
+      "url": "https://github.com/troydhanson/uthash.git",
+      "git_commit": "e493aa90a2833b4655927598f169c31cfcdf7861",
+      "recipe": "deps.macos/80-uthash.zsh",
+      "recipe_sha256": "40d26755bd30c24448ce6a3e88576789a8dafd06241f0eea82caad3d96f3a2da"
     }
   ]
 }

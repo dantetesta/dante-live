@@ -9,7 +9,7 @@ if subprocess.check_output(['git','-C',str(deps),'rev-parse','HEAD'],text=True).
 names = ['deps.ffmpeg/'+name+'.zsh' for name in (
     '20-libpng','20-opus','30-libogg','30-libvorbis','30-libvpx','40-aom','40-x264',
     '50-libtheora','60-lame','60-mbedtls','60-srt','70-librist','99-ffmpeg')]
-names += ['deps.macos/'+name+'.zsh' for name in ('10-speexdsp','30-jansson','60-freetype','70-rnnoise')]
+names += ['deps.macos/'+name+'.zsh' for name in ('10-speexdsp','30-jansson','60-freetype','70-rnnoise','80-uthash')]
 records = []
 for name in names:
     path = deps/name
@@ -33,7 +33,7 @@ for name in names:
         raise SystemExit('Invalid fixed hash for '+name)
     records.append({'name':field('name'),'version':field('version'),'url':field('url'),
                     kind:revision,'recipe':name,'recipe_sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
-manifest = {'status':'internal source preparation; closure/rebuild pending','obs_deps_commit':expected,'components':records}
+manifest = {'status':'pinned source acquisition; full dependency rebuild not performed','obs_deps_commit':expected,'components':records}
 (root/'packaging/source-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(f'Pinned {len(records)} source components; full static closure still requires binary/build verification.')
 if '--download' not in sys.argv: raise SystemExit(0)

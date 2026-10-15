@@ -6,6 +6,13 @@
 
 Cenas, captura, áudio, gravação e transmissão ao vivo — com interface própria em Swift e o motor audiovisual do OBS Studio.
 
+<!-- current-download:start -->
+[![Baixar Dante Live para Mac](https://img.shields.io/badge/BAIXAR_PARA_MAC-v0.1.3-18B7C7?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dantetesta/dante-live/releases/download/v0.1.3/Dante-Live-0.1.3-macOS-universal.dmg)
+
+**macOS 14+ · Apple Silicon e Intel · Universal 2**
+Versão experimental **0.1.3**. Assinatura local (ad hoc), sem notarização Apple. [Notas e fontes](https://github.com/dantetesta/dante-live/releases/tag/v0.1.3).
+<!-- current-download:end -->
+
 [Começar pelo código](docs/BUILD.md) · [Estado do projeto](docs/STATUS.md) · [Contribuir](CONTRIBUTING.md) · [Propor uma melhoria](https://github.com/dantetesta/dante-live/issues)
 
 </div>
@@ -34,7 +41,7 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-O build local **0.1.2** recompila a base funcional 0.1.1, em estágio experimental, com funcionalidades reais:
+A versão **0.1.3** mantém a base funcional 0.1.1, em estágio experimental, com funcionalidades reais:
 
 - Cenas e fontes com criação, duplicação, renomeação, ordenação, visibilidade e bloqueio.
 - Preview, seleção de elementos, arrasto, redimensionamento proporcional, crop, rotação, ajuste ao canvas e centralização.
@@ -102,7 +109,11 @@ Mais detalhes em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Estado de distribuição
 
-Este repositório publica o código do projeto para colaboração. **Ainda não há instalador estável publicado.** Os pacotes de desenvolvimento têm assinatura ad hoc, sem notarização. Testes prolongados, compatibilidade física Intel/macOS 14 e a preparação integral da fonte correspondente das dependências binárias continuam pendentes.
+O botão no topo baixa o **DMG experimental corrente**. Abra o DMG, arraste Dante Live para Aplicativos e execute-o quando os dispositivos estiverem disponíveis. Se o macOS bloquear a abertura por falta de notarização, use **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo Assim**, após conferir a origem do download. Não desative o Gatekeeper globalmente.
+
+As [Releases](https://github.com/dantetesta/dante-live/releases) incluem o instalador, fontes correspondentes com dependências fixadas e SHA-256. A assinatura é **ad hoc**, sem Developer ID ou notarização. Testes prolongados e compatibilidade física Intel/macOS 14 permanecem pendentes. Os builds não substituem o OBS instalado.
+
+Para mantenedores: `scripts/release.sh` compila, testa, empacota e publica uma versão experimental com fontes e checksums; o botão é atualizado para a versão publicada. Veja [RELEASING.md](docs/RELEASING.md).
 
 ## Licença e créditos
 

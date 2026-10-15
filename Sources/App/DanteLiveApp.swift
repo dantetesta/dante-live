@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         model.refresh()
         if model.active {
             let alert = NSAlert(); alert.messageText = "Há saídas ativas no Dante Live"
-            alert.informativeText = "Pare a gravação, transmissão e replay e aguarde a finalização antes de sair."
+            alert.informativeText = "Pare a transmissão e aguarde a finalização antes de sair."
             alert.addButton(withTitle: "Voltar ao estúdio"); alert.runModal(); return .terminateCancel
         }
         // Destroy native displays while the engine remains alive.

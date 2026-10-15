@@ -3,105 +3,102 @@ import AppKit
 
 struct OutputSettingsView: View {
     @ObservedObject var model: StudioModel
+    @ObservedObject var settings: LiveSettingsModel
     @Environment(\.dismiss) var dismiss
-    @LegacyState private var server = "rtmp://127.0.0.1:1935/live"
-    @LegacyState private var key = ""
-    @LegacyState private var encoder = ""
-    @LegacyState private var bitrate = 14000
-    @LegacyState private var audioBitrate = 128
-    @LegacyState private var remember = false
-    @LegacyState private var replaySeconds = 20
-    @LegacyState private var width = 1920
-    @LegacyState private var height = 1080
-    @LegacyState private var fps = 30
+    @LegacyState private var tab = "quality"
+    init(model: StudioModel) { self.model = model; settings = model.liveSettings }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Saídas de produção").font(.title2.bold())
-            Form {
-                LiveSetupView(model: model, width: $width, height: $height, fps: $fps, bitrate: $bitrate, audioBitrate: $audioBitrate, encoder: $encoder)
-                Section("Vídeo do projeto") {
-                    HStack { TextField("Largura", value: $width, format: .number); Text("×"); TextField("Altura", value: $height, format: .number) }
-                    Picker("Quadros por segundo", selection: $fps) { Text("24 FPS").tag(24); Text("30 FPS").tag(30); Text("60 FPS").tag(60) }
-                    Button("Aplicar resolução e FPS") {
-                        _ = model.command("video.configure", ["width": width, "height": height, "fps": fps])
-                    }.disabled(model.active)
-                    Text("Altere o vídeo com as saídas paradas. As posições das fontes são preservadas.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Transmissão RTMP / RTMPS") {
-                    TextField("Servidor", text: $server)
-                    SecureField("Chave", text: $key)
-                    Toggle("Guardar a chave no Acesso às Chaves", isOn: $remember)
-                    Button("Ler chave salva") { do { key = try SecretStore.read(account: server) } catch { model.error = error.localizedDescription } }
-                }
-                Section("Codificação H.264") {
-                    Picker("Encoder", selection: $encoder) {
-                        ForEach(model.catalog.array("encoders").filter { $0.string("codec") == "h264" }, id: \.entryID) { entry in
-                            Text(entry.string("name") + (entry.flag("hardware") ? " • hardware disponível" : "")).tag(entry.string("id"))
-                        }
-                    }
-                    TextField("Bitrate (kbps)", value: $bitrate, format: .number)
-                    Picker("Áudio AAC", selection: $audioBitrate) {
-                        ForEach([128,160,192,256,320], id: \.self) { value in Text("\(value) kbps").tag(value) }
-                    }
-                    Text("Canvas atual: \(Int(model.canvasWidth)) × \(Int(model.canvasHeight)), \(Int(model.state.number("fps", 30))) FPS, SDR Rec.709. Áudio estéreo 48 kHz, trilha 1. Gravação MKV.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Replay buffer") {
-                    Stepper("\(replaySeconds) segundos", value: $replaySeconds, in: 5...120, step: 5)
-                    HStack {
-                        if model.replaying {
-                            Button("Salvar replay") { _ = model.command("replay.save", undo: false) }
-                            Button("Parar buffer") { _ = model.command("replay.stop", undo: false) }
-                        } else {
-                            Button("Iniciar buffer…") {
-                                let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-                                guard panel.runModal() == .OK, let url = panel.url else { return }
-                                saveConfiguration()
-                                _ = model.command("replay.start", ["directory": url.path, "seconds": replaySeconds, "encoder": encoder, "bitrate": bitrate, "audioBitrate": audioBitrate], undo: false)
-                            }
-                        }
-                    }
-                }
-                Section("Estado real das saídas") {
-                    ForEach(["recording", "stream", "replay"], id: \.self) { name in
-                        let output = model.state.object("outputs").object(name)
-                        HStack { Text(["recording": "Gravação", "stream": "Transmissão", "replay": "Replay"][name] ?? name); Spacer(); Text(output.flag("reconnecting") ? "Reconectando" : output.flag("stopping") ? "Finalizando" : output.flag("started") ? "Ativa" : output.flag("starting") || output.flag("active") ? "Iniciando" : "Parada") }
-                        if !output.string("error").isEmpty { Text(output.string("error")).foregroundStyle(.red).font(.caption) }
-                        if output.flag("active") { Text("\(Int(output.number("frames"))) quadros • \(Int(output.number("dropped"))) descartados • hardware \(output.flag("hardwareConfirmed") ? "confirmado" : "não confirmado")").font(.caption).monospacedDigit() }
-                    }
-                }
-            }.formStyle(.grouped).frame(width: 620, height: 540)
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Button("Fechar") { dismiss() }; Spacer()
-                Button("Gravar com estas opções…") {
-                    let panel = NSSavePanel(); panel.nameFieldStringValue = "Dante-\(Int(Date().timeIntervalSince1970)).mkv"
-                    guard panel.runModal() == .OK, let url = panel.url else { return }
-                    let path = url.pathExtension == "mkv" ? url.path : url.path + ".mkv"
-                    saveConfiguration()
-                    if model.command("recording.start", ["path": path, "encoder": encoder, "bitrate": bitrate, "audioBitrate": audioBitrate], undo: false) { dismiss() }
-                }.disabled(model.recording)
-                Button("Iniciar transmissão") {
-                    model.confirm("Iniciar transmissão para este servidor?") {
-                        do {
-                            if remember { try SecretStore.save(key, account: server) }
-                            saveConfiguration()
-                            if model.command("stream.start", ["server": server, "key": key, "encoder": encoder, "bitrate": bitrate, "audioBitrate": audioBitrate], undo: false) { key = ""; dismiss() }
-                        } catch { model.error = error.localizedDescription }
-                    }
-                }.buttonStyle(.borderedProminent).disabled(model.streaming || encoder.isEmpty)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Configurações da live").font(.title2.bold())
+                    Text("Suas alterações são salvas automaticamente neste Mac.").foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "antenna.radiowaves.left.and.right").font(.title).foregroundStyle(.teal)
             }
-        }.padding(24).onAppear {
-            let saved = model.outputConfiguration
-            encoder = model.catalog.array("encoders").contains { $0.string("id") == saved.encoder } ? saved.encoder : model.catalog.string("defaultEncoder")
-            bitrate = saved.bitrate; audioBitrate = saved.audioBitrate
-            width = Int(model.canvasWidth); height = Int(model.canvasHeight); fps = Int(model.state.number("fps", 30))
-        }
+            TabView(selection: $tab) {
+                LiveSetupView(model: model, settings: settings).tabItem { Label("Qualidade", systemImage: "slider.horizontal.3") }.tag("quality")
+                videoTab.tabItem { Label("Vídeo e áudio", systemImage: "video") }.tag("video")
+                connectionTab.tabItem { Label("Conexão", systemImage: "network") }.tag("connection")
+                statusTab.tabItem { Label("Diagnóstico", systemImage: "waveform.path.ecg") }.tag("status")
+            }
+            if let problem = settings.problem { Text(problem).font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
+            if model.active {
+                Text("Live ativa: novos ajustes ficam salvos para a próxima transmissão.").font(.caption).foregroundStyle(.orange)
+            } else if settings.pendingVideo {
+                Text("Resolução/FPS salvos diferem do canvas atual; serão aplicados antes de iniciar a live.").font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                Label(settings.status, systemImage: "internaldrive").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Fechar") { settings.flush(); dismiss() }.keyboardShortcut(.cancelAction)
+
+            }
+        }.padding(24).frame(width: 760, height: 640)
+        .onAppear { settings.loadKey() }
+        .onDisappear { settings.flush() }
     }
-    private func saveConfiguration() {
-        guard (100...200000).contains(bitrate), [128,160,192,256,320].contains(audioBitrate) else { return }
-        model.outputConfiguration.bitrate = bitrate
-        model.outputConfiguration.audioBitrate = audioBitrate
-        model.outputConfiguration.encoder = encoder
-        model.outputConfiguration.save()
+    private var videoTab: some View {
+        Form {
+            Section("Resolução e movimento") {
+                TextField("Largura", value: videoBinding(\.width), format: .number)
+                TextField("Altura", value: videoBinding(\.height), format: .number)
+                Picker("Quadros por segundo", selection: videoBinding(\.fps, immediate: true)) {
+                    ForEach(Array(Set([24,30,60,settings.video.fps])).sorted(), id: \.self) { Text("\($0) FPS").tag($0) }
+                }
+                Text("Alterar estes campos cria um ajuste personalizado. Você pode salvá-lo com um nome na aba Qualidade.").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Codificação H.264") {
+                Picker("Encoder", selection: videoBinding(\.encoder, immediate: true)) {
+                    if !model.catalog.array("encoders").contains(where: { $0.string("id") == settings.video.encoder }) {
+                        Text("Encoder salvo indisponível • escolha outro").tag(settings.video.encoder)
+                    }
+                    ForEach(model.catalog.array("encoders").filter { $0.string("codec") == "h264" }, id: \.entryID) { entry in
+                        Text(entry.string("name")).tag(entry.string("id"))
+                    }
+                }
+                TextField("Bitrate de vídeo (kbps)", value: videoBinding(\.bitrate), format: .number)
+                Picker("Áudio AAC", selection: videoBinding(\.audioBitrate, immediate: true)) {
+                    ForEach([128,160,192,256,320], id: \.self) { Text("\($0) kbps").tag($0) }
+                }
+                Text("SDR Rec.709 • áudio estéreo 48 kHz. O uso efetivo do encoder de hardware é confirmado após iniciar a transmissão.").font(.caption).foregroundStyle(.secondary)
+            }
+        }.formStyle(.grouped)
+    }
+    private var connectionTab: some View {
+        Form {
+            Section("Transmissão RTMP / RTMPS") {
+                TextField("Servidor", text: Binding(get: { settings.document.server }, set: { value in settings.edit({ $0.server = value }) }))
+                SecureField("Chave de transmissão", text: Binding(get: { settings.key }, set: { settings.editKey($0) }))
+                Toggle("Salvar chave no Acesso às Chaves", isOn: Binding(get: { settings.document.rememberKey }, set: { settings.rememberKey($0) }))
+                Text(settings.document.rememberKey ? "A chave é guardada automaticamente no Acesso às Chaves. Ela não é incluída no projeto nem nos presets." : "A chave será usada apenas nesta sessão. Ao desativar, a cópia salva por esta conexão é removida do Acesso às Chaves.").font(.caption).foregroundStyle(.secondary)
+                Button("Tentar ler a chave salva") { settings.loadKey() }
+            }
+            Section("YouTube") {
+                Text("Use o servidor e a chave fornecidos pelo YouTube Studio. Título, descrição, capa, visibilidade e latência são configurados no YouTube.")
+                Text("Salvar configurações não inicia a transmissão. Use Iniciar transmissão quando estiver pronto.").font(.caption).foregroundStyle(.secondary)
+            }
+        }.formStyle(.grouped)
+    }
+    private var statusTab: some View {
+        Form {
+            let output = model.state.object("outputs").object("stream")
+            Section("Transmissão") {
+                LabeledContent("Estado", value: output.flag("reconnecting") ? "Reconectando" : output.flag("stopping") ? "Finalizando" : output.flag("started") ? "Ao vivo" : output.flag("starting") || output.flag("active") ? "Iniciando" : "Parada")
+                LabeledContent("Canvas atual", value: "\(Int(model.canvasWidth)) × \(Int(model.canvasHeight)) • \(Int(model.state.number("fps", 30))) FPS")
+                if !output.string("error").isEmpty { Text(output.string("error")).foregroundStyle(.red) }
+                if output.flag("active") {
+                    LabeledContent("Quadros", value: "\(Int(output.number("frames")))")
+                    LabeledContent("Descartados", value: "\(Int(output.number("dropped")))")
+                    LabeledContent("Hardware", value: output.flag("hardwareConfirmed") ? "Confirmado" : "Não confirmado")
+                }
+            }
+        }.formStyle(.grouped)
+    }
+    private func videoBinding<T>(_ path: WritableKeyPath<LiveVideoSettings, T>, immediate: Bool = false) -> Binding<T> {
+        Binding(get: { settings.video[keyPath: path] }, set: { settings.editVideo(path, $0, immediate: immediate) })
     }
 }
 

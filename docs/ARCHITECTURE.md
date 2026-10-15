@@ -10,7 +10,7 @@ flowchart TD
     Bridge --> OBS[libobs e módulos selecionados]
     OBS --> Preview[Preview e programa]
     OBS --> Audio[Mixer e filtros]
-    OBS --> Outputs[Gravação MKV / RTMP / replay]
+    OBS --> Outputs[Transmissão RTMP/RTMPS]
 ```
 
 ## Interface e estado
@@ -33,10 +33,16 @@ Encoders e fontes são enumerados em execução. Disponibilidade de encoder de h
 
 O projeto é salvo em JSON versionado com substituição atômica, cópia anterior e recuperação. Os dados são independentes dos perfis do OBS. Credenciais inline em propriedades não são aceitas. A chave RTMP pode ser armazenada no Keychain, mas o cadastro de conexões e a restauração automática do servidor ainda estão incompletos.
 
-As saídas atuais usam H.264/AAC, gravação MKV, transmissão manual RTMP/RTMPS e replay. O patch em `packaging/patches/` corrige o ciclo de conexão/parada RTMP da referência. Apenas o serviço RTMP manual é incluído, sem o atualizador automático de catálogo.
+O produto transmite H.264/AAC por RTMP/RTMPS manual. Gravação de arquivos e replay foram retirados da aplicação; comandos desses recursos são recusados pelo modelo. O patch em `packaging/patches/` corrige o ciclo de conexão/parada RTMP da referência. Apenas o serviço RTMP manual é incluído, sem o atualizador automático de catálogo.
 
 ## Próxima integração: convidados
 
 O fluxo solicitado prevê convite temporário, escolha de nome/câmera/microfone/tela no navegador e fontes separadas no editor. A conexão deve tentar o caminho direto e usar TURN quando necessário. Retorno de áudio sem a própria voz, reconexão, autenticação do convite e consumo de infraestrutura fazem parte da aceitação.
 
 Essa integração ainda não está disponível neste snapshot. WebRTC não muda a interface principal do Dante para uma página web: o navegador é o cliente do convidado.
+
+## Configuração e segurança da live
+
+LiveSettingsModel mantém as preferências e presets nomeados em documento JSON com escrita atômica e validação. Segredos usam LiveKeyVault/Keychain; não fazem parte dos presets ou do JSON. Arquivo ilegível não é sobrescrito. Edições de vídeo durante uma transmissão só são aplicadas na próxima saída. LiveCountdown controla início cancelável 3–2–1; o estado Ao vivo vem do motor, não do término da contagem.
+
+MicrophoneSilenceWatch recebe amostras de fontes elegíveis e timestamps monotônicos de sinal. O callback libobs só atualiza valores atômicos; a interface verifica a janela de 30 segundos e mostra aviso local até a recuperação. Silêncio digital após filtros também pode gerar aviso; não se afirma diagnóstico físico da bateria.

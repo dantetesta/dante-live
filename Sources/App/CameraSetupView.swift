@@ -68,7 +68,7 @@ struct CameraSetupView: View {
                         Button("Fechar prévia") { previewEnabled = false }
                             .help("Fecha somente esta prévia; a fonte continua na cena.")
                     }
-                    Text("A prévia reutiliza a fonte da cena. Alterações são aplicadas também à gravação ou transmissão.")
+                    Text("A prévia reutiliza a fonte da cena. Alterações são aplicadas também à transmissão.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     if previewEnabled && !applied {
                         Text("Aguardando uma configuração válida para atualizar a câmera.")

@@ -7,6 +7,7 @@
 #include <graphics/matrix4.h>
 #include <graphics/graphics.h>
 #include <util/base.h>
+#include <util/platform.h>
 #include <atomic>
 #include <algorithm>
 #include <cmath>
@@ -51,7 +52,7 @@ static bool hardwareEncoder(const char *id) {
     }
     CFRelease(values);return hardware;
 }
-struct Meter { obs_volmeter_t *meter = nullptr; std::atomic<float> level{-96.0f}; };
+struct Meter { obs_volmeter_t *meter = nullptr; std::atomic<float> level{-96.0f}; std::atomic<uint64_t> lastSignalNS{0}; };
 struct Output {
     obs_output_t *output = nullptr;
     obs_encoder_t *video = nullptr;
@@ -95,9 +96,12 @@ static bool registeredType(NSString *name,enum obs_source_type expected) {
         if([name isEqual:S(id)])return true;
     return false;
 }
-static void meterCallback(void *data, const float *, const float *peak, const float *) {
+static void meterCallback(void *data, const float *, const float *peak, const float *inputPeak) {
     auto *m = static_cast<Meter *>(data);
     float level = std::max(peak[0], peak[1]);
+    // Timestamp signal in the audio callback so brief sound between UI polls is retained.
+    // No allocations, locks, file IO or UI work here. Input peak is before the volume fader.
+    if (std::max(inputPeak[0], inputPeak[1]) > -90.f) m->lastSignalNS.store(os_gettime_ns(), std::memory_order_relaxed);
     m->level.store(std::isfinite(level) ? std::max(-96.f, level) : -96.f, std::memory_order_relaxed);
 }
 static Meter *ensureMeter(dante_engine *e, obs_source_t *source) {
@@ -440,6 +444,7 @@ static bool itemState(obs_scene_t *,obs_sceneitem_t *item,void *data) {
     for(int index=0;index<4;index++){vec3 point,transformed;vec3_set(&point,cornerXY[index][0],cornerXY[index][1],0);vec3_transform(&transformed,&point,&box);
         [corners addObject:@[@(transformed.x),@(transformed.y)]];}
     auto *meter=ensureMeter(ctx->engine,source);
+    const uint64_t lastSignal = meter ? meter->lastSignalNS.load(std::memory_order_relaxed) : 0;
     NSMutableArray *filters=[NSMutableArray array];
     obs_source_enum_filters(source,[](obs_source_t *,obs_source_t *filter,void *p){
         [(__bridge NSMutableArray*)p addObject:@{@"name":S(obs_source_get_name(filter)),@"type":S(obs_source_get_id(filter)),@"enabled":@(obs_source_enabled(filter))}];
@@ -449,6 +454,8 @@ static bool itemState(obs_scene_t *,obs_sceneitem_t *item,void *data) {
         @"rotation":@(obs_sceneitem_get_rot(item)),@"visible":@(obs_sceneitem_visible(item)),@"locked":@(obs_sceneitem_locked(item)),
         @"boxCorners":corners,@"boundsType":@(obs_sceneitem_get_bounds_type(item)),@"pendingPlacement":@(pendingPlacement),@"awaitingVideo":@((obs_source_get_output_flags(source)&OBS_SOURCE_VIDEO) && (!obs_source_get_width(source)||!obs_source_get_height(source))),
         @"cropLeft":@(crop.left),@"cropRight":@(crop.right),@"cropTop":@(crop.top),@"cropBottom":@(crop.bottom),
+        @"sourceUUID":S(obs_source_get_uuid(source)),@"sourceActive":@(obs_source_active(source)),
+        @"signalAge":@(lastSignal ? double(os_gettime_ns()-lastSignal)/1e9 : -1.0),
         @"volume":@(obs_source_get_volume(source)),@"muted":@(obs_source_muted(source)),@"audio":@((obs_source_get_output_flags(source)&OBS_SOURCE_AUDIO)!=0),
         @"level":@(meter ? meter->level.load() : -96.f),@"syncMS":@(obs_source_get_sync_offset(source)/1000000),
         @"tracks":@(obs_source_get_audio_mixers(source)),@"monitoring":@(obs_source_get_monitoring_type(source)),@"filters":filters,

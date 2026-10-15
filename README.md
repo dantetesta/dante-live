@@ -4,7 +4,7 @@
 
 **Um estúdio de produção audiovisual com experiência nativa de Mac.**
 
-Cenas, captura, áudio, gravação e transmissão ao vivo — com interface própria em Swift e o motor audiovisual do OBS Studio.
+Cenas, captura, áudio e transmissão ao vivo — com interface própria em Swift e o motor audiovisual do OBS Studio.
 
 <!-- current-download:start -->
 [![Baixar Dante Live para Mac](https://img.shields.io/badge/BAIXAR_PARA_MAC-v0.1.4-18B7C7?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dantetesta/dante-live/releases/download/v0.1.4/Dante-Live-0.1.4-macOS-universal.dmg)
@@ -41,7 +41,7 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.4** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.5** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
 - Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
@@ -50,19 +50,23 @@ A versão **0.1.4** amplia a base funcional, em estágio experimental, com funci
 - Integração de tela, janela, câmera, microfone, mídia, imagem, cor e texto por módulos selecionados da libobs; a validação varia por fonte e dispositivo.
 - Painel de câmera com dispositivos, presets, formato/FPS e prévia da fonte.
 - Mixer com volume, mute, medidores e filtros disponíveis no catálogo real.
-- Modo estúdio, corte/fade, gravação MKV, transmissão manual RTMP/RTMPS e replay buffer.
+- Modo estúdio, corte/fade e transmissão manual RTMP/RTMPS, com início pelo estúdio e contagem regressiva cancelável.
+- Configurações da live em abas, autosave, presets automáticos e presets personalizados com nome.
+- Alerta visual de microfone sem sinal por 30 segundos durante a live, com recuperação automática e controle por fonte.
 - Presets de **1080p, 1440p/QHD e 2160p/4K**, com 30/60 FPS e configuração de bitrate orientada pelo upload.
-- Projeto JSON com salvamento atômico, cópia anterior e recuperação; chave RTMP opcional no Keychain.
+- Projeto JSON com salvamento atômico, cópia anterior e recuperação; conexão RTMP persistente, chave opcional no Keychain.
+
+O produto é focado em lives: gravação de arquivos e replay buffer foram retirados da aplicação. A captura de tela continua disponível como fonte para transmissão.
 
 O envio ao YouTube pela conexão manual foi testado pelo mantenedor. Isso ainda não inclui login Google nem edição de título, descrição, capa ou visibilidade pelo aplicativo.
 
-**Há limitações conhecidas:** a URL RTMP ainda não é restaurada automaticamente; não existem conexões nomeadas; há relato de lag no preview/modo estúdio; o editor avançado e a cobertura de dispositivos estão incompletos. Consulte o [estado detalhado](docs/STATUS.md).
+**Há limitações conhecidas:** ainda não existem múltiplas conexões nomeadas; há relato de lag no preview/modo estúdio; o editor avançado e a cobertura de dispositivos estão incompletos. Consulte o [estado detalhado](docs/STATUS.md).
 
 ## Para onde queremos levar o projeto
 
 ### Produção mais simples
 
-Evoluir a organização das fontes com painéis recolhíveis, grupos, seleção múltipla, alinhamento e atalhos. A ordenação por arrasto e as propriedades em modal já estão disponíveis. Persistir conexões e configurações de forma previsível, mantendo credenciais protegidas.
+Evoluir a organização das fontes com painéis recolhíveis, grupos, seleção múltipla, alinhamento e atalhos. A ordenação por arrasto e as propriedades em modal já estão disponíveis. Evoluir a conexão persistente para múltiplos canais nomeados, mantendo credenciais protegidas.
 
 ### Convidados por link
 

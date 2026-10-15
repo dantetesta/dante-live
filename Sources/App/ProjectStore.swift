@@ -74,6 +74,11 @@ enum SecretStore {
             guard added == errSecSuccess else { throw StudioError.message("Não foi possível guardar a chave no Acesso às Chaves (\(added)).") }
         } else if result != errSecSuccess { throw StudioError.message("Acesso às Chaves indisponível (\(result)).") }
     }
+    static func delete(account: String) throws {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        let result = SecItemDelete(query as CFDictionary)
+        guard result == errSecSuccess || result == errSecItemNotFound else { throw StudioError.message("Não foi possível remover a chave do Acesso às Chaves (\(result)).") }
+    }
     static func read(account: String) throws -> String {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account, kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
         var item: CFTypeRef?

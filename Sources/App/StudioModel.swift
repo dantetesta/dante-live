@@ -21,6 +21,10 @@ final class StudioModel: ObservableObject {
     @Published var undoCount = 0
     @Published var redoCount = 0
     @Published var outputConfiguration = OutputConfiguration.load()
+    let countdown = LiveCountdown()
+    @Published var microphoneWarnings: [String] = []
+    private var silenceWatch = MicrophoneSilenceWatch()
+    lazy var liveSettings = LiveSettingsModel(model: self)
     var engine: OpaquePointer?
     private var timer: Timer?
     private var saveTask: Task<Void, Never>?
@@ -80,6 +84,7 @@ final class StudioModel: ObservableObject {
         } catch { preserveFailedProject = true; self.error = error.localizedDescription }
         refresh()
         if scenes.isEmpty { _ = command("scene.create", ["name": "Cena principal"], undo: false) }
+        _ = liveSettings
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refresh() }
         }
@@ -100,8 +105,8 @@ final class StudioModel: ObservableObject {
         for key in ["recording", "stream", "replay"] {
             let output = state.object("outputs").object(key)
             let code = Int(output.number("code"))
-            if output.flag("started"), outputStartedAt[key] == nil { outputStartedAt[key] = Date() }
-            if !output.flag("active") { outputStartedAt[key] = nil }
+            if output.flag("started"), outputStartedAt[key] == nil { outputStartedAt[key] = Date(); if key == "stream" { notice = "Ao vivo • transmissão iniciada" } }
+            if !output.flag("active") { if key == "stream", outputStartedAt[key] != nil { notice = "Transmissão encerrada" }; outputStartedAt[key] = nil }
             if code != 0, reportedOutputFailures[key] != code {
                 reportedOutputFailures[key] = code
                 let label = ["recording": "Gravação", "stream": "Transmissão", "replay": "Replay"][key] ?? key
@@ -109,7 +114,44 @@ final class StudioModel: ObservableObject {
                 error = "\(label) interrompida (código \(code)). " + (message.isEmpty ? "Verifique disco, encoder e conexão nas configurações de saída." : message)
             } else if code == 0 { reportedOutputFailures[key] = nil }
         }
+        let uniqueAudio = Dictionary(scenes.flatMap { $0.array("items") }.filter { $0.flag("audio") }.map { ($0.string("sourceUUID", $0.string("name")), $0) }, uniquingKeysWith: { first, _ in first })
+        let samples = uniqueAudio.map { id, source in
+            MicrophoneSample(id: id, name: source.string("name"), enabled: liveSettings.document.microphoneAlerts && watchesMicrophone(source) && source.flag("sourceActive") && !source.flag("muted") && source.number("volume", 1) > 0 && Int(source.number("tracks", 1)) & 1 != 0 && Int(source.number("monitoring")) != 1, signalAge: source.number("signalAge", -1) >= 0 ? source.number("signalAge") : nil)
+        }
+        let warnings = silenceWatch.update(samples, live: state.object("outputs").object("stream").flag("started"), now: ProcessInfo.processInfo.systemUptime)
+        if warnings != microphoneWarnings { microphoneWarnings = warnings }
         if let id = selectedItem, !items.contains(where: { $0.sceneItemID == id }) { selectedItem = nil }
+    }
+    func watchesMicrophone(_ source: [String: Any]) -> Bool {
+        liveSettings.document.audioWatchOverrides[source.string("sourceUUID", source.string("name"))] ?? source.string("type").contains("coreaudio_input")
+    }
+    func setMicrophoneWatch(_ source: [String: Any], enabled: Bool) {
+        let id = source.string("sourceUUID", source.string("name"))
+        liveSettings.edit({ $0.audioWatchOverrides[id] = enabled }, immediate: true)
+        refresh()
+    }
+    func beginLive() {
+        guard !active, countdown.remaining == nil else { return }
+        liveSettings.loadKey()
+        guard liveSettings.prepareStream() else { showingOutput = true; return }
+        confirm("Iniciar a live após a contagem de 3 segundos?") { [weak self] in
+            guard let self, !self.active else { return }
+            self.countdown.start { [weak self] in
+                guard let self, !self.active else { return }
+                guard self.liveSettings.prepareStream() else { self.showingOutput = true; return }
+                let v = self.liveSettings.video
+                if self.command("stream.start", ["server": self.liveSettings.document.server, "key": self.liveSettings.key, "encoder": v.encoder, "bitrate": v.bitrate, "audioBitrate": v.audioBitrate], undo: false) {
+                    self.notice = "Conectando ao servidor…"
+                }
+            }
+        }
+    }
+    var streamStatus: String {
+        let output = state.object("outputs").object("stream")
+        if output.flag("stopping") { return "FINALIZANDO" }
+        if output.flag("reconnecting") { return "RECONECTANDO" }
+        if output.flag("started") { return "AO VIVO \(duration("stream"))" }
+        return "CONECTANDO"
     }
     func duration(_ key: String) -> String {
         guard let start = outputStartedAt[key] else { return "00:00:00" }
@@ -118,6 +160,7 @@ final class StudioModel: ObservableObject {
     }
 
     @discardableResult func command(_ operation: String, _ arguments: [String: Any] = [:], undo: Bool = true) -> Bool {
+        guard !operation.hasPrefix("recording."), !operation.hasPrefix("replay.") else { error = "O Dante Live é dedicado a transmissões ao vivo."; return false }
         guard let engine else { error = "O motor audiovisual não está disponível."; return false }
         guard JSONSerialization.isValidJSONObject(arguments) else { error = "Há um valor inválido nas propriedades. Informe números finitos e um objeto JSON válido."; return false }
         if operation.hasPrefix("source.") || operation.hasPrefix("filter.") {
@@ -190,7 +233,7 @@ final class StudioModel: ObservableObject {
     }
     func confirm(_ message: String, action: () -> Void) {
         let alert = NSAlert(); alert.messageText = message
-        alert.informativeText = active ? "Há uma saída ativa. Esta alteração pode afetar a gravação ou transmissão." : "Esta ação altera o projeto atual."
+        alert.informativeText = active ? "Há uma saída ativa. Esta alteração pode afetar a transmissão." : "Esta ação altera o projeto atual."
         alert.addButton(withTitle: "Confirmar"); alert.addButton(withTitle: "Cancelar")
         if alert.runModal() == .alertFirstButtonReturn { action() }
     }
@@ -228,14 +271,6 @@ final class StudioModel: ObservableObject {
             preserveFailedProject = false; pushUndo(snapshot); refresh(); save(); notice = "Coleção aberta; arquivo original preservado"
         } catch { self.error = error.localizedDescription }
     }
-    func startRecording() {
-        let panel = NSSavePanel(); panel.nameFieldStringValue = "Dante Live \(Date().formatted(.iso8601).replacingOccurrences(of: ":", with: "-" )).mkv"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let path = url.pathExtension.lowercased() == "mkv" ? url.path : url.path + ".mkv"
-        if command("recording.start", ["path": path, "bitrate": outputConfiguration.bitrate,
-            "encoder": outputConfiguration.encoder, "audioBitrate": outputConfiguration.audioBitrate], undo: false) { notice = "Gravação iniciada • MKV" }
-    }
-    func stopRecording() { confirm("Finalizar a gravação?") { _ = command("recording.stop", undo: false) } }
     func requestPermission(for type: String, completion: @escaping () -> Void) {
         let media: AVMediaType? = type.contains("av_capture") || type.contains("avcapture") ? .video : type.contains("coreaudio_input") ? .audio : nil
         if let media, AVCaptureDevice.authorizationStatus(for: media) == .notDetermined {
@@ -250,6 +285,7 @@ final class StudioModel: ObservableObject {
         completion()
     }
     func shutdown() {
+        countdown.cancel(); liveSettings.flush()
         timer?.invalidate(); timer = nil; saveTask?.cancel(); save()
         if let engine { dante_engine_destroy(engine); self.engine = nil }
     }

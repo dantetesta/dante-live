@@ -6,6 +6,18 @@ struct StudioView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
+            CountdownBanner(countdown: model.countdown)
+            if !model.microphoneWarnings.isEmpty {
+                HStack(spacing: 12) {
+                    Image(systemName: "mic.slash.fill").font(.title2)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("ATENÇÃO • MICROFONE SEM ÁUDIO").font(.headline)
+                        Text(model.microphoneWarnings.joined(separator: ", ") + " • sem sinal há pelo menos 30 segundos. Confira bateria, conexão e dispositivo.")
+                    }
+                    Spacer()
+                }.padding(14).foregroundStyle(.white).background(Color.red)
+                .accessibilityElement(children: .combine)
+            }
             Divider()
             HSplitView {
                 sceneSidebar.frame(minWidth: 170, idealWidth: 205, maxWidth: 320)
@@ -68,13 +80,11 @@ struct StudioView: View {
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active).help("Desfazer ⌘Z")
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active).help("Refazer ⇧⌘Z")
-            Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações de saída")
-            Button { model.recording ? model.stopRecording() : model.startRecording() } label: {
-                Label(model.recording ? "Parar gravação" : "Gravar", systemImage: model.recording ? "stop.circle.fill" : "record.circle")
-            }.tint(model.recording ? .red : .teal)
+            Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
+
             Button {
                 if model.streaming { model.confirm("Encerrar transmissão?") { _ = model.command("stream.stop", undo: false) } }
-                else { model.showingOutput = true }
+                else { model.beginLive() }
             } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent)
         }.padding(.horizontal, 16).padding(.vertical, 12)
     }
@@ -125,8 +135,7 @@ struct StudioView: View {
             Circle().fill(model.engine == nil ? Color.red : Color.green).frame(width: 6, height: 6)
             Text(model.notice).lineLimit(1)
             Spacer()
-            if model.recording { Label("REC \(model.duration("recording"))", systemImage: "record.circle.fill").foregroundStyle(.red).monospacedDigit() }
-            if model.streaming { Label(model.state.object("outputs").object("stream").flag("started") ? "AO VIVO \(model.duration("stream"))" : "CONECTANDO / FINALIZANDO", systemImage: "dot.radiowaves.left.and.right").foregroundStyle(.red).monospacedDigit() }
+            if model.streaming { Label(model.streamStatus, systemImage: "dot.radiowaves.left.and.right").foregroundStyle(.red).monospacedDigit() }
             Text(String(format: "%.1f FPS", model.state.object("stats").number("activeFPS"))).monospacedDigit()
             Text("Render: \(Int(model.state.object("stats").number("renderSkipped"))) perdidos").monospacedDigit()
             Text(model.state.string("backend", "libobs"))
@@ -154,6 +163,8 @@ struct MixerView: View {
                     ForEach(channels, id: \.entryName) { channel in
                         VStack(spacing: 5) {
                             HStack { Text(channel.string("name")).lineLimit(1); Spacer(); Text(channel.flag("muted") ? "MUDO" : String(format: "%.1f dB", 20 * log10(max(0.00001, channel.number("volume", 1))))).font(.caption.monospaced()) }
+                            Toggle("Alertar se ficar sem sinal por 30 s", isOn: Binding(get: { model.watchesMicrophone(channel) }, set: { model.setMicrophoneWatch(channel, enabled: $0) }))
+                                .toggleStyle(.checkbox).font(.caption)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 2).fill(.secondary.opacity(0.15))
@@ -169,6 +180,19 @@ struct MixerView: View {
                     if channels.isEmpty { Text("Adicione um microfone ou uma fonte com áudio para usar o mixer.").font(.caption).foregroundStyle(.secondary).padding(.vertical, 20) }
                 }.padding(.horizontal, 12)
             }
+        }
+    }
+}
+
+struct CountdownBanner: View {
+    @ObservedObject var countdown: LiveCountdown
+    var body: some View {
+        if let remaining = countdown.remaining {
+            HStack {
+                Text("A live começa em \(remaining)…").font(.title2.bold()).monospacedDigit()
+                Spacer()
+                Button("Cancelar início") { countdown.cancel() }
+            }.padding(16).background(Color.teal.opacity(0.15))
         }
     }
 }

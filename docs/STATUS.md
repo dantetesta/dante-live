@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Build local atual: **0.1.2 (3)**, recompilação da base 0.1.1 com atalho Aplicativos no DMG. Não acrescenta convidados nem novas funcionalidades de edição. O objetivo é um estúdio audiovisual nativo, com evolução em direção à cobertura funcional do OBS para Mac. Equivalência completa ainda não foi atingida.
+Release experimental atual: **0.1.3 (4)**, base 0.1.1 com distribuição pública, fontes correspondentes e atalho Aplicativos no DMG. Não acrescenta convidados nem novas funcionalidades de edição. O objetivo é um estúdio audiovisual nativo, com evolução em direção à cobertura funcional do OBS para Mac. Equivalência completa ainda não foi atingida.
 
 | Área | Estado atual |
 |---|---|
@@ -18,7 +18,7 @@ Build local atual: **0.1.2 (3)**, recompilação da base 0.1.1 com atalho Aplica
 | Outros destinos simultâneos | Fora da prioridade atual; não implementado |
 | Browser e câmera virtual | Pendentes; nenhum módulo Qt carregado |
 | Editor avançado | Grupos, seleção múltipla, guias completas, modal genérico e drag-and-drop de camadas pendentes |
-| Distribuição | Scripts locais; sem release pública de instalador/notarização |
+| Distribuição | DMG experimental público, fontes e checksums; assinatura ad hoc, sem notarização |
 
 ## Validação disponível
 

@@ -45,11 +45,16 @@ with tempfile.TemporaryDirectory(prefix='dante-release-') as tmp:
         '-R',repo,'--target',head,'--draft','--prerelease',
         '--title',f'Dante Live {version} — macOS (experimental)',
         '--notes-file',str(args.notes.resolve())],check=True,cwd=root)
-    metadata=json.loads(run('gh','api',f'repos/{repo}/releases/tags/{tag}'))
+    # A draft has no published tag URL yet; resolve it through the authenticated list.
+    releases=json.loads(run('gh','api',f'repos/{repo}/releases?per_page=100'))
+    matches=[r for r in releases if r['tag_name']==tag and r['draft'] and r['target_commitish']==head]
+    if len(matches)!=1: raise SystemExit('Cannot uniquely identify the uploaded draft')
+    metadata=matches[0]
     actual={a['name']:a.get('digest') for a in metadata['assets']}
     if actual!={name:'sha256:'+sha for name,sha in expected.items()}:
         raise SystemExit('Uploaded asset digests differ; release remains draft')
-    run('gh','release','edit',tag,'-R',repo,'--draft=false','--prerelease')
+    run('gh','api','--method','PATCH',f'repos/{repo}/releases/{metadata["id"]}',
+        '-F','draft=false','-F','prerelease=true')
 url=f'https://github.com/{repo}/releases/download/{tag}/Dante-Live-{version}-macOS-universal.dmg'
 readme=root/'README.md'
 text=readme.read_text()

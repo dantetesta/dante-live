@@ -1,4 +1,4 @@
-Dante Live 0.1.6 — componentes de terceiros
+Dante Live 0.1.7 — componentes de terceiros
 
 OBS Studio / libobs / módulos OBS 32.2.2
 Copyright OBS Project contributors. GPL version 2 or later.
@@ -36,3 +36,6 @@ Uthash 2.3.0, Khronos platform headers and NetSurf libnsgif are also included
 in the upstream engine. Their notices accompany this file.
 
 No affiliation with or endorsement by the OBS Project is implied.
+
+Sparkle 2.10.0 (https://sparkle-project.org): macOS update framework.
+See Sparkle-LICENSE.txt for its BSD/MIT and third-party notices.

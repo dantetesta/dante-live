@@ -48,6 +48,8 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
             ('obs-deps',lock['obs_deps_commit'],'https://github.com/obsproject/obs-deps'),
             ('simde','71fd833d9666141edcd1d3c109a80e228303d8d7','https://github.com/simd-everywhere/simde')]:
             tree(root/'vendor'/name,name,commit,url)
+        sparkle = json.loads((root/'packaging/sparkle-lock.json').read_text())
+        tree(root/'vendor/sparkle-source', 'Sparkle', sparkle['source_commit'], 'https://github.com/sparkle-project/Sparkle')
         for record in lock['components']:
             name=record['name']; base=root/'vendor/corresponding-source'
             if 'git_commit' in record:

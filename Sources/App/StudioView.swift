@@ -10,6 +10,7 @@ struct StudioView: View {
             topBar
             CountdownBanner(countdown: model.countdown)
             YouTubeStatusBanner(youtube: model.youtube)
+            if let message = model.pendingUpdateMessage { Label(message, systemImage: "arrow.down.circle.fill").font(.callout).frame(maxWidth: .infinity, alignment: .leading).padding(12).background(Color.orange.opacity(0.15)) }
             if !model.microphoneWarnings.isEmpty {
                 HStack(spacing: 12) {
                     Image(systemName: "mic.slash.fill").font(.title2)
@@ -91,7 +92,7 @@ struct StudioView: View {
             Button {
                 if model.streaming { model.confirm("Encerrar transmissão?") { model.endLive() } }
                 else { model.beginLive() }
-            } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive)
+            } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive || model.updateInstalling)
         }.padding(.horizontal, 16).padding(.vertical, 12)
     }
     private func collapsedSidebar(title: String, icon: String, action: @escaping () -> Void) -> some View {

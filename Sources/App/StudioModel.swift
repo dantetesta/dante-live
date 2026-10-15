@@ -29,6 +29,9 @@ final class StudioModel: ObservableObject {
     lazy var youtube = YouTubeModel(directory: projectDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Dante Live"))
     @Published var pendingLive: LiveLaunch?
     @Published var preparingLive = false
+    @Published var updateInstalling = false
+    @Published var pendingUpdateMessage: String?
+    var liveOperationInProgress: Bool { active || preparingLive || countdown.remaining != nil || pendingLive != nil || youtube.busy }
     private var launchTask: Task<Void, Never>?
     var engine: OpaquePointer?
     private var timer: Timer?
@@ -136,7 +139,7 @@ final class StudioModel: ObservableObject {
         refresh()
     }
     func beginLive() {
-        guard !active, !preparingLive, countdown.remaining == nil else { return }
+        guard !active, !preparingLive, !updateInstalling, countdown.remaining == nil else { return }
         if liveSettings.document.youtubeMode == true {
             guard liveSettings.prepareVideo() else { outputTab = "video"; showingOutput = true; return }
             preparingLive = true
@@ -153,7 +156,7 @@ final class StudioModel: ObservableObject {
     }
     func confirmLive(_ selection: LiveLaunch) {
         pendingLive = nil
-        guard !active, !preparingLive, liveSettings.prepareVideo() else { return }
+        guard !active, !preparingLive, !updateInstalling, liveSettings.prepareVideo() else { return }
         preparingLive = true
         let video = liveSettings.video
         launchTask = Task { [weak self] in
@@ -232,6 +235,14 @@ final class StudioModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self?.save()
         }
+    }
+    func prepareForApplicationUpdate() throws {
+        refresh()
+        guard !liveOperationInProgress else { throw StudioError.message("Finalize a live antes de atualizar.") }
+        liveSettings.flush(); try youtube.prepareForApplicationUpdate()
+        if let problem = liveSettings.problem { throw StudioError.message(problem) }
+        guard let engine, let store, !preserveFailedProject else { throw StudioError.message("Recupere ou exporte o projeto antes de atualizar.") }
+        try store.save(copied(dante_engine_save(engine)))
     }
     func save() {
         guard let engine, !preserveFailedProject else { return }

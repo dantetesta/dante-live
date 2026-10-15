@@ -40,6 +40,12 @@ with tempfile.TemporaryDirectory(prefix='dante-release-') as tmp:
     expected={p.name:digest(p) for p in (dmg,source)}
     sums.write_text(''.join(f'{sha}  {name}\n' for name,sha in expected.items()))
     expected[sums.name]=digest(sums)
+    # Sign and validate the actual DMG before publishing any assets. The feed stays local until upload verification.
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('dante_update_feed',root/'packaging/update-feed.py')
+    updater=importlib.util.module_from_spec(spec);spec.loader.exec_module(updater)
+    prepared_feed=stage/'updates'
+    updater.prepare(dmg,args.notes,prepared_feed,root=root)
     # Existing tags/releases are never overwritten. Failures leave a reviewable draft.
     subprocess.run(['gh','release','create',tag,str(dmg),str(source),str(sums),
         '-R',repo,'--target',head,'--draft','--prerelease',
@@ -55,6 +61,11 @@ with tempfile.TemporaryDirectory(prefix='dante-release-') as tmp:
         raise SystemExit('Uploaded asset digests differ; release remains draft')
     run('gh','api','--method','PATCH',f'repos/{repo}/releases/{metadata["id"]}',
         '-F','draft=false','-F','prerelease=true')
+    # Publish a new catalog only after immutable release assets have matching digests.
+    for source_file in prepared_feed.rglob('*'):
+        if source_file.is_file():
+            target=root/'updates'/source_file.relative_to(prepared_feed)
+            target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source_file,target)
 url=f'https://github.com/{repo}/releases/download/{tag}/Dante-Live-{version}-macOS-universal.dmg'
 readme=root/'README.md'
 text=readme.read_text()
@@ -68,6 +79,6 @@ Versão experimental **{version}**. Assinatura local (ad hoc), sem notarização
 if start not in text or end not in text: raise SystemExit('Missing README download markers')
 text=text[:text.index(start)]+button+text[text.index(end)+len(end):]
 readme.write_text(text)
-if run('git','status','--porcelain','README.md'):
-    run('git','add','README.md'); run('git','commit','-m',f'docs: current download {version}'); run('git','push','origin','main')
+if run('git','status','--porcelain','README.md','updates'):
+    run('git','add','README.md','updates'); run('git','commit','-m',f'release: signed update catalog and changelog {version}'); run('git','push','origin','main')
 print('Published '+url)

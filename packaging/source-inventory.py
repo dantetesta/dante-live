@@ -58,3 +58,14 @@ for record in records:
         if hashlib.sha256(target.read_bytes()).hexdigest() != record['sha256']:
             raise SystemExit('Source checksum mismatch: '+str(target))
     print('Verified '+record['name'])
+
+sparkle = json.loads((root/'packaging/sparkle-lock.json').read_text())
+target = root/'vendor/sparkle-source'
+if not target.exists():
+    subprocess.run(['git','init',str(target)],check=True)
+    subprocess.run(['git','-C',str(target),'remote','add','origin','https://github.com/sparkle-project/Sparkle'],check=True)
+    subprocess.run(['git','-C',str(target),'fetch','--depth','1','origin',sparkle['source_commit']],check=True)
+    subprocess.run(['git','-C',str(target),'checkout','--detach','FETCH_HEAD'],check=True)
+if subprocess.check_output(['git','-C',str(target),'rev-parse','HEAD'],text=True).strip() != sparkle['source_commit']:
+    raise SystemExit('Sparkle source revision mismatch')
+print('Verified Sparkle '+sparkle['version'])

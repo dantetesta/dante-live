@@ -16,6 +16,7 @@ enum DanteLiveApplication {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model: StudioModel
     var window: NSWindow?
+    lazy var updates = AppUpdateCoordinator(model: model, enabled: model.projectDirectory == nil)
     private var projectorWindows: [NSWindow] = []
     override init() {
         let arguments = CommandLine.arguments
@@ -37,11 +38,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center(); window.makeKeyAndOrderFront(nil); self.window = window
         NSApp.activate(ignoringOtherApps: true)
         model.start()
+        updates.start()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         model.refresh()
-        if model.active {
+        if model.liveOperationInProgress {
             let alert = NSAlert(); alert.messageText = "Há saídas ativas no Dante Live"
             alert.informativeText = "Pare a transmissão e aguarde a finalização antes de sair."
             alert.addButton(withTitle: "Voltar ao estúdio"); alert.runModal(); return .terminateCancel
@@ -62,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if sender !== window { return true }
         model.refresh()
-        if model.active {
+        if model.liveOperationInProgress {
             let alert = NSAlert(); alert.messageText = "Finalize as saídas antes de fechar o estúdio."
             alert.runModal(); return false
         }
@@ -88,6 +90,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let application = NSMenuItem(); menu.addItem(application)
         let appMenu = NSMenu(); application.submenu = appMenu
         appMenu.addItem(withTitle: "Sobre o Dante Live", action: #selector(about), keyEquivalent: "").target = self
+        let updateItem = appMenu.addItem(withTitle: "Verificar atualizações…", action: #selector(AppUpdateCoordinator.checkForUpdates(_:)), keyEquivalent: "")
+        updateItem.target = updates
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Ocultar Dante Live", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Sair do Dante Live", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")

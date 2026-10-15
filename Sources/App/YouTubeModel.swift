@@ -99,6 +99,12 @@ struct LiveLaunch: Identifiable {
         edits.submit(immediate: false) { [weak self] in do { try self?.save() } catch { self?.message = "Não foi possível salvar o rascunho da live." } }
     }
     func flush() { edits.flush() }
+    func prepareForApplicationUpdate() throws {
+        guard !busy else { throw StudioError.message("Aguarde a operação do YouTube terminar antes de atualizar.") }
+        edits.flush()
+        // Retry persistence and propagate disk failures instead of losing an unsaved draft.
+        try save()
+    }
     func selectAccount(_ id: String) {
         guard !busy, writable else { return }; edits.flush()
         guard preferences.accounts.contains(where: { $0.id == id }) else { return }

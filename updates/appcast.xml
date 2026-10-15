@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss version="2.0">
+  <channel>
+    <title>Dante Live — atualizações para Mac</title>
+    <link>https://github.com/dantetesta/dante-live/releases</link>
+    <language>pt-BR</language>
+  </channel>
+</rss><!-- sparkle-signatures:
+edSignature: l5hxANFJJxfmUnubNL7s4Y6LqJ6S7wJLU6ndQ8CM8zvXpqC7LIWKPQ+kZDWtvsJ/fhYMZPWMd966+xSWIDe8Cg==
+length: 498
+-->

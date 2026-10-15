@@ -36,10 +36,11 @@ for file in Sources/App/*.swift; do
   [[ "$file" == Sources/App/DanteLiveApp.swift ]] || EDITOR_SOURCES+=("$file")
 done
 xcrun swiftc -parse-as-library -O -target "$ARCH-apple-macos14.0" \
-  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift \
+  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift Tests/UpdateTests.swift \
   "$BUILD/objects/DanteEngine-$ARCH.o" -F "$APP/Contents/Frameworks" \
-  -framework libobs -framework AppKit -framework SwiftUI -framework Metal -framework MetalKit \
+  -F "$ROOT/vendor/sparkle-2.10.0" -framework Sparkle -framework libobs -framework AppKit -framework SwiftUI -framework Metal -framework MetalKit \
   -framework AVFoundation -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
   -Xlinker -rpath -Xlinker "$APP/Contents/Frameworks" -o build/tests/EditorInteractionTests
 build/tests/EditorInteractionTests "$APP" > evidence/runtime/editor-interaction-tests.txt
 cat evidence/runtime/editor-interaction-tests.txt
+python3 Tests/update_feed_tests.py

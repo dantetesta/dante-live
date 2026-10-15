@@ -15,7 +15,9 @@ scripts/fetch-reference.sh
 if [[ "$ARCHS" == *x86_64* ]]; then
   [[ -d vendor/obs-intel/OBS.app ]] || python3 packaging/fetch-intel.py
 fi
+python3 packaging/fetch-sparkle.py
 python3 packaging/runtime.py prepare
+python3 packaging/fetch-sparkle.py --embed
 if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/DanteLive.icns" ]]; then
   xcrun swift packaging/generate-icon.swift "$BUILD/DanteLive.iconset"
   xcrun iconutil -c icns "$BUILD/DanteLive.iconset" -o "$BUILD/DanteLive.icns"
@@ -45,7 +47,7 @@ for ARCH in $ARCHS; do
   xcrun swiftc Sources/App/*.swift "$BUILD/objects/DanteEngine-$ARCH.o" \
     -O -whole-module-optimization -target "$ARCH-apple-macos14.0" -sdk "$SDK" \
     -import-objc-header Sources/Bridge/DanteEngine.h -I Sources/Bridge \
-    -F "$APP/Contents/Frameworks" -framework libobs -framework SwiftUI \
+    -F "$ROOT/vendor/sparkle-2.10.0" -F "$APP/Contents/Frameworks" -framework Sparkle -framework libobs -framework SwiftUI \
     -framework AppKit -framework Metal -framework MetalKit -framework AVFoundation \
     -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
     -Xlinker -rpath -Xlinker @executable_path/../Frameworks \

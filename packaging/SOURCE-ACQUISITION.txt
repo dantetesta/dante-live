@@ -5,6 +5,7 @@ Each public binary release includes a separate source ZIP containing:
 - OBS 32.2.2 at ba2f32bdf791005443988a4955e963663e16b1ed;
 - obs-deps recipes at 8683107a02300923abe4f293920f4b5edc8cb624;
 - SIMDe 0.8.2 at 71fd833d9666141edcd1d3c109a80e228303d8d7;
+- Sparkle 2.10.0 at eef1a539a373c1f1a320624b1130fc5de7b2e100;
 - all 18 dependency source archives in source-lock.json, with exact commits
   or SHA-256 checksums, and recursively required submodule sources.
 
@@ -60,3 +61,12 @@ The combined binary contains GPLv3-or-later code; Dante's own source is GPLv2 or
 later. Preserve the individual notices and license options of each component.
 Source and binary are distributed together at:
 https://github.com/dantetesta/dante-live/releases
+
+SPARKLE UPDATE RUNTIME
+The pinned SDK URL and digest are in packaging/sparkle-lock.json. Build scripts
+verify this archive, embed the non-sandboxed framework and helpers, and sign the
+combined application locally. Exact Sparkle source is included separately. Its
+Xcode project and Configurations define the upstream build. The SDK was not
+rebuilt locally from source; no bit-identical reconstruction is claimed.
+Production update signing requires the maintainer Keychain key, which is never
+included. Contributors can compile the app without that private signing key.

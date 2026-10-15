@@ -41,8 +41,9 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.6** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.7** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
+- Atualizações pelo menu do Mac, aviso ao abrir, changelog e instalação/reinício com proteção durante a live.
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
 - Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
 - Menu de contexto com propriedades em modal, filtros, renomear, ocultar, bloquear, transformar, ordenar e remover.
@@ -112,6 +113,7 @@ Leia [BUILD.md](docs/BUILD.md) para configurar a origem do OBS, rodar os testes 
 | `scripts` | Aquisição das referências, build, testes e pacote local |
 | `packaging` | Dependências fixadas, patches, auditoria e assinatura local |
 | `docs` | Arquitetura, build, estado e licenças |
+| `updates` | Catálogo assinado e histórico de changelogs; DMGs nas Releases |
 
 Mais detalhes em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -120,6 +122,8 @@ Mais detalhes em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 O botão no topo baixa o **DMG experimental corrente**. Abra o DMG, arraste Dante Live para Aplicativos e execute-o quando os dispositivos estiverem disponíveis. Se o macOS bloquear a abertura por falta de notarização, use **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo Assim**, após conferir a origem do download. Não desative o Gatekeeper globalmente.
 
 As [Releases](https://github.com/dantetesta/dante-live/releases) incluem o instalador, fontes correspondentes com dependências fixadas e SHA-256. A assinatura é **ad hoc**, sem Developer ID ou notarização. Testes prolongados e compatibilidade física Intel/macOS 14 permanecem pendentes. Os builds não substituem o OBS instalado.
+
+A partir da 0.1.7, use **Dante Live → Verificar atualizações…** para as próximas versões. O aplicativo avisa ao abrir, mostra as novidades e instala após sua confirmação, preservando o projeto. Quem usa 0.1.6 ou anterior precisa instalar a 0.1.7 uma vez pelo DMG. [Como funcionam as atualizações](docs/UPDATES.md).
 
 Para mantenedores: `scripts/release.sh` compila, testa, empacota e publica uma versão experimental com fontes e checksums; o botão é atualizado para a versão publicada. Veja [RELEASING.md](docs/RELEASING.md).
 

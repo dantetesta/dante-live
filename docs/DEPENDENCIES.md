@@ -5,6 +5,7 @@ O código do Dante Live é disponibilizado sob GNU GPL versão 2 ou posterior. P
 | Componente | Referência / uso |
 |---|---|
 | OBS Studio / libobs | 32.2.2, commit `ba2f32bdf791005443988a4955e963663e16b1ed`; captura, composição, áudio, filtros, encoders e saídas |
+| Sparkle | 2.10.0, commit `eef1a539a373c1f1a320624b1130fc5de7b2e100`; licença MIT e avisos incluídos; atualização assinada, download e instalação/reinício nativos |
 | SIMDe | v0.8.2, commit `71fd833d9666141edcd1d3c109a80e228303d8d7`; licença MIT |
 | obs-deps | 2026-07-15, commit `8683107a02300923abe4f293920f4b5edc8cb624`; receitas e avisos de dependências |
 | FFmpeg, x264 e bibliotecas de codecs | Runtime oficial da referência OBS; composição e opções do build precisam ser consideradas no inventário de redistribuição |
@@ -29,3 +30,5 @@ O aplicativo e módulos modificados foram recompilados. A reconstrução integra
 Browser CEF, plugins profissionais e câmera virtual ainda exigem implementação e análise próprias. Não há promessa de compatibilidade com todos os plugins do OBS.
 
 0.1.6: integração YouTube usa Foundation/URLSession, Network (retorno OAuth local), CryptoKit/Security (PKCE, entropia e Keychain) e UniformTypeIdentifiers. Frameworks do macOS, sem biblioteca externa ou cliente Google embutido. Contratos oficiais e configuração em [YOUTUBE.md](YOUTUBE.md).
+
+0.1.7: SDK Sparkle fixado por SHA-256 em `packaging/sparkle-lock.json`; fontes exatas acompanham o ZIP separado. Runtime não sandboxed inclui framework, Autoupdate e Updater.app, sem ferramentas de assinatura, headers ou serviços XPC opcionais. Nenhuma chave privada é distribuída.

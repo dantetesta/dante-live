@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Release experimental atual: **0.1.6 (7)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
+Release experimental atual: **0.1.7 (8)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
@@ -70,3 +70,11 @@ Transmitir abre confirmação com destino, título, capa quando disponível e ch
 Cliente OAuth próprio é necessário nesta versão: importar JSON desktop e autorizar pelo navegador. Tokens e configuração Google ficam no Keychain; JSON local contém somente preferências, IDs, metadados e referências de imagens. Nenhuma credencial Google do OBS é reutilizada. Consulte YOUTUBE.md. A UI distingue envio RTMP de confirmação de estado live pela API. Encerrar uma live iniciada pela integração também solicita encerramento no YouTube; falha exige conferir o Studio.
 
 Compilação Universal 2 e testes Swift com libobs passaram. Novos testes cobrem canais, migração, diagnóstico, nomes de presets, callbacks OAuth e contratos HTTP. Agendamento, bind e retomada após falha foram testados com transporte offline; nenhuma conta foi autorizada e nenhuma live foi criada/transmitida no YouTube pelo agente. A automação CUA da cópia QA016 retornou timeout de acessibilidade, portanto os novos layouts/gestos ainda precisam de conferência visual do mantenedor.
+
+## Incremento 0.1.7
+
+Atualizador nativo Sparkle 2.10.0, menu Verificar atualizações junto de Sobre e consulta ao abrir. Catálogo e DMG exigem assinaturas Ed25519; changelog é exibido antes da instalação. Download e reinício dependem da decisão do operador. Transmissão, preparação, confirmação e contagem regressiva bloqueiam a instalação; um download pronto durante a live aguarda retomada explícita. O projeto deve ser salvo com sucesso antes de encerrar.
+
+Catálogo em `updates/`, DMGs imutáveis em Releases e fontes correspondentes incluem Sparkle. A publicação verifica assets antes de enviar o catálogo. Instalação inicial da 0.1.7 é manual para quem tem versões anteriores. Assinatura ad hoc/notarização e demais pendências de hardware permanecem. Consulte UPDATES.md.
+
+Validação 0.1.7: build Universal 2, suíte Swift e 3 testes Python passaram. Harness nativo isolado mostrou changelog, baixou DMG assinado, substituiu o aplicativo e relançou build 2 após build 1, preservando projeto sintético. O operador interagiu com o popup durante o teste. Verificador oficial rejeitou feed/DMG adulterados e chave diferente. A tela final “já atualizado” não foi conferida visualmente por falha de acessibilidade após o reinício. Atualização entre duas releases públicas do Dante e máquina limpa permanecem pendentes.

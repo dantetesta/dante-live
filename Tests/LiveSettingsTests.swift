@@ -130,6 +130,7 @@ import Foundation
     print("PASS: microphone 30-second threshold, persistent silence, recovery, renewed silence, intentional mute/inactive reset, removed source and live lifecycle")
 
     try await runYouTubeTests(directory: directory)
+    try await runUpdateTests(model: model)
 
     let countdown = LiveCountdown(); var starts = 0
     countdown.start(interval: .milliseconds(20)) { starts += 1 }

@@ -5,7 +5,7 @@ Este guia descreve o código atual: aplicativo desktop SwiftUI/AppKit com libobs
 ## Pré-requisitos
 
 - Mac com as ferramentas de desenvolvimento Apple: `xcrun`, `swiftc`, `clang++`, `lipo`, `codesign`, SDK macOS e `iconutil`.
-- Git, Python 3, Bash e acesso à internet para obter referências fixadas.
+- Git, Python 3.12 ou posterior, Bash e acesso à internet para obter referências fixadas.
 - OBS Studio **32.2.2 para Apple Silicon**, usado como origem de runtime. Por padrão, em `/Applications/OBS.app`; `OBS_APP` aceita um caminho alternativo. Não substitua uma instalação em uso: mantenha uma cópia isolada da versão exigida.
 - FFmpeg e ffprobe disponíveis no PATH para testes de gravação/áudio e RTMP local.
 - Espaço livre para os downloads, dependências e artefatos de compilação.
@@ -64,3 +64,7 @@ env DANTE_BUILD_DIR=build/dev bash scripts/package.sh
 O empacotamento gera DMG local e um ZIP separado de preparação de fontes. O ZIP é explicitamente parcial: ainda não reúne toda a fonte correspondente de cada dependência binária. As releases públicas usam outro ZIP, completo com as fontes fixadas e descrito em [RELEASING.md](RELEASING.md).
 
 O fluxo atual recompila o aplicativo, a ponte e módulos modificados sobre runtimes oficiais do OBS. Ainda não reconstrói todas as dependências a partir das fontes nem promete reprodução bit a bit. A assinatura é ad hoc, sem Developer ID ou notarização.
+
+## Atualizador nativo
+
+O build baixa e verifica o SDK Sparkle 2.10.0 por hash fixado, incorpora somente framework/helpers de runtime e os assina com o app. Não exige a chave privada de publicação para compilar. A atualização interna fica desativada em execuções com `--validation-directory`. `test-app.sh` também testa a barreira de instalação e o catálogo. A chave privada Ed25519 é necessária somente para publicar um novo catálogo/DMG oficial. Veja [UPDATES.md](UPDATES.md).

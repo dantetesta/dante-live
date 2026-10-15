@@ -13,6 +13,7 @@ final class StudioModel: ObservableObject {
     @Published var studioMode = false
     @Published var showingAdd = false
     @Published var showingOutput = false
+    @Published var outputTab = "quality"
     @Published var showingFilters = false
     @Published var showingCamera = false
     @Published var showingProperties = false
@@ -25,6 +26,10 @@ final class StudioModel: ObservableObject {
     @Published var microphoneWarnings: [String] = []
     private var silenceWatch = MicrophoneSilenceWatch()
     lazy var liveSettings = LiveSettingsModel(model: self)
+    lazy var youtube = YouTubeModel(directory: projectDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Dante Live"))
+    @Published var pendingLive: LiveLaunch?
+    @Published var preparingLive = false
+    private var launchTask: Task<Void, Never>?
     var engine: OpaquePointer?
     private var timer: Timer?
     private var saveTask: Task<Void, Never>?
@@ -131,25 +136,50 @@ final class StudioModel: ObservableObject {
         refresh()
     }
     func beginLive() {
-        guard !active, countdown.remaining == nil else { return }
-        liveSettings.loadKey()
-        guard liveSettings.prepareStream() else { showingOutput = true; return }
-        confirm("Iniciar a live após a contagem de 3 segundos?") { [weak self] in
-            guard let self, !self.active else { return }
-            self.countdown.start { [weak self] in
-                guard let self, !self.active else { return }
-                guard self.liveSettings.prepareStream() else { self.showingOutput = true; return }
-                let v = self.liveSettings.video
-                if self.command("stream.start", ["server": self.liveSettings.document.server, "key": self.liveSettings.key, "encoder": v.encoder, "bitrate": v.bitrate, "audioBitrate": v.audioBitrate], undo: false) {
-                    self.notice = "Conectando ao servidor…"
-                }
+        guard !active, !preparingLive, countdown.remaining == nil else { return }
+        if liveSettings.document.youtubeMode == true {
+            guard liveSettings.prepareVideo() else { outputTab = "video"; showingOutput = true; return }
+            preparingLive = true
+            launchTask = Task { [weak self] in
+                guard let self else { return }; defer { self.preparingLive = false }
+                do { self.pendingLive = try await self.youtube.confirmation() }
+                catch { self.youtube.message = error.localizedDescription; self.outputTab = "youtube"; self.showingOutput = true }
             }
+        } else {
+            liveSettings.loadKey()
+            guard liveSettings.prepareStream() else { outputTab = "connection"; showingOutput = true; return }
+            pendingLive = LiveLaunch(channel: liveSettings.selectedChannel?.name ?? "Conexão RTMP", title: "Live configurada no serviço de destino", thumbnailURL: nil, server: liveSettings.document.server, key: liveSettings.key)
         }
+    }
+    func confirmLive(_ selection: LiveLaunch) {
+        pendingLive = nil
+        guard !active, !preparingLive, liveSettings.prepareVideo() else { return }
+        preparingLive = true
+        let video = liveSettings.video
+        launchTask = Task { [weak self] in
+            guard let self else { return }; defer { self.preparingLive = false }
+            do {
+                let launch = selection.youtubeAccount == nil ? selection : try await self.youtube.prepare(selection)
+                try Task.checkCancellation()
+                self.countdown.start { [weak self] in
+                    guard let self, !self.active else { return }
+                    guard self.liveSettings.video == video else { self.error = "As configurações mudaram durante a preparação. Confirme a transmissão novamente."; return }
+                    if self.command("stream.start", ["server": launch.server, "key": launch.key, "encoder": video.encoder, "bitrate": video.bitrate, "audioBitrate": video.audioBitrate], undo: false) {
+                        self.notice = "Conectando ao servidor…"
+                        self.youtube.watchStarted(launch) { [weak self] in self?.active == true }
+                    }
+                }
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+    func endLive() {
+        if command("stream.stop", undo: false) { youtube.endActive() }
     }
     var streamStatus: String {
         let output = state.object("outputs").object("stream")
         if output.flag("stopping") { return "FINALIZANDO" }
         if output.flag("reconnecting") { return "RECONECTANDO" }
+        if output.flag("started"), youtube.trackingLive, !youtube.remoteLive { return "ENVIANDO • AGUARDANDO YOUTUBE" }
         if output.flag("started") { return "AO VIVO \(duration("stream"))" }
         return "CONECTANDO"
     }
@@ -285,7 +315,7 @@ final class StudioModel: ObservableObject {
         completion()
     }
     func shutdown() {
-        countdown.cancel(); liveSettings.flush()
+        countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()
         timer?.invalidate(); timer = nil; saveTask?.cancel(); save()
         if let engine { dante_engine_destroy(engine); self.engine = nil }
     }

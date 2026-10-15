@@ -5,7 +5,6 @@ struct LiveSetupView: View {
     @ObservedObject var model: StudioModel
     @ObservedObject var settings: LiveSettingsModel
     @StateObject private var probe = UploadProbe()
-    @LegacyState private var presetName = ""
     private var obsRunning: Bool {
         NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == "com.obsproject.obs-studio" || $0.bundleURL?.lastPathComponent == "OBS.app" }
     }
@@ -25,40 +24,10 @@ struct LiveSetupView: View {
                 Text("Selecionar um preset aplica os ajustes automaticamente. Personalize resolução e codificação na aba Vídeo e áudio. O enquadramento das fontes é preservado.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("Minha predefinição") {
-                HStack {
-                    TextField("Nome do preset", text: $presetName)
-                    Button("Salvar como novo preset") {
-                        if settings.savePreset(name: presetName) { presetName = "" }
-                    }.disabled(presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                if let selected = settings.document.presets.first(where: { $0.id.uuidString == settings.document.selection }) {
-                    Button("Excluir preset “\(selected.name)”", role: .destructive) {
-                        model.confirm("Excluir o preset “\(selected.name)”? Os ajustes atuais serão mantidos.") { settings.removePreset(selected.id) }
-                    }
-                }
-                Text("Salva resolução, FPS, encoder e bitrates. Servidor e chave pertencem à conexão e não são copiados para o preset.").font(.caption).foregroundStyle(.secondary)
-            }
-            Section("Capacidade da conexão") {
-                HStack {
-                    TextField("Upload disponível (Mbps)", value: Binding(get: { settings.document.uploadMbps }, set: { settings.setUpload($0) }), format: .number)
-                    if probe.isRunning {
-                        ProgressView().controlSize(.small)
-                        Button("Cancelar") { probe.cancel() }
-                    } else { Button("Medir upload…") { measureUpload() }.disabled(model.active || obsRunning) }
-                }
-                if let measured = settings.document.uploadMeasuredAt {
-                    Text("Medido em \(measured.formatted(date: .abbreviated, time: .shortened)). A conexão pode variar.").font(.caption).foregroundStyle(.secondary)
-                }
-                if obsRunning { Text("Medição bloqueada enquanto o OBS está aberto, para proteger a live.").font(.caption).foregroundStyle(.secondary) }
+            Section("Sua conexão para a live") {
+                ConnectionDiagnosisView(settings: settings, running: probe.isRunning, canMeasure: !model.active && !obsRunning, measure: measureUpload, cancel: { probe.cancel() })
+                if obsRunning { Text("Feche o OBS antes de medir, para não atrapalhar uma transmissão em andamento.").font(.caption).foregroundStyle(.secondary) }
                 if let error = probe.error { Text(error).font(.caption).foregroundStyle(.red) }
-                if let recommendation = settings.recommendation {
-                    Text(recommendation.explanation).font(.caption).foregroundStyle(recommendation.uploadSufficient ? Color.secondary : Color.orange)
-                    if !recommendation.uploadSufficient {
-                        Text("Mantido o bitrate mínimo do preset. A conexão informada é insuficiente; confira antes de transmitir.").font(.caption).foregroundStyle(.orange)
-                    }
-                } else { Text("Presets personalizados mantêm seus bitrates; a medição não os substitui.").font(.caption).foregroundStyle(.secondary) }
-                Link("Recomendações do YouTube", destination: URL(string: "https://support.google.com/youtube/answer/2853702?hl=pt-BR")!)
             }
         }.formStyle(.grouped)
         .onChange(of: probe.measuredMbps) { _, value in

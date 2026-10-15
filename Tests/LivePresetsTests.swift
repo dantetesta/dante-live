@@ -16,6 +16,17 @@ import Foundation
         for invalid in [Double.nan, .infinity, -1, 0, 100_001] {
             precondition(!LiveRecommendation(quality: .qhd, fps: 30, uploadMbps: invalid).uploadKnown)
         }
+        for invalid in [Double.nan, .infinity, -1, 0, 100_001] {
+            precondition(ConnectionDiagnosis(uploadMbps: invalid, fps: 30, videoBitrate: 14000, audioBitrate: 128).state == .unknown)
+        }
+        precondition(ConnectionDiagnosis(uploadMbps: 2, fps: 30, videoBitrate: 14000, audioBitrate: 128).suggestedQuality == nil)
+        let moderate = ConnectionDiagnosis(uploadMbps: 12, fps: 30, videoBitrate: 14000, audioBitrate: 128)
+        precondition(moderate.suggestedQuality == .fullHD && !moderate.currentFits)
+        let fast = ConnectionDiagnosis(uploadMbps: 265.405568, fps: 30, videoBitrate: 14000, audioBitrate: 128)
+        precondition(fast.suggestedQuality == .qhd && fast.supports4K && fast.currentFits)
+        let excessive = ConnectionDiagnosis(uploadMbps: 265, fps: 60, videoBitrate: 200000, audioBitrate: 320)
+        precondition(!excessive.currentFits && excessive.suggestedFPS == 60)
+        print("PASS: readable diagnosis unknown/weak/moderate/fast, QHD recommendation, custom bitrate assessment")
         let suite = "DanteLive.PresetTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }

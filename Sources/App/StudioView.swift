@@ -3,10 +3,13 @@ import AppKit
 
 struct StudioView: View {
     @ObservedObject var model: StudioModel
+    @AppStorage("DanteLive.showScenesSidebar") private var showScenes = true
+    @AppStorage("DanteLive.showPropertiesSidebar") private var showProperties = true
     var body: some View {
         VStack(spacing: 0) {
             topBar
             CountdownBanner(countdown: model.countdown)
+            YouTubeStatusBanner(youtube: model.youtube)
             if !model.microphoneWarnings.isEmpty {
                 HStack(spacing: 12) {
                     Image(systemName: "mic.slash.fill").font(.title2)
@@ -20,7 +23,8 @@ struct StudioView: View {
             }
             Divider()
             HSplitView {
-                sceneSidebar.frame(minWidth: 170, idealWidth: 205, maxWidth: 320)
+                if showScenes { sceneSidebar.frame(minWidth: 170, idealWidth: 205, maxWidth: 320) }
+                else { collapsedSidebar(title: "Mostrar cenas", icon: "sidebar.left") { showScenes = true } }
                 VSplitView {
                     VStack(spacing: 0) {
                         HStack {
@@ -47,7 +51,8 @@ struct StudioView: View {
                         MixerView(model: model).frame(minWidth: 220)
                     }.frame(minHeight: 150, idealHeight: 215)
                 }
-                InspectorView(model: model).frame(minWidth: 240, idealWidth: 290, maxWidth: 420)
+                if showProperties { InspectorView(model: model, onCollapse: { showProperties = false }).frame(minWidth: 240, idealWidth: 290, maxWidth: 420) }
+                else { collapsedSidebar(title: "Mostrar propriedades", icon: "sidebar.right") { showProperties = true } }
             }
             Divider()
             statusBar
@@ -61,6 +66,7 @@ struct StudioView: View {
         .sheet(isPresented: $model.showingCamera, onDismiss: {
             model.cameraSourceName = ""; model.inspectorRevision += 1
         }) { CameraSetupView(model: model, sourceName: model.cameraSourceName) }
+        .sheet(item: $model.pendingLive) { launch in LiveConfirmationView(model: model, launch: launch) }
         .sheet(isPresented: $model.showingOutput) { OutputSettingsView(model: model) }
         .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
             VStack(spacing: 0) {
@@ -83,14 +89,18 @@ struct StudioView: View {
             Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
 
             Button {
-                if model.streaming { model.confirm("Encerrar transmissão?") { _ = model.command("stream.stop", undo: false) } }
+                if model.streaming { model.confirm("Encerrar transmissão?") { model.endLive() } }
                 else { model.beginLive() }
-            } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent)
+            } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive)
         }.padding(.horizontal, 16).padding(.vertical, 12)
+    }
+    private func collapsedSidebar(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        VStack { Button(action: action) { Image(systemName: icon) }.buttonStyle(.plain).help(title).accessibilityLabel(title).padding(.top, 14); Spacer() }
+            .frame(width: 32).frame(maxHeight: .infinity)
     }
     var sceneSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack { Text("CENAS").font(.caption.weight(.bold)); Spacer(); Button { model.askName(title: "Nova cena") { _ = model.command("scene.create", ["name": $0]) } } label: { Image(systemName: "plus") }.help("Criar cena") }.padding(12)
+            HStack { Text("CENAS").font(.caption.weight(.bold)); Spacer(); Button { showScenes = false } label: { Image(systemName: "sidebar.left") }.help("Recolher cenas").accessibilityLabel("Recolher cenas"); Button { model.askName(title: "Nova cena") { _ = model.command("scene.create", ["name": $0]) } } label: { Image(systemName: "plus") }.help("Criar cena") }.padding(12)
             List {
                 ForEach(Array(model.scenes.enumerated()), id: \.offset) { index, scene in
                     Button { model.selectScene(scene.string("name")) } label: {

@@ -92,3 +92,54 @@ struct OutputConfiguration: Codable {
         defaults.set(data, forKey: Self.key)
     }
 }
+
+/// Explains upload capacity, not latency, network stability or Mac performance.
+/// Suggestions stop at QHD; 4K remains an explicit user choice.
+struct ConnectionDiagnosis {
+    enum State { case unknown, insufficient, limited, comfortable }
+    let state: State
+    let uploadMbps: Double?
+    let suggestedQuality: LiveQuality?
+    let suggestedFPS: Int
+    let currentFits: Bool
+    let supports4K: Bool
+    let title: String
+    let summary: String
+
+    init(uploadMbps: Double, fps: Int, videoBitrate: Int, audioBitrate: Int) {
+        let requestedFPS = fps == 60 ? 60 : 30
+        self.suggestedFPS = requestedFPS
+        guard uploadMbps.isFinite, uploadMbps > 0, uploadMbps <= 100_000 else {
+            self.uploadMbps = nil; state = .unknown; suggestedQuality = nil; currentFits = false; supports4K = false
+            title = "Vamos conferir sua internet?"
+            summary = "Meça a velocidade de envio para descobrir qual qualidade de live combina com sua conexão."
+            return
+        }
+        self.uploadMbps = uploadMbps
+        let budget = uploadMbps * 1000 * LiveRecommendation.usableUploadFraction
+        currentFits = budget >= Double(videoBitrate + audioBitrate)
+        supports4K = budget >= Double(LiveQuality.ultraHD.recommendedKbps(fps: requestedFPS) + 128)
+        if budget >= Double(LiveQuality.qhd.recommendedKbps(fps: requestedFPS) + 128) {
+            suggestedQuality = .qhd; state = currentFits ? .comfortable : .limited
+            title = currentFits ? "Sua internet tem folga para esta live" : "Sua configuração pede mais internet do que há disponível"
+            summary = currentFits ? "A velocidade de envio é suficiente para uma imagem bem nítida em 2K. Você pode usar a sugestão abaixo ou manter sua qualidade atual." : "Reduza a qualidade ou a quantidade de dados enviada. O preset sugerido abaixo cabe na velocidade informada."
+        } else if budget >= Double(LiveQuality.fullHD.minimumKbps(fps: requestedFPS) + 128) {
+            suggestedQuality = .fullHD
+            let full = budget >= Double(LiveQuality.fullHD.recommendedKbps(fps: requestedFPS) + 128)
+            state = currentFits && full ? .comfortable : .limited
+            title = currentFits ? (full ? "Sua internet atende bem a esta live" : "Dá para fazer a live, com qualidade ajustada") : "Sua qualidade atual está pesada para esta conexão"
+            summary = full ? "Full HD é uma boa escolha para câmera, apresentações e compartilhamento de tela." : "Use Full HD com a quantidade de dados ajustada à sua internet. Movimentos rápidos podem perder um pouco de definição."
+        } else {
+            suggestedQuality = nil; state = .insufficient
+            title = "A conexão está fraca para os presets disponíveis"
+            summary = "Não recomendamos iniciar uma live em Full HD com essa velocidade. Pause outros envios, tente uma conexão por cabo e meça novamente."
+        }
+    }
+    var suggestionLabel: String {
+        guard let suggestedQuality else { return "" }
+        return "\(suggestedQuality == .qhd ? "2K · 1440p" : "Full HD · 1080p") · \(suggestedFPS) FPS"
+    }
+    var suggestionReason: String {
+        suggestedQuality == .qhd ? "Mais nitidez para textos, câmera e apresentações." : "Uma escolha prática para câmera, tela e apresentações."
+    }
+}

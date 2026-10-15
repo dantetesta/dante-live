@@ -24,6 +24,35 @@ import Foundation
     try verify(reopened.savePreset(name: "Minha live"))
     let custom = reopened.document.presets[0]
     try verify(!reopened.savePreset(name: "MINHA LIVE"))
+    let channelStore = LiveSettingsStore(url: directory.appendingPathComponent("channels.json"))
+    var channelSecrets: [String:String] = [:]; var rejectedAccount = ""
+    let channelVault = LiveKeyVault(read: { if $0 == rejectedAccount { throw StudioError.message("Denied fixture") }; return channelSecrets[$0] ?? "" }, save: { channelSecrets[$1] = $0 }, delete: { channelSecrets[$0] = nil })
+    let channels = LiveSettingsModel(model: model, store: channelStore, vault: channelVault)
+    channels.edit({ $0.server = "rtmps://example.test/live" }, immediate: true); channels.editKey("key-one"); channels.flush()
+    try verify(channels.saveChannel(name: "Canal um")); let one = channels.selectedChannel!
+    channels.selectChannel(nil)
+    channels.edit({ $0.server = "rtmps://example.test/live" }, immediate: true); channels.editKey("key-two"); channels.flush()
+    try verify(channels.saveChannel(name: "Canal dois")); let two = channels.selectedChannel!
+    try verify(one.keyAccount != two.keyAccount)
+    channels.selectChannel(one.id); try verify(channels.key == "key-one")
+    channels.editKey("key-one-updated"); channels.flush()
+    rejectedAccount = two.keyAccount; channels.selectChannel(two.id)
+    try verify(channels.document.selectedChannelID == one.id && channels.key == "key-one-updated")
+    rejectedAccount = ""; channels.selectChannel(two.id); try verify(channels.key == "key-two")
+    channels.renameChannel(two.id, name: "Segundo canal")
+    let channelReload = LiveSettingsModel(model: model, store: channelStore, vault: channelVault); channelReload.loadKey()
+    try verify(channelReload.selectedChannel?.name == "Segundo canal" && channelReload.key == "key-two")
+    channels.deleteChannel(one.id); try verify(channelSecrets[one.keyAccount] == nil && channelSecrets[two.keyAccount] == "key-two")
+    let channelJSON = try String(contentsOf: channelStore.url, encoding: .utf8)
+    try verify(!channelJSON.contains("key-one") && !channelJSON.contains("key-two"))
+    var legacy = jsonObject(channelJSON); legacy["channels"] = nil; legacy["selectedChannelID"] = nil; legacy["youtubeMode"] = nil
+    let migrated = try JSONDecoder().decode(LiveSettingsDocument.self, from: Data(jsonString(legacy).utf8))
+    try verify(migrated.channels == nil && migrated.youtubeMode == nil)
+    try verify(channels.suggestedPresetName == "Preset personalizado 1")
+    try verify(channels.savePreset(name: channels.suggestedPresetName)); try verify(channels.suggestedPresetName == "Preset personalizado 2")
+    channels.renamePreset(channels.selectedPreset!.id, name: "Minha qualidade")
+    try verify(channels.selectedPreset?.name == "Minha qualidade")
+    print("PASS: named channels on same server keep independent keys, denied key access preserves selection, rename/reopen/delete isolation, no plaintext keys, legacy migration, automatic preset names")
     // Simulate an active transmission: configuration must persist without resetting video.
     let width = model.canvasWidth
     model.state["streaming"] = true
@@ -99,6 +128,8 @@ import Foundation
     try verify(watch.update(mic(nil), live: true, now: 201).isEmpty)
     try verify(watch.update([], live: true, now: 250).isEmpty)
     print("PASS: microphone 30-second threshold, persistent silence, recovery, renewed silence, intentional mute/inactive reset, removed source and live lifecycle")
+
+    try await runYouTubeTests(directory: directory)
 
     let countdown = LiveCountdown(); var starts = 0
     countdown.start(interval: .milliseconds(20)) { starts += 1 }

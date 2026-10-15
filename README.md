@@ -41,7 +41,7 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.5** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.6** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
 - Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
@@ -51,22 +51,24 @@ A versão **0.1.5** amplia a base funcional, em estágio experimental, com funci
 - Painel de câmera com dispositivos, presets, formato/FPS e prévia da fonte.
 - Mixer com volume, mute, medidores e filtros disponíveis no catálogo real.
 - Modo estúdio, corte/fade e transmissão manual RTMP/RTMPS, com início pelo estúdio e contagem regressiva cancelável.
-- Configurações da live em abas, autosave, presets automáticos e presets personalizados com nome.
+- Configurações em abas, autosave, presets automáticos e criação contextual de presets personalizados.
+- Diagnóstico de internet legível, canais RTMP nomeados e painéis laterais recolhíveis.
+- Integração YouTube com OAuth, rascunhos de título/descrição/capa, agendamento e escolha do mesmo vídeo para transmitir (exige configuração Google; validação real pendente).
 - Alerta visual de microfone sem sinal por 30 segundos durante a live, com recuperação automática e controle por fonte.
 - Presets de **1080p, 1440p/QHD e 2160p/4K**, com 30/60 FPS e configuração de bitrate orientada pelo upload.
 - Projeto JSON com salvamento atômico, cópia anterior e recuperação; conexão RTMP persistente, chave opcional no Keychain.
 
 O produto é focado em lives: gravação de arquivos e replay buffer foram retirados da aplicação. A captura de tela continua disponível como fonte para transmissão.
 
-O envio ao YouTube pela conexão manual foi testado pelo mantenedor. Isso ainda não inclui login Google nem edição de título, descrição, capa ou visibilidade pelo aplicativo.
+O envio ao YouTube pela conexão manual foi testado pelo mantenedor. A integração OAuth/API da versão 0.1.6 foi validada com testes offline: login e agendamento reais ainda precisam ser conferidos em uma conta autorizada. Veja [como configurar o YouTube](docs/YOUTUBE.md).
 
-**Há limitações conhecidas:** ainda não existem múltiplas conexões nomeadas; há relato de lag no preview/modo estúdio; o editor avançado e a cobertura de dispositivos estão incompletos. Consulte o [estado detalhado](docs/STATUS.md).
+**Há limitações conhecidas:** há relato de lag no preview/modo estúdio; o editor avançado e a cobertura de dispositivos estão incompletos. Consulte o [estado detalhado](docs/STATUS.md).
 
 ## Para onde queremos levar o projeto
 
 ### Produção mais simples
 
-Evoluir a organização das fontes com painéis recolhíveis, grupos, seleção múltipla, alinhamento e atalhos. A ordenação por arrasto e as propriedades em modal já estão disponíveis. Evoluir a conexão persistente para múltiplos canais nomeados, mantendo credenciais protegidas.
+Evoluir grupos, seleção múltipla, alinhamento e atalhos. Painéis recolhíveis, ordenação por arrasto, propriedades em modal e canais nomeados já estão implementados; precisamos ampliar a validação de uso.
 
 ### Convidados por link
 
@@ -80,7 +82,7 @@ Medir CPU, GPU, memória, tempo por quadro, perdas e sincronização; reduzir c�
 
 ### Cobertura audiovisual
 
-Avançar na equivalência funcional com os recursos macOS do OBS, incluindo editor, filtros, saídas, browser, câmera virtual e integrações auditadas individualmente. A prioridade atual de transmissão é a conexão manual já existente com o YouTube. Outras redes e transmissão simultânea ficam para etapas posteriores.
+Avançar na equivalência funcional com os recursos macOS do OBS, incluindo editor, filtros, saídas, browser, câmera virtual e integrações auditadas individualmente. A prioridade atual é a transmissão pelo YouTube, com RTMP manual e integração de agendamento por API. Outras redes e transmissão simultânea ficam para etapas posteriores.
 
 ## Como colaborar
 

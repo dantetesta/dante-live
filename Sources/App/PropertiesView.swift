@@ -167,6 +167,7 @@ struct AddSourceView: View {
 struct InspectorView: View {
     @ObservedObject var model: StudioModel
     var allowsSecondarySheets = true
+    var onCollapse: (() -> Void)?
     @LegacyState private var settings: [String: Any] = [:]
     @LegacyState private var properties: [[String: Any]] = []
     @LegacyState private var advanced = "{}"
@@ -174,7 +175,7 @@ struct InspectorView: View {
     @StateObject private var edits = PropertyEditQueue()
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack { Text("PROPRIEDADES").font(.caption.weight(.bold)); Spacer(); Button { reload() } label: { Image(systemName: "arrow.clockwise") }.help("Atualizar propriedades") }.padding(12)
+            HStack { Text("PROPRIEDADES").font(.caption.weight(.bold)); Spacer(); if let onCollapse { Button(action: onCollapse) { Image(systemName: "sidebar.right") }.help("Recolher propriedades").accessibilityLabel("Recolher propriedades") }; Button { reload() } label: { Image(systemName: "arrow.clockwise") }.help("Atualizar propriedades") }.padding(12)
             Divider()
             if let item = model.selected {
                 ScrollView {

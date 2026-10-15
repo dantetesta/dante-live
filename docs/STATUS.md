@@ -1,10 +1,10 @@
 # Estado do projeto
 
-Release experimental atual: **0.1.5 (6)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
+Release experimental atual: **0.1.6 (7)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
-| Interface | SwiftUI/AppKit, português, painéis redimensionáveis, modo estúdio |
+| Interface | SwiftUI/AppKit, português, painéis redimensionáveis e recolhíveis, modo estúdio |
 | Cenas e fontes | Criar, duplicar, renomear, ordenar por arrasto, visibilidade, bloqueio e reuso |
 | Editor | Seleção única, arrasto, resize proporcional, campos de transformação, crop, ajuste e centralização |
 | Captura | Integração de módulos de tela, câmera e áudio; cobertura de dispositivos ainda parcial |
@@ -12,9 +12,9 @@ Release experimental atual: **0.1.5 (6)**. Foco exclusivo em produção de lives
 | Produção | Corte/fade, RTMP/RTMPS manual e contagem regressiva cancelável |
 | Presets | 1080p, 1440p e 2160p automáticos; presets personalizados com nome, resolução/FPS/encoder/bitrates |
 | Projeto | Salvamento atômico, backup, recuperação e exportação/importação de JSON compatível |
-| Conexões | Servidor RTMP persistente e Keychain opcional; múltiplas conexões nomeadas pendentes |
+| Conexões | Canais RTMP nomeados com servidor e chave independente no Keychain; seleção automática |
 | Convidados por link | Em preparação; não implementado no snapshot publicado |
-| YouTube | Envio RTMP manual; login, título, descrição, capa e visibilidade via API ainda ausentes |
+| YouTube | RTMP manual e integração OAuth/API para metadados, capa, agendamento e seleção de vídeos; API validada offline, autenticação/produção reais pendentes |
 | Outros destinos simultâneos | Fora da prioridade atual; não implementado |
 | Browser e câmera virtual | Pendentes; nenhum módulo Qt carregado |
 | Editor avançado | Propriedades em modal e drag-and-drop de camadas disponíveis; grupos, seleção múltipla e guias completas pendentes |
@@ -60,3 +60,13 @@ O alerta de áudio monitora fontes ativas não silenciadas, com volume maior que
 Testes automatizados cobrem autosave/reabertura, Keychain por interface isolada, ausência de chave no JSON, presets, alteração durante saída ativa, arquivos inválidos, aplicação real de vídeo, contagem cancelável e limiar/recuperação do alerta. O caminho real do callback foi exercitado com WAV sintético, incluindo sinal presente e idade crescente após parar a mídia. Sem transmissão pública, captura física ou medição real de upload nesta validação. Desconexão/bateria de microfone físico e início no YouTube exigem teste real pelo mantenedor.
 
 A automação da interface não conseguiu obter a árvore de acessibilidade da nova cópia isolada (timeout), embora o processo permanecesse em execução. Revisão visual das novas abas e teste de uso solicitados ao mantenedor; não declarar essa validação como aprovada.
+
+## Incremento 0.1.6
+
+Diagnóstico de upload com linguagem simples, velocidade arredondada, avaliação dos ajustes atuais e sugestão Full HD/2K. Capacidade para 4K é informada separadamente. Não mede estabilidade, latência até o YouTube nem capacidade do computador. Criação contextual de preset com nome automático e renomeação; canais RTMP nomeados isolam as chaves mesmo quando compartilham o servidor. Cenas e Propriedades têm controles de recolher/restaurar persistidos. Abas usam seletor explícito, evitando o colapso observado no TabView.
+
+Transmitir abre confirmação com destino, título, capa quando disponível e chave mascarada. No modo manual, metadados continuam sob controle do serviço. No modo YouTube, OAuth desktop/PKCE permite conectar canais, manter rascunhos locais, criar vídeo agendado, enviar metadados/capa, criar e vincular stream e transmitir no mesmo ID. Uma criação remota confirmada é registrada antes da próxima etapa; resposta perdida bloqueia nova criação automática. A data agendada não inicia o aplicativo ou a transmissão automaticamente. Lives já criadas são editadas no YouTube Studio.
+
+Cliente OAuth próprio é necessário nesta versão: importar JSON desktop e autorizar pelo navegador. Tokens e configuração Google ficam no Keychain; JSON local contém somente preferências, IDs, metadados e referências de imagens. Nenhuma credencial Google do OBS é reutilizada. Consulte YOUTUBE.md. A UI distingue envio RTMP de confirmação de estado live pela API. Encerrar uma live iniciada pela integração também solicita encerramento no YouTube; falha exige conferir o Studio.
+
+Compilação Universal 2 e testes Swift com libobs passaram. Novos testes cobrem canais, migração, diagnóstico, nomes de presets, callbacks OAuth e contratos HTTP. Agendamento, bind e retomada após falha foram testados com transporte offline; nenhuma conta foi autorizada e nenhuma live foi criada/transmitida no YouTube pelo agente. A automação CUA da cópia QA016 retornou timeout de acessibilidade, portanto os novos layouts/gestos ainda precisam de conferência visual do mantenedor.

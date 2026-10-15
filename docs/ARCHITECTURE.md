@@ -46,3 +46,9 @@ Essa integração ainda não está disponível neste snapshot. WebRTC não muda 
 LiveSettingsModel mantém as preferências e presets nomeados em documento JSON com escrita atômica e validação. Segredos usam LiveKeyVault/Keychain; não fazem parte dos presets ou do JSON. Arquivo ilegível não é sobrescrito. Edições de vídeo durante uma transmissão só são aplicadas na próxima saída. LiveCountdown controla início cancelável 3–2–1; o estado Ao vivo vem do motor, não do término da contagem.
 
 MicrophoneSilenceWatch recebe amostras de fontes elegíveis e timestamps monotônicos de sinal. O callback libobs só atualiza valores atômicos; a interface verifica a janela de 30 segundos e mostra aviso local até a recuperação. Silêncio digital após filtros também pode gerar aviso; não se afirma diagnóstico físico da bateria.
+
+## YouTube e confirmação (0.1.6)
+
+YouTubeAPI encapsula transporte URLSession injetável e contratos oficiais. YouTubeOAuth usa navegador externo, retorno loopback 127.0.0.1, state aleatório e PKCE S256. YouTubeModel coordena credenciais no Keychain, drafts em youtube.json e journal de criações remotas. Não há retries cegos de POST: IDs são persistidos antes de metadados/capa/bind; um resultado desconhecido exige reconciliação na lista/Studio. LiveLaunch é efêmero e contém a chave apenas em memória. StudioModel separa consulta/confirmar/preparar/contagem/start e congela vídeo/credenciais para o início confirmado. O envio do motor não é equivalente à confirmação live da API.
+
+Rascunhos são locais até a ação explícita Agendar ou Confirmar e transmitir. O agendamento cria o vídeo remoto sem iniciar o encoder. Uma live selecionada é consultada novamente, vinculada ao stream quando necessário e iniciada com a ingestão desse mesmo vídeo. Outro stream ativo é recusado. Não há agendador automático em background.

@@ -5,7 +5,7 @@ struct OutputSettingsView: View {
     @ObservedObject var model: StudioModel
     @ObservedObject var settings: LiveSettingsModel
     @Environment(\.dismiss) var dismiss
-    @LegacyState private var tab = "quality"
+    @LegacyState private var channelName = ""
     init(model: StudioModel) { self.model = model; settings = model.liveSettings }
 
     var body: some View {
@@ -18,12 +18,23 @@ struct OutputSettingsView: View {
                 Spacer()
                 Image(systemName: "antenna.radiowaves.left.and.right").font(.title).foregroundStyle(.teal)
             }
-            TabView(selection: $tab) {
-                LiveSetupView(model: model, settings: settings).tabItem { Label("Qualidade", systemImage: "slider.horizontal.3") }.tag("quality")
-                videoTab.tabItem { Label("Vídeo e áudio", systemImage: "video") }.tag("video")
-                connectionTab.tabItem { Label("Conexão", systemImage: "network") }.tag("connection")
-                statusTab.tabItem { Label("Diagnóstico", systemImage: "waveform.path.ecg") }.tag("status")
-            }
+            Picker("Configurações", selection: $model.outputTab) {
+                Text("Qualidade").tag("quality")
+                Text("Vídeo e áudio").tag("video")
+                Text("Conexão").tag("connection")
+                Text("YouTube").tag("youtube")
+                Text("Diagnóstico").tag("status")
+            }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: .infinity)
+            Group {
+                switch model.outputTab {
+                case "video": videoTab
+                case "connection": connectionTab
+                case "youtube": YouTubeSettingsView(model: model, youtube: model.youtube, settings: settings)
+                case "status": statusTab
+                default: LiveSetupView(model: model, settings: settings)
+                }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            presetContext
             if let problem = settings.problem { Text(problem).font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
             if model.active {
                 Text("Live ativa: novos ajustes ficam salvos para a próxima transmissão.").font(.caption).foregroundStyle(.orange)
@@ -36,9 +47,30 @@ struct OutputSettingsView: View {
                 Button("Fechar") { settings.flush(); dismiss() }.keyboardShortcut(.cancelAction)
 
             }
-        }.padding(24).frame(width: 760, height: 640)
+        }.padding(24).frame(width: 840, height: 700)
         .onAppear { settings.loadKey() }
         .onDisappear { settings.flush() }
+    }
+    @ViewBuilder private var presetContext: some View {
+        if settings.document.selection == "custom" {
+            HStack(spacing: 12) {
+                Image(systemName: "slider.horizontal.3").foregroundStyle(.teal)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Você personalizou esta qualidade").font(.callout.bold())
+                    Text("Os ajustes já ficam salvos. Crie um preset para usar esta combinação outras vezes.").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Criar preset") { _ = settings.savePreset(name: settings.suggestedPresetName) }
+                    .buttonStyle(.borderedProminent).help("Salvar como \(settings.suggestedPresetName)")
+            }.padding(12).background(.teal.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        } else if let preset = settings.selectedPreset {
+            HStack {
+                Label(preset.name, systemImage: "checkmark.circle.fill").foregroundStyle(.teal).lineLimit(1)
+                Spacer()
+                Button("Renomear…") { model.askName(title: "Nome do preset", initial: preset.name) { settings.renamePreset(preset.id, name: $0) } }
+                Button("Excluir…", role: .destructive) { model.confirm("Excluir o preset “\(preset.name)”? Seus ajustes atuais serão mantidos.") { settings.removePreset(preset.id) } }
+            }.padding(12).background(.teal.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+        }
     }
     private var videoTab: some View {
         Form {
@@ -48,7 +80,7 @@ struct OutputSettingsView: View {
                 Picker("Quadros por segundo", selection: videoBinding(\.fps, immediate: true)) {
                     ForEach(Array(Set([24,30,60,settings.video.fps])).sorted(), id: \.self) { Text("\($0) FPS").tag($0) }
                 }
-                Text("Alterar estes campos cria um ajuste personalizado. Você pode salvá-lo com um nome na aba Qualidade.").font(.caption).foregroundStyle(.secondary)
+                Text("Alterar estes campos cria um ajuste personalizado. Use Criar preset para reutilizar esses ajustes.").font(.caption).foregroundStyle(.secondary)
             }
             Section("Codificação H.264") {
                 Picker("Encoder", selection: videoBinding(\.encoder, immediate: true)) {
@@ -69,16 +101,42 @@ struct OutputSettingsView: View {
     }
     private var connectionTab: some View {
         Form {
+            Section("Destino da transmissão") {
+                Toggle("Usar conta conectada do YouTube", isOn: Binding(get: { settings.document.youtubeMode == true }, set: { value in settings.edit({ $0.youtubeMode = value }, immediate: true) }))
+                Text("Para título, capa e agendamento, conecte sua conta na aba YouTube. Com RTMP manual, configure os dados da live no YouTube Studio.").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Meus canais RTMP") {
+                Picker("Canal", selection: Binding(get: { settings.document.selectedChannelID?.uuidString ?? "" }, set: { settings.selectChannel(UUID(uuidString: $0)) })) {
+                    Text("Nova conexão / não nomeada").tag("")
+                    ForEach(settings.channels) { Text($0.name).tag($0.id.uuidString) }
+                }
+                if let channel = settings.selectedChannel {
+                    HStack {
+                        Label("Canal salvo", systemImage: "checkmark.circle").foregroundStyle(.teal)
+                        Spacer()
+                        Button("Renomear…") { model.askName(title: "Nome do canal", initial: channel.name) { settings.renameChannel(channel.id, name: $0) } }
+                        Button("Excluir…", role: .destructive) {
+                            model.confirm("Excluir o canal “\(channel.name)” e sua chave salva?") { settings.deleteChannel(channel.id) }
+                        }
+                    }
+                } else if settings.document.rememberKey {
+                    HStack {
+                        TextField("Nome do canal", text: $channelName, prompt: Text("Ex.: Meu canal no YouTube"))
+                        Button("Salvar canal") { if settings.saveChannel(name: channelName) { channelName = "" } }
+                            .disabled(channelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || settings.key.isEmpty || settings.document.server.isEmpty)
+                    }
+                }
+                Text("Ao escolher um canal, o servidor e a chave são recuperados automaticamente. A troca só será usada na próxima transmissão.").font(.caption).foregroundStyle(.secondary)
+            }
             Section("Transmissão RTMP / RTMPS") {
                 TextField("Servidor", text: Binding(get: { settings.document.server }, set: { value in settings.edit({ $0.server = value }) }))
                 SecureField("Chave de transmissão", text: Binding(get: { settings.key }, set: { settings.editKey($0) }))
                 Toggle("Salvar chave no Acesso às Chaves", isOn: Binding(get: { settings.document.rememberKey }, set: { settings.rememberKey($0) }))
                 Text(settings.document.rememberKey ? "A chave é guardada automaticamente no Acesso às Chaves. Ela não é incluída no projeto nem nos presets." : "A chave será usada apenas nesta sessão. Ao desativar, a cópia salva por esta conexão é removida do Acesso às Chaves.").font(.caption).foregroundStyle(.secondary)
-                Button("Tentar ler a chave salva") { settings.loadKey() }
             }
             Section("YouTube") {
                 Text("Use o servidor e a chave fornecidos pelo YouTube Studio. Título, descrição, capa, visibilidade e latência são configurados no YouTube.")
-                Text("Salvar configurações não inicia a transmissão. Use Iniciar transmissão quando estiver pronto.").font(.caption).foregroundStyle(.secondary)
+                Text("Salvar configurações não inicia a transmissão. Use Transmitir no estúdio quando estiver pronto.").font(.caption).foregroundStyle(.secondary)
             }
         }.formStyle(.grouped)
     }

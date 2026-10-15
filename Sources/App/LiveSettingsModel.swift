@@ -19,16 +19,25 @@ struct NamedLivePreset: Codable, Identifiable {
     var name: String
     var video: LiveVideoSettings
 }
+struct SavedLiveChannel: Codable, Identifiable {
+    var id = UUID()
+    var name: String
+    var server: String
+    var keyAccount: String
+}
 struct LiveSettingsDocument: Codable {
     var version = 1
     var video = LiveVideoSettings()
-    var server = "rtmp://127.0.0.1:1935/live"
+    var server = ""
     var rememberKey = true
     var keyAccount = "live-\(UUID().uuidString)"
     var uploadMbps = 0.0
     var uploadMeasuredAt: Date?
     var selection = "custom"
     var presets: [NamedLivePreset] = []
+    var channels: [SavedLiveChannel]?
+    var selectedChannelID: UUID?
+    var youtubeMode: Bool?
     var microphoneAlerts = true
     var audioWatchOverrides: [String: Bool] = [:]
     func validate() throws {
@@ -43,6 +52,20 @@ struct LiveSettingsDocument: Codable {
                   url.host?.isEmpty == false, url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else {
                 throw StudioError.message("Informe um servidor RTMP/RTMPS sem usuário, senha ou parâmetros. Use o campo Chave para a credencial.")
             }
+        }
+        let savedChannels = channels ?? []
+        guard savedChannels.count <= 100, Set(savedChannels.map(\.id)).count == savedChannels.count,
+              Set(savedChannels.map(\.keyAccount)).count == savedChannels.count else { throw StudioError.message("Lista de canais inválida.") }
+        for channel in savedChannels {
+            guard !channel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, channel.name.count <= 80,
+                  channel.keyAccount.hasPrefix("live-"), UUID(uuidString: String(channel.keyAccount.dropFirst(5))) != nil,
+                  let url = URLComponents(string: channel.server), ["rtmp", "rtmps"].contains(url.scheme?.lowercased() ?? ""),
+                  url.host?.isEmpty == false, url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else {
+                throw StudioError.message("Nome ou conexão do canal inválidos.")
+            }
+        }
+        if let selectedChannelID {
+            guard savedChannels.contains(where: { $0.id == selectedChannelID && $0.keyAccount == keyAccount }) else { throw StudioError.message("O canal selecionado não corresponde à chave salva.") }
         }
         for preset in presets {
             guard !preset.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, preset.name.count <= 80 else { throw StudioError.message("O nome do preset deve ter entre 1 e 80 caracteres.") }
@@ -154,6 +177,85 @@ struct LiveKeyVault {
         if commit() { return true }
         document = previous; return false
     }
+    var suggestedPresetName: String {
+        var index = 1
+        while document.presets.contains(where: { $0.name.compare("Preset personalizado \(index)", options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) { index += 1 }
+        return "Preset personalizado \(index)"
+    }
+    var selectedPreset: NamedLivePreset? { document.presets.first { $0.id.uuidString == document.selection } }
+    func renamePreset(_ id: UUID, name: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 80, !document.presets.contains(where: { $0.id != id && $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else { problem = "Escolha um nome único de até 80 caracteres."; return }
+        edit({ d in if let index = d.presets.firstIndex(where: { $0.id == id }) { d.presets[index].name = name } }, immediate: true)
+    }
+    func useSuggestion(_ diagnosis: ConnectionDiagnosis) {
+        guard !readOnly, let quality = diagnosis.suggestedQuality else { return }
+        document.video.fps = diagnosis.suggestedFPS; choose(quality.rawValue)
+    }
+    var channels: [SavedLiveChannel] { document.channels ?? [] }
+    var selectedChannel: SavedLiveChannel? { channels.first { $0.id == document.selectedChannelID } }
+    @discardableResult func saveChannel(name: String) -> Bool {
+        guard !readOnly else { return false }
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 80, channels.count < 100,
+              !channels.contains(where: { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else { problem = "Escolha um nome único de até 80 caracteres para o canal."; return false }
+        loadKey()
+        guard !key.isEmpty, !document.server.isEmpty, document.rememberKey else { problem = "Informe servidor e chave e ative Salvar chave para guardar este canal."; return false }
+        queue.cancel()
+        guard commit() else { return false }
+        let previous = document
+        let channel = SavedLiveChannel(name: name, server: document.server, keyAccount: "live-\(UUID().uuidString)")
+        document.channels = channels + [channel]; document.selectedChannelID = channel.id; document.keyAccount = channel.keyAccount
+        keyDirty = true
+        guard commit() else {
+            document = previous; keyDirty = false
+            try? vault.delete(channel.keyAccount)
+            return false
+        }
+        if !(previous.channels ?? []).contains(where: { $0.keyAccount == previous.keyAccount }) {
+            do { try vault.delete(previous.keyAccount) }
+            catch { problem = "Canal salvo. Não foi possível remover a chave antiga sem nome do Acesso às Chaves." }
+        }
+        status = "Canal “\(name)” salvo"
+        return true
+    }
+    func selectChannel(_ id: UUID?) {
+        guard !readOnly else { return }
+        queue.cancel()
+        guard commit() else { return }
+        let previous = document; let previousKey = key
+        do {
+            if let id {
+                guard let channel = channels.first(where: { $0.id == id }) else { return }
+                let savedKey = try vault.read(channel.keyAccount)
+                document.selectedChannelID = id; document.server = channel.server; document.keyAccount = channel.keyAccount; document.rememberKey = true
+                key = savedKey
+            } else {
+                document.selectedChannelID = nil; document.server = ""; document.keyAccount = "live-\(UUID().uuidString)"; document.rememberKey = true; key = ""
+            }
+            loadedKey = true; keyDirty = false
+            if !commit() { document = previous; key = previousKey; return }
+            if id != nil && key.isEmpty { problem = "Este canal está sem chave salva. Digite a chave de transmissão." }
+        } catch { problem = "Não foi possível acessar a chave desse canal. A conexão anterior foi mantida." }
+    }
+    func renameChannel(_ id: UUID, name: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 80, !channels.contains(where: { $0.id != id && $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else { problem = "Escolha um nome único de até 80 caracteres."; return }
+        edit({ d in if let index = d.channels?.firstIndex(where: { $0.id == id }) { d.channels?[index].name = name } }, immediate: true)
+    }
+    func deleteChannel(_ id: UUID) {
+        guard !readOnly, let channel = channels.first(where: { $0.id == id }) else { return }
+        queue.cancel()
+        guard commit() else { return }
+        let previous = document; let previousKey = key
+        document.channels = channels.filter { $0.id != id }
+        if document.selectedChannelID == id {
+            document.selectedChannelID = nil; document.server = ""; document.keyAccount = "live-\(UUID().uuidString)"; key = ""; keyDirty = false
+        }
+        guard commit() else { document = previous; key = previousKey; return }
+        do { try vault.delete(channel.keyAccount) }
+        catch { problem = "Canal removido da lista, mas sua chave não pôde ser apagada do Acesso às Chaves." }
+    }
     func removePreset(_ id: UUID) {
         edit({ d in d.presets.removeAll { $0.id == id }; if d.selection == id.uuidString { d.selection = "custom" } }, immediate: true)
     }
@@ -184,6 +286,9 @@ struct LiveKeyVault {
     @discardableResult private func commit() -> Bool {
         guard !readOnly else { return false }
         do {
+            if let id = document.selectedChannelID, let index = document.channels?.firstIndex(where: { $0.id == id }) {
+                document.channels?[index].server = document.server
+            }
             try document.validate()
             if keyDirty {
                 if document.rememberKey { try vault.save(key, document.keyAccount) }
@@ -206,9 +311,13 @@ struct LiveKeyVault {
         return false
     }
     func prepareStream() -> Bool {
+        guard prepareVideo() else { return false }
+        guard !document.server.isEmpty, !key.isEmpty else { problem = "Informe o servidor e a chave de transmissão."; return false }
+        return true
+    }
+    func prepareVideo() -> Bool {
         queue.cancel()
         guard commit(), applyVideo(), let model else { return false }
-        guard !document.server.isEmpty, !key.isEmpty else { problem = "Informe o servidor e a chave de transmissão."; return false }
         guard model.catalog.array("encoders").contains(where: { $0.string("id") == video.encoder && $0.string("codec") == "h264" }) else {
             problem = "O encoder salvo não está disponível neste Mac. Escolha um encoder na aba Vídeo e áudio."; return false
         }

@@ -27,3 +27,5 @@ Na versão 0.1.3, as 14 bibliotecas dinâmicas de terceiros correspondem aos UUI
 O aplicativo e módulos modificados foram recompilados. A reconstrução integral de todas as dependências e a reprodução bit a bit **não foram executadas**. Receitas, patches, fontes e instruções estão no ZIP; `packaging/SOURCE-ACQUISITION.txt` descreve o procedimento e seus limites. O ZIP antigo `source-preparation` continua parcial e não é publicado nas releases.
 
 Browser CEF, plugins profissionais e câmera virtual ainda exigem implementação e análise próprias. Não há promessa de compatibilidade com todos os plugins do OBS.
+
+0.1.6: integração YouTube usa Foundation/URLSession, Network (retorno OAuth local), CryptoKit/Security (PKCE, entropia e Keychain) e UniformTypeIdentifiers. Frameworks do macOS, sem biblioteca externa ou cliente Google embutido. Contratos oficiais e configuração em [YOUTUBE.md](YOUTUBE.md).

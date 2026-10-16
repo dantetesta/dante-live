@@ -6,6 +6,29 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.10</title>
+      <pubDate>Fri, 16 Oct 2026 11:06:19 +0000</pubDate>
+      <sparkle:version>11</sparkle:version>
+      <sparkle:shortVersionString>0.1.10</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.10 — novo ícone e canvas redimensionável
+
+• Novo ícone oficial: mascote Dante Live com indicador vermelho, fornecido pelo mantenedor.
+• Ícone aplicado ao aplicativo, Dock/Finder e cabeçalho do estúdio, com resoluções Retina e transparência preservada.
+• Galeria de capturas reais no README, com projeto de demonstração.
+
+Mantém os recursos da 0.1.9, incluindo convidados experimentais por link, mixer estéreo, máscaras e editor. TURN continua opcional e não provisionado; redes restritas e sessões prolongadas ainda precisam de validação.
+
+macOS 14+ • Universal 2 • distribuição oficial assinada e notarizada pela Apple.
+
+Canvas redimensionável
+- Nova alça abaixo do canvas: arraste para redistribuir o espaço com fontes e mixer.
+- Proporção salva automaticamente; dois cliques restauram o padrão. Setas e VoiceOver disponíveis.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.10/Dante-Live-0.1.10-macOS-universal.dmg" length="92298311" type="application/octet-stream" sparkle:edSignature="A/T3Emqu9YL2/fIYjfPZuoary7zbLjkYBHLd7OjgpYTMuUeDKZT4MmTEQeLHu3AwqugrnsmtKHFy8U4MjqFjAw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.9</title>
       <pubDate>Fri, 16 Oct 2026 03:43:50 +0000</pubDate>
       <sparkle:version>10</sparkle:version>
@@ -86,6 +109,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: DEWxUG2PQ2p+exO5Qx6GvIWz51w+i16ss7ywB8wfOJVpm7y3GJ1GDLzWKOIu+uvj717wlxxbvUZ9nGs3T1WjDg==
-length: 7598
+edSignature: c6V7tSl1QVrAwsyftpbu0/EI/Xc55sn2BykmtQEjSJKONREUKGRr/UBBSFNA5yu6VN6jKhG0x2LZZ9BQWdySDg==
+length: 9265
 -->

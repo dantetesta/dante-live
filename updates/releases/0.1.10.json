@@ -1,0 +1,16 @@
+{
+  "version": "0.1.10",
+  "build": 11,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.10/Dante-Live-0.1.10-macOS-universal.dmg",
+  "length": 92298311,
+  "sha256": "d1995f09b939dd5c963370a3f59e89e9801c27213ad450cc2593e958a19316e3",
+  "signature": "A/T3Emqu9YL2/fIYjfPZuoary7zbLjkYBHLd7OjgpYTMuUeDKZT4MmTEQeLHu3AwqugrnsmtKHFy8U4MjqFjAw==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T11:06:19.082085+00:00",
+  "changelog": "Dante Live 0.1.10 — novo ícone e canvas redimensionável\n\n• Novo ícone oficial: mascote Dante Live com indicador vermelho, fornecido pelo mantenedor.\n• Ícone aplicado ao aplicativo, Dock/Finder e cabeçalho do estúdio, com resoluções Retina e transparência preservada.\n• Galeria de capturas reais no README, com projeto de demonstração.\n\nMantém os recursos da 0.1.9, incluindo convidados experimentais por link, mixer estéreo, máscaras e editor. TURN continua opcional e não provisionado; redes restritas e sessões prolongadas ainda precisam de validação.\n\nmacOS 14+ • Universal 2 • distribuição oficial assinada e notarizada pela Apple.\n\nCanvas redimensionável\n- Nova alça abaixo do canvas: arraste para redistribuir o espaço com fontes e mixer.\n- Proporção salva automaticamente; dois cliques restauram o padrão. Setas e VoiceOver disponíveis.\n",
+  "notarized": true
+}

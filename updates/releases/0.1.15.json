@@ -1,0 +1,16 @@
+{
+  "version": "0.1.15",
+  "build": 16,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.15/Dante-Live-0.1.15-macOS-universal.dmg",
+  "length": 93873520,
+  "sha256": "127480ffbadb756f126a9282201be8c199dbd42877b88fc4e6ad07703e28718d",
+  "signature": "/NzAmNqZV7nRBn90swAf9xIHiIDZOIVwXmz/fEtCtTbs5ZEPaIZLIVtbZ3yufQ/vNkRc/wCW5OTziHoha9KeAw==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T22:07:41.852381+00:00",
+  "changelog": "# Dante Live 0.1.15\n\nNova compilação de distribuição da base 0.1.14, com numeração própria para instalação e atualização. Não há novas funcionalidades ou correções de comportamento nesta versão.\n\nMantém o painel Participantes, retorno direto de programa aos convidados, organização por nome e cor, isolamento de texto/transformações/recorte/visibilidade no modo estúdio, recorte vertical com Option e confirmação específica ao encerrar a live.\n\n## Instalação\n\nmacOS 14+; pacote Universal 2 para Apple Silicon e Intel. Distribuição oficial assinada com Developer ID e notarizada pela Apple. Atualize fora de uma transmissão ativa.\n\n## Limitações conhecidas\n\nVersão experimental. O lag relatado com câmera/rede reais ainda requer reteste; não há promessa de latência zero. Convidados dependem da rede e TURN não vem provisionado. Intel físico, macOS 14 real, Safari/Firefox e sessões prolongadas continuam pendentes de validação. A atualização não concede permissões de captura automaticamente.\n",
+  "notarized": true
+}

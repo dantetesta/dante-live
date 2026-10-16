@@ -58,6 +58,23 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 </details>
 
+## Prepare cada transmissão em seu próprio espaço
+
+Na guia **Preparar live**, organize título, descrição, capa e visibilidade. **Salvar na lista** guarda uma preparação local sem horário marcado; **Agendar…** abre calendário e horário para criar o evento no YouTube. Você pode manter várias preparações por canal, com salvamento automático.
+
+Ao clicar em **Transmitir**, escolha uma preparação salva ou live agendada, confira os dados e confirme. Após a preparação, o envio começa com contagem **3, 2, 1**. O agendamento não inicia a transmissão sozinho. Lives já criadas são editadas no YouTube Studio.
+
+Capturas da interface 0.1.16 em uma preparação de demonstração local, sem conexão ou criação de evento real no YouTube.
+
+![Guia Preparar live com título, descrição, capa e opções de salvar ou agendar](docs/images/preparar-live.png)
+
+<details>
+<summary>Ver o calendário de agendamento</summary>
+
+![Calendário nativo com data, horário, fuso e confirmação de agendamento](docs/images/agendar-live.png)
+
+</details>
+
 ## Tutorial: integrar com o YouTube
 
 [**▶ Assistir ao tutorial de Dante Testa — 5 min 54 s**](https://youtu.be/WHGy0IJvG5Y)

@@ -71,6 +71,11 @@ struct YouTubeDraftState: Codable {
     var createdStream: String?
     var creationUncertain = false
     var streamCreationUncertain = false
+    var preparationComplete: Bool?
+}
+struct YouTubeSavedLive: Codable, Identifiable {
+    var id: String = UUID().uuidString
+    var state: YouTubeDraftState
 }
 struct YouTubePreferences: Codable {
     var accounts: [YouTubeAccount] = []
@@ -78,6 +83,10 @@ struct YouTubePreferences: Codable {
     var states: [String: YouTubeDraftState] = [:]
     // Optional for compatibility with preferences saved before local library cleanup.
     var hiddenBroadcasts: [String: Set<String>]?
+    // Optional additions migrate older files without dropping their current draft/journal.
+    var savedLives: [String: [YouTubeSavedLive]]?
+    var currentLiveIDs: [String: String]?
+    var cachedBroadcasts: [String: [YouTubeBroadcast]]?
 }
 
 @MainActor final class YouTubeAPI {

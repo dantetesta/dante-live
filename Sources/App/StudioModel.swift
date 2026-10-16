@@ -184,7 +184,7 @@ final class StudioModel: ObservableObject {
         launchTask = Task { [weak self] in
             guard let self else { return }; defer { self.preparingLive = false }
             do { self.pendingLive = try await self.youtube.confirmation(); try Task.checkCancellation() }
-            catch { self.pendingLive = nil; self.youtube.message = error.localizedDescription; self.outputTab = "youtube"; self.showingOutput = true }
+            catch { self.pendingLive = nil; self.youtube.message = error.localizedDescription; self.outputTab = "broadcast"; self.showingOutput = true }
         }
     }
     func confirmLive(_ selection: LiveLaunch) {

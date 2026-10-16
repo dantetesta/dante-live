@@ -36,14 +36,21 @@ struct YouTubeLibraryView: View {
     @LegacyState private var selection = ""
     @LegacyState private var query = ""
     @LegacyState private var showHidden = false
-    private let draftID = "__local_draft__"
+    private var localLives: [YouTubeSavedLive] {
+        youtube.localLives.filter { query.isEmpty || $0.state.draft.title.localizedStandardContains(query) }
+    }
+    private var selectedLocal: YouTubeSavedLive? { youtube.localLives.first { "local:" + $0.id == selection } }
     private var events: [YouTubeBroadcast] {
         (showHidden ? youtube.broadcasts : youtube.visibleBroadcasts).filter { query.isEmpty || $0.title.localizedStandardContains(query) }
             .sorted { ($0.scheduledDate ?? .distantFuture, $0.id) < ($1.scheduledDate ?? .distantFuture, $1.id) }
     }
     private var selectedEvent: YouTubeBroadcast? { youtube.broadcasts.first { $0.id == selection } }
-    private var canContinue: Bool { !youtube.busy && youtube.account != nil && !youtube.hiddenBroadcastIDs.contains(selection) && (selection == draftID || selectedEvent?.canTransmit == true) }
-    private var selectedTitle: String { selection == draftID ? (youtube.state.draft.title.isEmpty ? "Rascunho da próxima live" : youtube.state.draft.title) : selectedEvent?.title ?? "Escolha uma live" }
+    private var canContinue: Bool { !youtube.busy && youtube.account != nil && !youtube.hiddenBroadcastIDs.contains(selection) && (selectedLocal.map { youtube.canTransmitLocal($0) || !forTransmission } == true || selectedEvent?.canTransmit == true) }
+    private var selectedTitle: String {
+        if let local = selectedLocal { return local.state.draft.title.isEmpty ? "Preparação sem título" : local.state.draft.title }
+        return selectedEvent?.title ?? "Escolha uma live"
+    }
+    private var initialSelection: String { youtube.state.selectedBroadcast ?? youtube.currentLiveID.map { "local:" + $0 } ?? "" }
     private var sheetSize: CGSize {
         let size = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1200, height: 900)
         return CGSize(width: min(1000, size.width - 80), height: min(740, size.height - 100))
@@ -60,12 +67,26 @@ struct YouTubeLibraryView: View {
                 Button { youtube.refresh() } label: { Label("Atualizar", systemImage: "arrow.clockwise") }.disabled(youtube.busy)
             }.padding(14).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10)).padding(.horizontal, 24).padding(.top, 18)
             if youtube.busy {
-                HStack(spacing: 10) { ProgressView().controlSize(.small); Text("Buscando suas lives no YouTube…") }.padding(.horizontal, 24).padding(.top, 12)
+                HStack(spacing: 10) { ProgressView().controlSize(.small); Text("Atualizando lives do YouTube…") }.padding(.horizontal, 24).padding(.top, 12)
             } else if let message = youtube.message {
                 Text(message).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).padding(.horizontal, 24).padding(.top, 10)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Text("Salvas neste Mac • sem horário marcado").font(.headline)
+                        Text("\(localLives.count)").foregroundStyle(.secondary)
+                    }
+                    Text("Escolha uma preparação salva. O vídeo será criado no YouTube após sua confirmação. Para preparar outra, use a guia Preparar live nas configurações.").font(.callout).foregroundStyle(.secondary)
+                    if localLives.isEmpty {
+                        Text("Nenhuma preparação encontrada. Crie uma na guia Preparar live.").foregroundStyle(.secondary).padding(.vertical, 12)
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
+                        ForEach(localLives) { item in
+                            localCard(item)
+                        }
+                    }
+                    Divider()
                     HStack {
                         Text("Lives criadas e agendadas").font(.headline)
                         Text("\(events.count)").foregroundStyle(.secondary)
@@ -75,7 +96,7 @@ struct YouTubeLibraryView: View {
                     Text("Use o menu ••• de uma live para ocultá-la somente neste Mac. Ela continuará no YouTube.")
                         .font(.caption).foregroundStyle(.secondary)
                     if events.isEmpty {
-                        ContentUnavailableView(youtube.busy ? "Consultando o canal" : query.isEmpty ? "Nenhuma live na lista" : "Nenhuma live com esse título", systemImage: "calendar", description: Text(query.isEmpty ? "Atualize a lista ou use seu rascunho para preparar uma nova live. As lives encerradas não aparecem aqui." : "Tente buscar outro título."))
+                        ContentUnavailableView(youtube.busy ? "Consultando o canal" : query.isEmpty ? "Nenhuma live na lista" : "Nenhuma live com esse título", systemImage: "calendar", description: Text(query.isEmpty ? "As preparações salvas neste Mac aparecem abaixo. As lives encerradas não aparecem aqui." : "Tente buscar outro título."))
                             .frame(maxWidth: .infinity).frame(height: 190)
                     } else {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
@@ -95,22 +116,6 @@ struct YouTubeLibraryView: View {
                             }
                         }
                     }
-                    Divider()
-                    Text("Começar uma nova live").font(.headline)
-                    Button { selection = draftID } label: {
-                        HStack(spacing: 16) {
-                            LiveCover(url: youtube.thumbnailURL(youtube.state.draft.thumbnailFile))
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(youtube.state.draft.title.isEmpty ? "Rascunho da próxima live" : youtube.state.draft.title).font(.headline).lineLimit(2)
-                                Text("Rascunho local • \(privacyName(youtube.state.draft.privacy))").font(.callout).foregroundStyle(.secondary)
-                                Text("Ainda não publicado. Será criado no YouTube somente após confirmar a transmissão.").font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: selection == draftID ? "checkmark.circle.fill" : "circle").font(.title2).foregroundStyle(selection == draftID ? .teal : .secondary)
-                        }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                            .background(selection == draftID ? Color.teal.opacity(0.08) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(selection == draftID ? Color.teal : .clear, lineWidth: 2))
-                    }.buttonStyle(.plain).disabled(youtube.busy).accessibilityAddTraits(selection == draftID ? .isSelected : [])
                     Text("Horários no fuso deste Mac (\(TimeZone.current.identifier)). Selecionar uma live preserva o vídeo e o link já criados no YouTube.").font(.caption).foregroundStyle(.secondary)
                 }.padding(24)
             }
@@ -122,15 +127,36 @@ struct YouTubeLibraryView: View {
                 }
                 Spacer()
                 Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(forTransmission ? "Continuar" : "Usar esta seleção") {
-                    guard canContinue, youtube.selectBroadcast(selection == draftID ? "" : selection) else { return }
-                    onChoose()
+                Button(forTransmission ? "Continuar" : selectedLocal != nil ? "Editar preparação" : "Usar esta seleção") {
+                    guard canContinue else { return }
+                    let saved = selectedLocal.map { youtube.selectLocalLive($0.id) } ?? youtube.selectBroadcast(selection)
+                    if saved { onChoose() }
                 }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction).disabled(!canContinue)
             }.controlSize(.large).padding(24)
         }.frame(width: sheetSize.width, height: sheetSize.height)
             .background(Color(nsColor: .windowBackgroundColor)).tint(.teal)
-            .onAppear { selection = youtube.state.selectedBroadcast ?? draftID; youtube.refresh() }
-            .onChange(of: youtube.preferences.selectedAccount) { _, _ in selection = youtube.state.selectedBroadcast ?? draftID }
+            .onAppear { selection = initialSelection; youtube.refresh() }
+            .onChange(of: youtube.preferences.selectedAccount) { _, _ in selection = initialSelection }
+    }
+    private func localCard(_ item: YouTubeSavedLive) -> some View {
+        let selected = selection == "local:" + item.id
+        let valid = youtube.canTransmitLocal(item)
+        return Button { selection = "local:" + item.id } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                LiveCover(url: youtube.thumbnailURL(item.state.draft.thumbnailFile)).frame(maxWidth: .infinity)
+                Text(item.state.draft.title.isEmpty ? "Preparação sem título" : item.state.draft.title).font(.headline).lineLimit(2).frame(height: 42, alignment: .topLeading)
+                Label(privacyName(item.state.draft.privacy), systemImage: "eye").font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Label(item.state.creationUncertain ? "Conferir criação no YouTube" : valid ? "Pronta para transmitir" : "Complete os dados", systemImage: item.state.creationUncertain ? "exclamationmark.triangle" : valid ? "play.circle" : "pencil").font(.caption)
+                    Spacer()
+                    if selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(.teal) }
+                }
+            }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(selected ? Color.teal.opacity(0.08) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(selected ? Color.teal : Color.primary.opacity(0.1), lineWidth: selected ? 2 : 1))
+        }.buttonStyle(.plain).disabled(youtube.busy || (forTransmission && !valid))
+            .accessibilityLabel("\(item.state.draft.title.isEmpty ? "Preparação sem título" : item.state.draft.title), salva neste Mac, \(privacyName(item.state.draft.privacy))")
+            .accessibilityAddTraits(selected ? .isSelected : [])
     }
     private func visibilityAction(_ event: YouTubeBroadcast) -> some View {
         let hidden = youtube.hiddenBroadcastIDs.contains(event.id)

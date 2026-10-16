@@ -1,3 +1,11 @@
+## Versão 0.1.16 — preparação de lives e biblioteca local
+
+Guia Preparar live separada de Conta YouTube: formulário de título/descrição/visibilidade, capa com prévia, categoria/palavras-chave/latência e opções Salvar na lista ou Agendar. Agendamento abre calendário nativo do Mac com horário, fuso, canal e visibilidade; cria o vídeo no YouTube sem iniciar transmissão. Transmitir reúne várias preparações locais e eventos remotos, depois confirma e mantém contagem 3–2–1.
+
+Biblioteca por canal com IDs próprios, autosave, migração do rascunho legado (inclusive quando coexistia com uma seleção remota), cache dos eventos e journals individuais para retomar criação parcial sem repetir inserts. Dados confirmados são verificados novamente antes de iniciar. Falha de disco impede trocar/descartar a preparação atual. Lives remotas continuam editáveis no YouTube Studio.
+
+Validação com transporte offline: migração, múltiplas preparações/capas independentes, persistência/reabertura, canais isolados, falha de disco, snapshot da confirmação e criação/agendamento com retry. A contagem regressiva existente mantém teste de cancelamento e início único. Nenhuma live foi criada/transmitida em conta real para esta validação; calendário e formulário usam controles reais em fixture local isolada. Demais limites de plataforma/rede continuam abaixo.
+
 ## Versão 0.1.15 — nova compilação de distribuição
 
 Nova compilação da base 0.1.14, com versão/build próprios para distribuição e atualização. Não adiciona funcionalidades nem altera o comportamento do aplicativo. Permanecem os recursos e limites de validação descritos abaixo.
@@ -38,7 +46,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.15 (16)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.16 (17)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|

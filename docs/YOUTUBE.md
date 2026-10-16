@@ -2,6 +2,16 @@
 
 A chave RTMP transporta áudio/vídeo. Para criar vídeos, definir título, descrição, palavras-chave, capa, visibilidade e agendamento, o Dante usa a API oficial do YouTube com autorização Google. Não reutiliza as credenciais OAuth do OBS.
 
+## Preparar, salvar ou agendar
+
+1. Em **Conta YouTube**, conecte o canal.
+2. Na guia **Preparar live**, preencha título, descrição, capa e visibilidade. Categoria, palavras-chave e latência ficam em uma seção expansível.
+3. **Salvar na lista** mantém uma preparação local para transmitir sem horário marcado. Você pode criar outras usando **Nova live**; as anteriores continuam disponíveis em **Minhas lives**. Os campos também têm autosave.
+4. **Agendar…** abre calendário e horário no fuso deste Mac. Confira canal e visibilidade e clique em **Agendar no YouTube**. Essa ação cria o vídeo e o link, mas não inicia o envio automaticamente.
+5. No estúdio, clique em **Transmitir**, escolha uma preparação salva ou live agendada e confirme. Depois da preparação, a contagem **3, 2, 1** precede o início do envio.
+
+Escolher uma preparação local em Minhas lives permite continuar editando seus dados. Uma live já criada preserva seu link e é editada no YouTube Studio. As listas são separadas por canal. Falhas de criação remota mantêm um registro para retomar sem duplicação automática.
+
 ## Tutorial em vídeo
 
 [Assista ao tutorial do autor](https://youtu.be/WHGy0IJvG5Y). O HTML foi revisado com o manual atualizado do Dante Studio, a transcrição e as telas do vídeo, com links para seis trechos. O caminho de **Tela de permissão OAuth**, os usuários de teste, a seleção do projeto e o download imediato do JSON foram detalhados.
@@ -10,7 +20,7 @@ O vídeo configura `youtube.upload` e `youtube.readonly` para o Studio. O **Live
 
 ## Configuração inicial
 
-O botão **Manual de integração com YouTube**, em **Configurações da live → YouTube**, abre no navegador o guia HTML incluído no aplicativo. O manual pode ser lido offline; os links do Google e a autorização precisam de internet. A consulta permanece disponível mesmo enquanto os controles de conexão estão bloqueados por uma saída ativa.
+O botão **Manual de integração com YouTube**, em **Configurações da live → Conta YouTube**, abre no navegador o guia HTML incluído no aplicativo. O manual pode ser lido offline; os links do Google e a autorização precisam de internet. A consulta permanece disponível mesmo enquanto os controles de conexão estão bloqueados por uma saída ativa.
 
 Fonte do guia: [`Sources/Help/youtube-integration.html`](../Sources/Help/youtube-integration.html). O build copia somente esse recurso para `Contents/Resources/Help/`, e o empacotamento exige sua presença. É documentação destinada ao usuário, incluída por solicitação explícita; os documentos internos continuam fora do runtime. Nenhuma credencial é incluída no HTML. Checklist e impressão são locais ao navegador.
 

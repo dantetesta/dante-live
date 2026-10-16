@@ -19,14 +19,16 @@ struct OutputSettingsView: View {
                 Image(systemName: "antenna.radiowaves.left.and.right").font(.title).foregroundStyle(.teal)
             }
             Picker("Configurações", selection: $model.outputTab) {
+                Text("Preparar live").tag("broadcast")
                 Text("Qualidade").tag("quality")
                 Text("Vídeo e áudio").tag("video")
                 Text("Conexão").tag("connection")
-                Text("YouTube").tag("youtube")
+                Text("Conta YouTube").tag("youtube")
                 Text("Diagnóstico").tag("status")
             }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: .infinity)
             Group {
                 switch model.outputTab {
+                case "broadcast": LivePreparationView(model: model, youtube: model.youtube, settings: settings)
                 case "video": videoTab
                 case "connection": connectionTab
                 case "youtube": YouTubeSettingsView(model: model, youtube: model.youtube, settings: settings)
@@ -34,22 +36,24 @@ struct OutputSettingsView: View {
                 default: LiveSetupView(model: model, settings: settings)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            presetContext
-            if let problem = settings.problem { Text(problem).font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
+            if ["quality", "video"].contains(model.outputTab) { presetContext }
+            if let problem = settings.problem, !["broadcast", "youtube"].contains(model.outputTab) { Text(problem).font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
             if model.active {
                 Text("Live ativa: novos ajustes ficam salvos para a próxima transmissão.").font(.caption).foregroundStyle(.orange)
-            } else if settings.pendingVideo {
+            } else if settings.pendingVideo, !["broadcast", "youtube"].contains(model.outputTab) {
                 Text("Resolução/FPS salvos diferem do canvas atual; serão aplicados antes de iniciar a live.").font(.caption).foregroundStyle(.secondary)
             }
             HStack {
-                Label(settings.status, systemImage: "internaldrive").font(.caption).foregroundStyle(.secondary)
+                if !["broadcast", "youtube"].contains(model.outputTab) {
+                    Label(settings.status, systemImage: "internaldrive").font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("Fechar") { settings.flush(); dismiss() }.keyboardShortcut(.cancelAction)
 
             }
-        }.padding(24).frame(width: 840, height: 700)
+        }.padding(24).frame(width: 840, height: 700).background(Color(nsColor: .windowBackgroundColor))
         .onAppear { settings.loadKey() }
-        .onDisappear { settings.flush() }
+        .onDisappear { settings.flush(); model.youtube.flush() }
     }
     @ViewBuilder private var presetContext: some View {
         if settings.document.selection == "custom" {

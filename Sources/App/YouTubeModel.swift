@@ -12,6 +12,8 @@ struct LiveLaunch: Identifiable {
     var youtubeAccount: String?
     var broadcastID: String?
     var privacy: String?
+    var localLiveID: String?
+    var confirmedDraft: YouTubeDraft?
 }
 
 @MainActor final class YouTubeModel: ObservableObject {
@@ -21,6 +23,7 @@ struct LiveLaunch: Identifiable {
     @Published var message: String?
     @Published private(set) var clientConfigured = false
     @Published private(set) var remoteLive = false
+    @Published private(set) var draftSaveStatus = "Alterações salvas neste Mac"
     private let api: YouTubeAPI
     private let vault: LiveKeyVault
     private let directory: URL
@@ -36,6 +39,67 @@ struct LiveLaunch: Identifiable {
     private var url: URL { directory.appendingPathComponent("youtube.json") }
     var account: YouTubeAccount? { preferences.accounts.first { $0.id == preferences.selectedAccount } }
     var state: YouTubeDraftState { preferences.selectedAccount.flatMap { preferences.states[$0] } ?? YouTubeDraftState() }
+    var currentLiveID: String? { account.flatMap { preferences.currentLiveIDs?[$0.id] } }
+    var savedLives: [YouTubeSavedLive] {
+        guard let id = account?.id else { return [] }
+        var items = preferences.savedLives?[id] ?? []
+        if let current = currentLiveID, let index = items.firstIndex(where: { $0.id == current }) { items[index].state = state }
+        return items
+    }
+    var localLives: [YouTubeSavedLive] { savedLives.filter { $0.state.createdBroadcast == nil && $0.state.selectedBroadcast == nil } }
+    var canEditDraft: Bool { canOrganizeLibrary && state.createdBroadcast == nil && state.selectedBroadcast == nil && !state.creationUncertain }
+    func canTransmitLocal(_ live: YouTubeSavedLive) -> Bool {
+        guard live.state.createdBroadcast == nil, live.state.selectedBroadcast == nil, !live.state.creationUncertain else { return false }
+        do { try live.state.draft.validate(); return true } catch { return false }
+    }
+    private func migrateLibrary() {
+        if preferences.savedLives == nil { preferences.savedLives = [:] }
+        if preferences.currentLiveIDs == nil { preferences.currentLiveIDs = [:] }
+        for account in preferences.accounts where preferences.currentLiveIDs?[account.id] == nil {
+            var value = preferences.states[account.id] ?? YouTubeDraftState()
+            // Older versions allowed a remote selection and an unrelated local draft
+            // to occupy the same slot. Preserve both when migrating that layout.
+            if let remoteID = value.selectedBroadcast, value.createdBroadcast != remoteID {
+                if value.createdBroadcast != nil || value.creationUncertain || !value.draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    var local = value; local.selectedBroadcast = nil
+                    preferences.savedLives?[account.id, default: []].append(YouTubeSavedLive(state: local))
+                }
+                value = YouTubeDraftState(); value.selectedBroadcast = remoteID; value.createdBroadcast = remoteID
+                value.draft.title = preferences.cachedBroadcasts?[account.id]?.first(where: { $0.id == remoteID })?.title ?? "Live selecionada"
+            }
+            let entry = YouTubeSavedLive(state: value)
+            preferences.savedLives?[account.id, default: []].append(entry)
+            preferences.currentLiveIDs?[account.id] = entry.id
+            preferences.states[account.id] = entry.state
+        }
+    }
+    private func storeCurrentLive() {
+        migrateLibrary()
+        guard let account, let current = currentLiveID else { return }
+        var items = preferences.savedLives?[account.id] ?? []
+        let entry = YouTubeSavedLive(id: current, state: state)
+        if let index = items.firstIndex(where: { $0.id == current }) { items[index] = entry } else { items.append(entry) }
+        preferences.savedLives?[account.id] = items
+    }
+    @discardableResult func saveDraftForLater() -> Bool {
+        guard canEditDraft else { return false }
+        do {
+            try state.draft.validate(); edits.flush(); try save()
+            message = "Live salva neste Mac. Ela estará na lista ao clicar em Transmitir."
+            return true
+        } catch { message = error.localizedDescription; return false }
+    }
+    @discardableResult func selectLocalLive(_ id: String) -> Bool {
+        guard canOrganizeLibrary, let account else { return false }
+        edits.flush()
+        do { try save() } catch { message = error.localizedDescription; return false }
+        guard let item = savedLives.first(where: { $0.id == id }), item.state.createdBroadcast == nil, item.state.selectedBroadcast == nil else { return false }
+        let previous = preferences
+        preferences.currentLiveIDs?[account.id] = id
+        preferences.states[account.id] = item.state
+        do { try save(); message = nil; return true }
+        catch { preferences = previous; message = error.localizedDescription; return false }
+    }
     var selectedBroadcast: YouTubeBroadcast? { broadcasts.first { $0.id == state.selectedBroadcast } }
     var hiddenBroadcastIDs: Set<String> { account.flatMap { preferences.hiddenBroadcasts?[$0.id] } ?? [] }
     var visibleBroadcasts: [YouTubeBroadcast] { broadcasts.filter { !hiddenBroadcastIDs.contains($0.id) } }
@@ -67,6 +131,8 @@ struct LiveLaunch: Identifiable {
             do { preferences = try JSONDecoder().decode(YouTubePreferences.self, from: Data(contentsOf: url)) }
             catch { writable = false; message = "As configurações do YouTube não puderam ser lidas. O arquivo foi preservado." }
         }
+        migrateLibrary()
+        broadcasts = preferences.selectedAccount.flatMap { preferences.cachedBroadcasts?[$0] } ?? []
     }
     func loadClient() {
         do {
@@ -97,9 +163,10 @@ struct LiveLaunch: Identifiable {
             let account = YouTubeAccount(id: id, name: channel.object("snippet").string("title"), tokenAccount: tokenAccount, clientID: client.clientID)
             self.preferences.accounts.removeAll { $0.id == id }; self.preferences.accounts.append(account)
             self.preferences.selectedAccount = id
+            self.broadcasts = self.preferences.cachedBroadcasts?[id] ?? []
             if self.preferences.states[id] == nil { self.preferences.states[id] = YouTubeDraftState() }
             self.tokens[id] = token; try self.save()
-            self.broadcasts = try await self.api.broadcasts(token: token.access)
+            self.broadcasts = try await self.api.broadcasts(token: token.access); try self.save()
             self.message = "Canal conectado: \(account.name)"
         }
     }
@@ -117,9 +184,13 @@ struct LiveLaunch: Identifiable {
         }
     }
     func editDraft(_ change: (inout YouTubeDraft) -> Void) {
-        guard !busy, writable, let id = account?.id else { return }
+        guard canEditDraft, let id = account?.id else { return }
         var value = state; change(&value.draft); preferences.states[id] = value
-        edits.submit(immediate: false) { [weak self] in do { try self?.save() } catch { self?.message = "Não foi possível salvar o rascunho da live." } }
+        draftSaveStatus = "Salvando alterações…"
+        edits.submit(immediate: false) { [weak self] in
+            do { try self?.save() }
+            catch { self?.draftSaveStatus = "Não foi possível salvar. Tente novamente."; self?.message = error.localizedDescription }
+        }
     }
     func flush() { edits.flush() }
     func prepareForApplicationUpdate() throws {
@@ -129,39 +200,59 @@ struct LiveLaunch: Identifiable {
         try save()
     }
     func selectAccount(_ id: String) {
-        guard !busy, writable else { return }; edits.flush()
-        guard preferences.accounts.contains(where: { $0.id == id }) else { return }
-        preferences.selectedAccount = id; broadcasts = []
+        guard canOrganizeLibrary, preferences.accounts.contains(where: { $0.id == id }) else { return }
+        edits.flush()
         do { try save() } catch { message = error.localizedDescription; return }
+        let previous = preferences; let previousBroadcasts = broadcasts
+        preferences.selectedAccount = id
+        broadcasts = preferences.cachedBroadcasts?[id] ?? []
+        do { try save() } catch { preferences = previous; broadcasts = previousBroadcasts; message = error.localizedDescription; return }
         refresh()
     }
     @discardableResult func selectBroadcast(_ id: String) -> Bool {
-        guard !busy, writable, let account, !hiddenBroadcastIDs.contains(id) else { return false }; edits.flush()
-        let previous = state
-        var value = state; value.selectedBroadcast = id.isEmpty ? nil : id
-        if id.isEmpty, previous.selectedBroadcast != nil { value = YouTubeDraftState(); value.draft = previous.draft }
-        preferences.states[account.id] = value
+        guard canOrganizeLibrary, let account, !hiddenBroadcastIDs.contains(id) else { return false }
+        if id.isEmpty { return newDraft() }
+        edits.flush()
+        do { try save() } catch { message = error.localizedDescription; return false }
+        let previous = preferences
+        if let existing = savedLives.first(where: { $0.state.createdBroadcast == id }) {
+            preferences.currentLiveIDs?[account.id] = existing.id
+            var value = existing.state; value.selectedBroadcast = id
+            preferences.states[account.id] = value
+        } else {
+            var value = YouTubeDraftState(); value.selectedBroadcast = id; value.createdBroadcast = id
+            if let event = broadcasts.first(where: { $0.id == id }) {
+                value.draft.title = event.title; value.draft.description = event.description; value.draft.privacy = event.privacy
+            }
+            preferences.currentLiveIDs?[account.id] = UUID().uuidString
+            preferences.states[account.id] = value
+        }
         do { try save(); return true }
-        catch { preferences.states[account.id] = previous; message = error.localizedDescription; return false }
+        catch { preferences = previous; message = error.localizedDescription; return false }
     }
-    func newDraft() {
-        guard !busy, writable, let account else { return }
-        // Starting another draft is explicit; an uncertain previous remote creation is not retried.
-        var value = YouTubeDraftState(); value.draft = state.draft
-        preferences.states[account.id] = value
-        do { try save(); message = "Novo rascunho. Lives já criadas continuam na lista do YouTube." } catch { message = error.localizedDescription }
+    @discardableResult func newDraft() -> Bool {
+        guard canOrganizeLibrary, let account else { return false }
+        edits.flush()
+        do { try save() } catch { message = error.localizedDescription; return false }
+        let previous = preferences
+        preferences.currentLiveIDs?[account.id] = UUID().uuidString
+        preferences.states[account.id] = YouTubeDraftState()
+        do { try save(); message = "Nova preparação. Suas outras lives continuam salvas."; return true }
+        catch { preferences = previous; message = error.localizedDescription; return false }
     }
     func disconnect() {
         guard !busy, let account else { return }
         do {
             try vault.delete(account.tokenAccount); tokens[account.id] = nil
-            preferences.accounts.removeAll { $0.id == account.id }; preferences.states[account.id] = nil
-            preferences.selectedAccount = preferences.accounts.first?.id; broadcasts = []; try save()
+            preferences.accounts.removeAll { $0.id == account.id }
+            // Preserve channel-scoped preparations for a later reconnect.
+            preferences.selectedAccount = preferences.accounts.first?.id
+            broadcasts = preferences.selectedAccount.flatMap { preferences.cachedBroadcasts?[$0] } ?? []; try save()
             message = "Conta removida deste Mac. As lives no YouTube foram preservadas."
         } catch { message = "Não foi possível remover a conexão local do YouTube." }
     }
     func chooseThumbnail() {
-        guard !busy else { return }
+        guard canEditDraft else { return }
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.jpeg, .png]; panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let file = panel.url else { return }
         do {
@@ -180,12 +271,21 @@ struct LiveLaunch: Identifiable {
     }
     func refresh() {
         guard let account else { return }
-        run { self.broadcasts = try await self.api.broadcasts(token: self.accessToken(account.id)); self.message = "Lista de lives atualizada." }
+        run {
+            self.broadcasts = try await self.api.broadcasts(token: self.accessToken(account.id))
+            try self.save(); self.message = "Lista de lives atualizada."
+        }
     }
     private func save() throws {
         guard writable else { throw StudioError.message("O arquivo do YouTube precisa ser recuperado antes de editar.") }
+        storeCurrentLive()
+        if let account {
+            if preferences.cachedBroadcasts == nil { preferences.cachedBroadcasts = [:] }
+            preferences.cachedBroadcasts?[account.id] = broadcasts
+        }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try JSONEncoder().encode(preferences).write(to: url, options: .atomic)
+        draftSaveStatus = "Alterações salvas neste Mac"
     }
     private func accessToken(_ id: String) async throws -> String {
         guard let account = preferences.accounts.first(where: { $0.id == id }) else { throw StudioError.message("Conecte o canal do YouTube.") }
@@ -202,13 +302,16 @@ struct LiveLaunch: Identifiable {
         tokens[id] = value; return value.access
     }
     func schedule() {
-        guard let account else { message = "Conecte o canal primeiro."; return }
+        guard canOrganizeLibrary, let account else { message = "Conecte o canal e aguarde a operação atual."; return }
+        guard state.selectedBroadcast == nil else { message = "Esta live já está criada. Prepare outra live para fazer um novo agendamento."; return }
         let draft = state.draft
-        guard draft.scheduledAt > Date() else { message = "Escolha uma data e hora futuras para agendar."; return }
+        guard state.createdBroadcast != nil || draft.scheduledAt > Date() else { message = "Escolha uma data e hora futuras para agendar."; return }
         run {
             let event = try await self.ensureCreated(account: account.id, draft: draft, scheduled: true)
-            self.preferences.states[account.id]?.selectedBroadcast = event.id; try self.save()
-            self.broadcasts = try await self.api.broadcasts(token: self.accessToken(account.id))
+            self.preferences.states[account.id]?.selectedBroadcast = event.id
+            self.broadcasts.removeAll { $0.id == event.id }; self.broadcasts.append(event); try self.save()
+            // Creation is already durable even if refreshing the remote list fails.
+            self.broadcasts = try await self.api.broadcasts(token: self.accessToken(account.id)); try self.save()
             self.message = "Live criada no YouTube. O link está pronto; selecione essa live e clique em Transmitir quando quiser começar."
         }
     }
@@ -228,13 +331,16 @@ struct LiveLaunch: Identifiable {
             catch let error as YouTubeAPIError where error.definitelyRejected {
                 journal.creationUncertain = false; preferences.states[id] = journal; try save(); throw error
             }
-            journal.createdBroadcast = broadcast.id; journal.creationUncertain = false; preferences.states[id] = journal; try save()
+            journal.createdBroadcast = broadcast.id; journal.creationUncertain = false; preferences.states[id] = journal
+            broadcasts.removeAll { $0.id == broadcast.id }; broadcasts.append(broadcast); try save()
         }
         guard ["created","ready","testStarting","testing"].contains(broadcast.lifeCycle) else { throw StudioError.message("Essa live não está mais disponível para iniciar. Crie um novo rascunho.") }
         try await api.updateVideo(broadcast.id, draft: draft, token: token)
         if let file = thumbnailURL(draft.thumbnailFile) { try await api.thumbnail(broadcast.id, data: Data(contentsOf: file), token: token) }
         _ = try await ensureBound(broadcast, account: id, token: token)
-        return try await api.broadcast(broadcast.id, token: token)
+        let prepared = try await api.broadcast(broadcast.id, token: token)
+        preferences.states[id]?.preparationComplete = true; try save()
+        return prepared
     }
     private func ensureBound(_ event: YouTubeBroadcast, account id: String, token: String) async throws -> String {
         if !event.boundStreamID.isEmpty { return event.boundStreamID }
@@ -256,22 +362,32 @@ struct LiveLaunch: Identifiable {
     func confirmation() async throws -> LiveLaunch {
         guard !busy, let account else { throw StudioError.message("Conecte e selecione um canal do YouTube.") }
         edits.flush()
+        busy = true; defer { busy = false }
         if let selected = state.selectedBroadcast {
             let event = try await api.broadcast(selected, token: accessToken(account.id))
-            guard !["complete","revoked"].contains(event.lifeCycle) else { throw StudioError.message("Esta live já foi encerrada. Escolha outra live.") }
+            guard event.canTransmit else { throw StudioError.message("Esta live já foi encerrada. Escolha outra live.") }
             if let index = broadcasts.firstIndex(where: { $0.id == event.id }) { broadcasts[index] = event } else { broadcasts.append(event) }
             return LiveLaunch(channel: account.name, title: event.title, thumbnailURL: event.thumbnailURL.flatMap(URL.init(string:)), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: event.id, privacy: event.privacy)
         }
-        try state.draft.validate()
-        return LiveLaunch(channel: account.name, title: state.draft.title, thumbnailURL: thumbnailURL(state.draft.thumbnailFile), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: nil, privacy: state.draft.privacy)
+        guard state.createdBroadcast == nil, !state.creationUncertain else { throw StudioError.message("Confira a criação anterior no YouTube antes de transmitir. Atualize a lista e selecione a live correspondente.") }
+        try state.draft.validate(); try save()
+        return LiveLaunch(channel: account.name, title: state.draft.title, thumbnailURL: thumbnailURL(state.draft.thumbnailFile), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: nil, privacy: state.draft.privacy, localLiveID: currentLiveID, confirmedDraft: state.draft)
     }
     func prepare(_ launch: LiveLaunch) async throws -> LiveLaunch {
         guard !busy, let id = launch.youtubeAccount, id == account?.id else { throw StudioError.message("A seleção do canal mudou. Confirme a transmissão novamente.") }
+        if let selected = launch.broadcastID {
+            guard state.selectedBroadcast == selected else { throw StudioError.message("A live selecionada mudou. Confirme a transmissão novamente.") }
+        } else {
+            guard launch.localLiveID == currentLiveID, launch.confirmedDraft == state.draft else { throw StudioError.message("Os dados da live mudaram. Confirme a transmissão novamente.") }
+        }
         busy = true; defer { busy = false }
         let token = try await accessToken(id)
         let event: YouTubeBroadcast
-        if let selected = launch.broadcastID { event = try await api.broadcast(selected, token: token) }
-        else { event = try await ensureCreated(account: id, draft: state.draft, scheduled: false) }
+        if let selected = launch.broadcastID {
+            if state.createdBroadcast == selected, let submitted = state.submittedDraft, state.preparationComplete != true {
+                event = try await ensureCreated(account: id, draft: submitted, scheduled: true)
+            } else { event = try await api.broadcast(selected, token: token) }
+        } else { event = try await ensureCreated(account: id, draft: state.draft, scheduled: false) }
         guard event.title == launch.title, event.privacy == launch.privacy else { throw StudioError.message("O título ou a visibilidade da live mudou no YouTube. Confirme a transmissão novamente.") }
         guard !["complete","revoked","live"].contains(event.lifeCycle) else { throw StudioError.message("Essa live já está em andamento ou foi encerrada. Atualize a seleção.") }
         let streamID = try await ensureBound(event, account: id, token: token)

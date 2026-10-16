@@ -110,7 +110,14 @@ import CryptoKit
     let json = try String(contentsOf: file, encoding: .utf8)
     for secret in ["fixture-access","fixture-refresh","fixture-stream-secret","fixture-client-secret"] { try check(!json.contains(secret)) }
     let reloaded = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
-    try check(reloaded.state.selectedBroadcast == "video-1")
+    try check(reloaded.state.selectedBroadcast == "video-1" && reloaded.broadcasts.first?.id == "video-1")
+    try check(reloaded.state.preparationComplete == true)
+    // Leaving a scheduled event retains its creation journal; selecting it again reuses the same video.
+    try check(reloaded.newDraft())
+    reloaded.editDraft { $0.title = "Outra live local" }; try check(reloaded.saveDraftForLater())
+    let otherLocalID = reloaded.currentLiveID!
+    try check(reloaded.selectBroadcast("video-1") && reloaded.state.createdBroadcast == "video-1")
+    try check(reloaded.selectLocalLive(otherLocalID) && reloaded.state.draft.title == "Outra live local")
     // Hidden IDs are channel scoped, survive a new draft, and old files without the field load.
     var otherPrefs = try JSONDecoder().decode(YouTubePreferences.self, from: Data(contentsOf: file))
     otherPrefs.hiddenBroadcasts = ["other-channel": ["video-1"]]
@@ -121,7 +128,7 @@ import CryptoKit
     isolated.newDraft()
     try check(isolated.hiddenBroadcastIDs == ["video-1"] && isolated.preferences.hiddenBroadcasts?["other-channel"] == ["video-1"])
     isolated.shutdown()
-    model.newDraft(); ambiguous = true
+    model.newDraft(); model.editDraft { $0 = draft }; ambiguous = true
     model.schedule(); try await wait()
     try check(creates == 2 && model.state.creationUncertain)
     model.schedule(); try await wait()
@@ -140,6 +147,58 @@ import CryptoKit
     try await thumbnailAPI.thumbnail("video-1", data: Data([0x89,0x50,0x4e,0x47]), token: "fixture")
     try check(thumbnailSent)
     do { try await thumbnailAPI.thumbnail("video-1", data: Data(repeating: 0, count: 2 * 1024 * 1024 + 1), token: "fixture"); preconditionFailure("Expected size validation") } catch is StudioError { }
+    // Multiple local preparations retain distinct metadata, survive restarts and never POST on save/select.
+    let localDirectory = directory.appendingPathComponent("youtube-multiple-live-fixture")
+    try FileManager.default.createDirectory(at: localDirectory, withIntermediateDirectories: true)
+    var legacy = YouTubePreferences(); legacy.accounts = [account]; legacy.selectedAccount = account.id
+    var legacyState = YouTubeDraftState(); legacyState.draft = draft
+    legacy.states[account.id] = legacyState
+    let localFile = localDirectory.appendingPathComponent("youtube.json")
+    try JSONEncoder().encode(legacy).write(to: localFile)
+    let local = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    let requestCount = requests.count
+    try check(local.localLives.count == 1 && local.state.draft == draft)
+    let firstID = local.currentLiveID!
+    try check(local.saveDraftForLater())
+    try check(local.newDraft() && local.state.draft.title.isEmpty)
+    local.editDraft { $0.title = "Conversa de amanhã"; $0.description = "Outra descrição"; $0.thumbnailFile = "segunda-capa.png"; $0.privacy = "public" }
+    try check(local.saveDraftForLater())
+    let secondID = local.currentLiveID!
+    try check(firstID != secondID && local.localLives.count == 2)
+    try check(local.selectLocalLive(firstID) && local.state.draft == draft)
+    local.editDraft { $0.description = "Primeira preparação editada" }; local.flush()
+    try check(local.selectLocalLive(secondID) && local.state.draft.title == "Conversa de amanhã" && local.state.draft.thumbnailFile == "segunda-capa.png")
+    let localReload = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    try check(localReload.localLives.count == 2 && localReload.currentLiveID == secondID)
+    try check(localReload.selectLocalLive(firstID) && localReload.state.draft.description == "Primeira preparação editada")
+    let localLaunch = try await local.confirmation()
+    local.editDraft { $0.description = "Changed after confirmation" }
+    do { _ = try await local.prepare(localLaunch); preconditionFailure("Changed draft must require new confirmation") } catch is StudioError { }
+    try check(requests.count == requestCount)
+    // A disk error must not switch away from the user's current preparation.
+    local.flush()
+    let localBytes = try Data(contentsOf: localFile)
+    try FileManager.default.removeItem(at: localFile)
+    try FileManager.default.createDirectory(at: localFile, withIntermediateDirectories: false)
+    let beforeFailure = local.currentLiveID
+    try check(!local.newDraft() && local.currentLiveID == beforeFailure)
+    try check(!local.selectLocalLive(firstID) && local.currentLiveID == beforeFailure)
+    try FileManager.default.removeItem(at: localFile); try localBytes.write(to: localFile)
+    // Separate channels cannot see or select each other's local preparations.
+    var multiple = try JSONDecoder().decode(YouTubePreferences.self, from: localBytes)
+    let otherAccount = YouTubeAccount(id: "other", name: "Other", tokenAccount: "fixture-other", clientID: client.clientID)
+    multiple.accounts.append(otherAccount); multiple.selectedAccount = otherAccount.id
+    try JSONEncoder().encode(multiple).write(to: localFile)
+    let other = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    try check(other.localLives.count == 1 && other.state.draft.title.isEmpty && !other.selectLocalLive(firstID))
+    other.shutdown(); local.shutdown(); localReload.shutdown()
+    legacy.states[account.id]?.selectedBroadcast = "legacy-remote"
+    try JSONEncoder().encode(legacy).write(to: localFile)
+    let migratedSelection = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    try check(migratedSelection.state.selectedBroadcast == "legacy-remote")
+    try check(migratedSelection.localLives.count == 1 && migratedSelection.localLives[0].state.draft == draft)
+    migratedSelection.shutdown()
+    print("PASS: legacy draft migration, multiple saved preparations, independent metadata/covers, restart persistence, channel isolation, no API mutation on save/select, disk failure preservation and confirmation snapshot")
     model.shutdown(); reloaded.shutdown()
     print("PASS: local hide/restore without API requests, persistence across refresh/reload/new draft, channel isolation, selection clearing and save failure rollback")
     print("PASS: live library routing/cancel without output or API mutations, read-only refresh, selected-video persistence rollback, local schedule date including fractional ISO and non-startable states")

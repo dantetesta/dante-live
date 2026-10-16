@@ -133,12 +133,16 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
     LKRTCVideoTrack *_cameraTrack,*_screenTrack;LKRTCAudioTrack *_audioTrack;
     obs_source_t *_camera,*_screen,*_microphone;bool _closed,_answerReady;
     void (^_completion)(NSString*,NSString*);NSString *_connectionStatus;
+    NSMutableArray<NSDictionary*> *_localCandidates;
+    NSMutableSet<NSString*> *_remoteCandidates;
+    NSUInteger _candidateErrors;
 }
 @end
 @implementation DanteGuestPeer
 - (instancetype)initWithCamera:(NSString*)camera screen:(NSString*)screen microphone:(NSString*)microphone slot:(NSInteger)slot iceJSON:(NSString*)iceJSON {
     if(!(self=[super init]))return nil;if(slot<0||slot>1){_closed=true;return nil;}
     LKRTCInitializeSSL();_connectionStatus=@"Aguardando conexão";
+    _localCandidates=[NSMutableArray array];_remoteCandidates=[NSMutableSet set];
     auto source=[](NSString *name,const char *type){auto *s=obs_get_source_by_name(name.UTF8String);if(s&&strcmp(obs_source_get_unversioned_id(s),type)){obs_source_release(s);return (obs_source_t*)nullptr;}return s?:obs_source_create(type,name.UTF8String,nullptr,nullptr);};
     _camera=source(camera,"dante_guest_video");_screen=source(screen,"dante_guest_video");_microphone=source(microphone,"dante_guest_audio");
     if(!_camera||!_screen||!_microphone){[self close];return nil;}
@@ -155,8 +159,23 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
     if(!_peer){[self close];return nil;}return self;
 }
 - (NSString*)connectionStatus{return _connectionStatus?:@"Desconectado";}
+- (NSArray<NSDictionary*>*)localCandidates{return [_localCandidates copy]?:@[];}
+- (void)addRemoteCandidate:(NSString*)candidate mid:(NSString*)mid line:(int)line {
+    if(_closed||_remoteCandidates.count>=64||candidate.length>1024||![candidate hasPrefix:@"candidate:"]||line<0||line>2)return;
+    NSString *key=[NSString stringWithFormat:@"%d|%@|%@",line,mid,candidate];
+    if([_remoteCandidates containsObject:key])return;[_remoteCandidates addObject:key];
+    __weak DanteGuestPeer *weak=self;
+    [_peer addIceCandidate:[[LKRTCIceCandidate alloc]initWithSdp:candidate sdpMLineIndex:line sdpMid:mid] completionHandler:^(NSError *error){
+        if(error)dispatch_async(dispatch_get_main_queue(),^{DanteGuestPeer *s=weak;if(s&&!s->_closed)s->_candidateErrors++;});
+    }];
+}
 - (NSArray<NSString*>*)sourceNames { return _closed ? @[] : @[[NSString stringWithUTF8String:obs_source_get_name(_camera)], [NSString stringWithUTF8String:obs_source_get_name(_screen)], [NSString stringWithUTF8String:obs_source_get_name(_microphone)]]; }
-- (NSDictionary*)mediaDiagnostics{return [_device diagnostics]?:@{};}
+- (NSDictionary*)mediaDiagnostics {
+    NSMutableDictionary *result=[([_device diagnostics]?:@{}) mutableCopy];
+    result[@"localCandidateCount"]=@(_localCandidates.count);result[@"remoteCandidateCount"]=@(_remoteCandidates.count);
+    result[@"candidateErrors"]=@(_candidateErrors);result[@"iceGatheringState"]=@(_peer.iceGatheringState);
+    return result;
+}
 - (void)setCameraEnabled:(BOOL)camera screenEnabled:(BOOL)screen {if(!_closed){[_cameraSink setEnabled:camera];[_screenSink setEnabled:screen];}}
 - (void)answerOffer:(NSString*)sdp completion:(void(^)(NSString*,NSString*))completion {
     if(_closed||_completion){completion(nil,@"Convite ocupado ou encerrado.");return;}_completion=[completion copy];_answerReady=false;
@@ -170,7 +189,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
         }
         [s->_peer answerForConstraints:[[LKRTCMediaConstraints alloc]initWithMandatoryConstraints:nil optionalConstraints:nil] completionHandler:^(LKRTCSessionDescription *answer,NSError *err){dispatch_async(dispatch_get_main_queue(),^{
             DanteGuestPeer *p=weak;if(!p||p->_closed)return;if(err||!answer){[p finish:nil error:@"Não foi possível negociar a mídia."];return;}
-            [p->_peer setLocalDescription:answer completionHandler:^(NSError *localError){dispatch_async(dispatch_get_main_queue(),^{DanteGuestPeer *q=weak;if(!q||q->_closed)return;if(localError){[q finish:nil error:@"Não foi possível preparar a resposta."];return;}q->_answerReady=true;if(q->_peer.iceGatheringState==LKRTCIceGatheringStateComplete)[q finish:q->_peer.localDescription.sdp error:nil];});}];
+            [p->_peer setLocalDescription:answer completionHandler:^(NSError *localError){dispatch_async(dispatch_get_main_queue(),^{DanteGuestPeer *q=weak;if(!q||q->_closed)return;if(localError){[q finish:nil error:@"Não foi possível preparar a resposta."];return;}q->_answerReady=true;[q finish:q->_peer.localDescription.sdp error:nil];});}];
         });}];
     });}];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,15*NSEC_PER_SEC),dispatch_get_main_queue(),^{DanteGuestPeer *s=weak;if(s&&!s->_closed&&s->_completion)[s finish:nil error:@"A negociação demorou demais. Tente reconectar."];});
@@ -190,7 +209,11 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (void)peerConnection:(LKRTCPeerConnection*)pc didAddStream:(LKRTCMediaStream*)stream{}
 - (void)peerConnection:(LKRTCPeerConnection*)pc didRemoveStream:(LKRTCMediaStream*)stream{}
 - (void)peerConnectionShouldNegotiate:(LKRTCPeerConnection*)pc{}
-- (void)peerConnection:(LKRTCPeerConnection*)pc didGenerateIceCandidate:(LKRTCIceCandidate*)candidate{}
+- (void)peerConnection:(LKRTCPeerConnection*)pc didGenerateIceCandidate:(LKRTCIceCandidate*)candidate {
+    dispatch_async(dispatch_get_main_queue(),^{if(self->_closed||self->_localCandidates.count>=64)return;
+        [self->_localCandidates addObject:@{@"candidate":candidate.sdp,@"sdpMid":candidate.sdpMid?:@"0",@"sdpMLineIndex":@(candidate.sdpMLineIndex)}];
+    });
+}
 - (void)peerConnection:(LKRTCPeerConnection*)pc didRemoveIceCandidates:(NSArray<LKRTCIceCandidate*>*)candidates{}
 - (void)peerConnection:(LKRTCPeerConnection*)pc didOpenDataChannel:(LKRTCDataChannel*)channel{}
 - (void)peerConnection:(LKRTCPeerConnection*)pc didChangeIceConnectionState:(LKRTCIceConnectionState)state{}
@@ -199,7 +222,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 }
 - (void)peerConnection:(LKRTCPeerConnection*)pc didChangeConnectionState:(LKRTCPeerConnectionState)state {
     dispatch_async(dispatch_get_main_queue(),^{if(self->_closed)return;
-        self->_connectionStatus=state==LKRTCPeerConnectionStateConnected?@"Conectado":state==LKRTCPeerConnectionStateConnecting?@"Conectando":state==LKRTCPeerConnectionStateFailed?@"Falha de conexão • tente reconectar / configure TURN":@"Desconectado";
+        self->_connectionStatus=state==LKRTCPeerConnectionStateConnected?@"Conectado":state==LKRTCPeerConnectionStateConnecting?@"Procurando caminho de conexão":state==LKRTCPeerConnectionStateFailed?@"Não foi possível conectar pela rede atual":@"Desconectado";
         if(state==LKRTCPeerConnectionStateDisconnected||state==LKRTCPeerConnectionStateFailed){obs_source_output_video(self->_camera,nullptr);obs_source_output_video(self->_screen,nullptr);}
     });
 }

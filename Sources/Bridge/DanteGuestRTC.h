@@ -8,6 +8,8 @@ __attribute__((swift_attr("@MainActor")))
 @property(nonatomic, readonly) NSString *connectionStatus;
 @property(nonatomic, readonly) NSDictionary *mediaDiagnostics;
 @property(nonatomic, readonly) NSArray<NSString *> *sourceNames;
+@property(nonatomic, readonly) NSArray<NSDictionary *> *localCandidates;
+- (void)addRemoteCandidate:(NSString *)candidate mid:(NSString *)mid line:(int)line;
 - (void)setCameraEnabled:(BOOL)camera screenEnabled:(BOOL)screen;
 - (void)answerOffer:(NSString *)sdp completion:(void (^)(NSString * _Nullable answer, NSString * _Nullable error))completion;
 - (void)close;

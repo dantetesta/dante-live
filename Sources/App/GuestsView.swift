@@ -37,7 +37,7 @@ struct GuestsView: View {
                 }
             }.frame(minHeight:180,maxHeight:340)
             if let message=guests.message { Text(message).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true) }
-            HStack { if guests.busy {ProgressView().controlSize(.small)};Button(guests.busy ? "Preparando link…" : "Convidar participante") {guests.createInvite()}.buttonStyle(.borderedProminent).disabled(guests.busy || guests.invites.count>=2);Spacer();Text(guests.hasTURN ? "TURN configurado nesta sessão" : "Conexão direta • TURN não configurado").font(.caption).foregroundStyle(.secondary) }
+            HStack { if guests.busy {ProgressView().controlSize(.small)};Button(guests.busy ? "Preparando link…" : "Convidar participante") {guests.createInvite()}.buttonStyle(.borderedProminent).disabled(guests.busy || guests.invites.count>=2);Spacer();Text(guests.hasTURN ? "Rota alternativa configurada" : "Conexão direta automática").font(.caption).foregroundStyle(.secondary) }
             DisclosureGroup("Conexão e privacidade",isExpanded:$showNetwork) {
                 VStack(alignment:.leading,spacing:8) {
                     Text("O link temporário usa Cloudflare Quick Tunnel, um serviço de testes sem garantia de disponibilidade. O link deixa de funcionar ao encerrar a sala. A mídia usa WebRTC direto ou TURN; não passa pelo túnel HTTPS.").font(.caption)

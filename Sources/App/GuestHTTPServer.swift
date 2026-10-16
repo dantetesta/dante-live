@@ -86,7 +86,7 @@ final class GuestHTTPServer {
         let files = ["/": ("index.html","text/html; charset=utf-8"),"/guest.js":("guest.js","text/javascript; charset=utf-8"),"/guest.css":("guest.css","text/css; charset=utf-8")]
         if method == "GET", let (file,type) = files[path], let content = try? Data(contentsOf: resources.appendingPathComponent(file)) { send(connection,id,200,content,type);return }
         let expectedOrigin = host == local ? "http://\(local)" : "https://\(host)"
-        guard method == "POST", ["/join","/offer","/status","/leave"].contains(path),
+        guard method == "POST", ["/join","/offer","/ice","/status","/leave"].contains(path),
               headers["origin"] == expectedOrigin,
               headers["content-type"]?.hasPrefix("application/json") == true,
               let auth = headers["authorization"], auth.hasPrefix("Bearer "), auth.count == 71,

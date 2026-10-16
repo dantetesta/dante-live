@@ -12,6 +12,7 @@ import Security
     var peer: DanteGuestPeer?
     var status = "Aguardando convidado"
     var negotiating = false
+    var negotiation: String?
     var admitted = false
     var savedNames: [String] = []
     var names: [String] { let current=peer?.sourceNames ?? [];return current.count==3 ? current : savedNames }
@@ -29,6 +30,7 @@ final class GuestModel: ObservableObject {
     @Published var turnJSON = ""
     @Published var showing = false
     private weak var studio: StudioModel?
+    private let discoveryServers: [String]
     private var server: GuestHTTPServer?
     private var tunnel: Process?
     private var pipe: Pipe?
@@ -37,7 +39,9 @@ final class GuestModel: ObservableObject {
     private var generation = UUID()
     var inUse: Bool { busy || !invites.isEmpty }
     var hasTURN: Bool { (try? iceServers()).map { $0.count > 1 } ?? false }
-    init(studio: StudioModel) { self.studio = studio }
+    init(studio: StudioModel, discoveryServers: [String] = ["stun:stun.cloudflare.com:3478"]) {
+        self.studio = studio; self.discoveryServers = discoveryServers
+    }
 
     static func token() throws -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
@@ -45,7 +49,7 @@ final class GuestModel: ObservableObject {
         return bytes.map { String(format:"%02x",$0) }.joined()
     }
     func iceServers() throws -> [[String: Any]] {
-        var ice: [[String: Any]] = [["urls":["stun:stun.cloudflare.com:3478"]]]
+        var ice: [[String: Any]] = [["urls":discoveryServers]]
         if !turnJSON.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             guard let data = turnJSON.data(using: .utf8),data.count < 8192,
                   let entries = try? JSONSerialization.jsonObject(with:data) as? [[String: Any]],(1...4).contains(entries.count) else { throw StudioError.message("Informe uma lista JSON de servidores TURN com credenciais temporárias.") }
@@ -160,7 +164,18 @@ final class GuestModel: ObservableObject {
         }
         guard invites[i].client==client else { respond(409,["error":"Este convite já está em uso em outro navegador."]);return }
         invites[i].lastSeen=Date()
-        if path=="/leave" { invites[i].savedNames=invites[i].names;invites[i].peer?.close();invites[i].peer=nil;invites[i].negotiating=false;invites[i].status="Convidado saiu";respond(200,["ok":true]);return }
+        if path=="/leave" { invites[i].savedNames=invites[i].names;invites[i].peer?.close();invites[i].peer=nil;invites[i].negotiating=false;invites[i].negotiation=nil;invites[i].status="Convidado saiu";respond(200,["ok":true]);return }
+        if path=="/ice" {
+            guard let negotiation=payload["negotiation"] as? String,negotiation==invites[i].negotiation,
+                  !invites[i].negotiating,let peer=invites[i].peer else { respond(409,["error":"Esta tentativa de conexão terminou. Tente reconectar."]);return }
+            guard let candidates=payload["candidates"] as? [[String:Any]],candidates.count<=64,
+                  candidates.allSatisfy(Self.validCandidate) else { respond(400,["error":"Dados de conexão inválidos."]);return }
+            for candidate in candidates {
+                peer.addRemoteCandidate(candidate["candidate"] as! String,mid:candidate["sdpMid"] as! String,line:(candidate["sdpMLineIndex"] as! NSNumber).int32Value)
+            }
+            if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool { peer.setCameraEnabled(camera,screenEnabled:screen) }
+            respond(200,["candidates":peer.localCandidates,"status":peer.connectionStatus,"admitted":invites[i].admitted]);return
+        }
         if path=="/status" {
             if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool { invites[i].peer?.setCameraEnabled(camera,screenEnabled:screen) }
             respond(200,["status":invites[i].status,"admitted":invites[i].admitted]);return
@@ -168,15 +183,16 @@ final class GuestModel: ObservableObject {
         if path=="/join" {
             let name=(payload["name"] as? String ?? "").trimmingCharacters(in:.whitespacesAndNewlines)
             guard !name.isEmpty,name.count<=60,!name.unicodeScalars.contains(where:{CharacterSet.controlCharacters.contains($0)}) else { respond(400,["error":"Informe seu nome, com até 60 caracteres."]);return }
-            do { let ice=try iceServers();invites[i].name=name;respond(200,["iceServers":ice,"name":name]) }
+            do { let ice=try iceServers();invites[i].name=name;respond(200,["iceServers":ice,"name":name,"trickleICE":true]) }
             catch { respond(503,["error":"O apresentador precisa revisar a configuração TURN."]) };return
         }
-        guard path=="/offer",!invites[i].negotiating,let sdp=payload["sdp"] as? String,sdp.utf8.count<65_536,sdp.hasPrefix("v=0"),sdp.components(separatedBy:"m=").count==4 else { respond(400,["error":"Negociação inválida. Tente reconectar."]);return }
+        guard path=="/offer",!invites[i].negotiating,let negotiation=payload["negotiation"] as? String,UUID(uuidString:negotiation) != nil,
+              let sdp=payload["sdp"] as? String,sdp.utf8.count<65_536,sdp.hasPrefix("v=0"),sdp.components(separatedBy:"m=").count==4 else { respond(400,["error":"Negociação inválida. Atualize a página do convite e tente reconectar."]);return }
         do {
             let ice=try JSONSerialization.data(withJSONObject:iceServers())
             invites[i].savedNames=invites[i].names;invites[i].peer?.close();let guest=invites[i]
             guard let peer=DanteGuestPeer(camera:guest.camera,screen:guest.screen,microphone:guest.microphone,slot:guest.slot,iceJSON:String(decoding:ice,as:UTF8.self)) else { respond(500,["error":"O motor não conseguiu preparar as fontes."]);return }
-            invites[i].peer=peer;invites[i].negotiating=true;let id=guest.id
+            invites[i].peer=peer;invites[i].negotiating=true;invites[i].negotiation=negotiation;let id=guest.id
             peer.answerOffer(sdp) { [weak self] answer,error in
                 Task { @MainActor in
                 guard let self,let index=self.invites.firstIndex(where:{$0.id==id}),self.invites[index].peer===peer else { respond(410,["error":"Convite encerrado."]);return }
@@ -186,5 +202,13 @@ final class GuestModel: ObservableObject {
                 }
             }
         } catch { respond(503,["error":"Configuração de conexão inválida."]) }
+    }
+    static func validCandidate(_ item:[String:Any]) -> Bool {
+        guard let value=item["candidate"] as? String,value.hasPrefix("candidate:"),value.utf8.count<=1024,
+              !value.unicodeScalars.contains(where:{CharacterSet.controlCharacters.contains($0)}),
+              let mid=item["sdpMid"] as? String,["0","1","2"].contains(mid),
+              let line=item["sdpMLineIndex"] as? NSNumber,CFGetTypeID(line) != CFBooleanGetTypeID(),
+              line.doubleValue==Double(line.intValue),(0...2).contains(line.intValue) else { return false }
+        return true
     }
 }

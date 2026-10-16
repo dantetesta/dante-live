@@ -20,6 +20,13 @@ import Foundation
     let joined=try await request("join",token:first.token,client:client);precondition(joined==200)
     let hijack=try await request("join",token:first.token,client:UUID().uuidString);precondition(hijack==409)
     let invalid=try await request("offer",token:first.token,client:client,extra:["sdp":"not SDP"]);precondition(invalid==400)
+    let staleICE=try await request("ice",token:first.token,client:client,extra:["negotiation":UUID().uuidString,"candidates":[]]);precondition(staleICE==409)
+    let foreignICE=try await request("ice",token:first.token,client:client,origin:"https://example.invalid");precondition(foreignICE==403)
+    let candidate:[String:Any] = ["candidate":"candidate:1 1 UDP 2122260223 192.0.2.1 12345 typ host","sdpMid":"0","sdpMLineIndex":0]
+    precondition(GuestModel.validCandidate(candidate))
+    for bad:[String:Any] in [["sdpMLineIndex":true],["sdpMLineIndex":0.5],["sdpMLineIndex":3],["sdpMid":"other"],["candidate":"candidate:a\r\nm=audio"],["candidate":"candidate:"+String(repeating:"a",count:1025)]] {
+        precondition(!GuestModel.validCandidate(candidate.merging(bad,uniquingKeysWith:{_,new in new})))
+    }
     guests.revoke(first.id)
     let revoked=try await request("status",token:first.token,client:client);precondition(revoked==403)
     let stillValid=try await request("join",token:second.token,client:UUID().uuidString);precondition(stillValid==200)

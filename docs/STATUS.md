@@ -1,3 +1,11 @@
+## Versão 0.1.13 — conexão direta de convidados
+
+Negociação WebRTC incremental (trickle ICE): o navegador e o Mac enviam SDP sem aguardar todos os candidatos de rede. Candidatos tardios são trocados por HTTPS autenticado, vinculados à tentativa de conexão e limitados em quantidade/tamanho. Elimina o cancelamento obrigatório após 15 segundos de descoberta de rede, que podia descartar um caminho direto já disponível. Mensagens não presumem necessidade de TURN nem culpam antivírus.
+
+Dois Chrome isolados com mídia sintética passaram em loopback e pelo Quick Tunnel público, sem TURN e com STUN configurado para um endereço inacessível. No teste público, a propriedade de descoberta do navegador foi mantida em gathering: conexão não esperou sua conclusão. Quatro fontes de vídeo, dois microfones, retorno mix-minus, revogação e rejeição de candidatos de tentativa anterior passaram. Teste público ocorreu no mesmo Mac; não comprova redes externas/NAT distintas ou o cenário do convidado do usuário.
+
+Quick Tunnel continua apenas como página/sinalização, não relay de mídia. A correção não garante conexão direta quando as redes bloqueiam todos os caminhos. Não foi implantado TURN ou outro retransmissor, nem alterado firewall/antivírus. macOS permitia entrada para /Applications/Dante Live.app no diagnóstico de leitura.
+
 ## Versão 0.1.12 — dispositivos do convidado e orientação de câmera
 
 Corrige a primeira ativação do convidado: o placeholder não é mais enviado como deviceId. Seletores listam dispositivos válidos, a permissão negada permite nova tentativa e falha do medidor não bloqueia câmera/microfone. Prévia e controles reorganizados. Máscaras de câmera com opções horizontais e verticais para oval, retângulo e retângulo arredondado.
@@ -12,7 +20,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.12 (13)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.13 (14)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|

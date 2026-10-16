@@ -37,6 +37,29 @@ struct LiveLaunch: Identifiable {
     var account: YouTubeAccount? { preferences.accounts.first { $0.id == preferences.selectedAccount } }
     var state: YouTubeDraftState { preferences.selectedAccount.flatMap { preferences.states[$0] } ?? YouTubeDraftState() }
     var selectedBroadcast: YouTubeBroadcast? { broadcasts.first { $0.id == state.selectedBroadcast } }
+    var hiddenBroadcastIDs: Set<String> { account.flatMap { preferences.hiddenBroadcasts?[$0.id] } ?? [] }
+    var visibleBroadcasts: [YouTubeBroadcast] { broadcasts.filter { !hiddenBroadcastIDs.contains($0.id) } }
+    var canOrganizeLibrary: Bool { !busy && writable && !trackingLive && account != nil }
+    /// Local preferences only. Never delete, update, or transition a remote broadcast here.
+    @discardableResult func setBroadcastHidden(_ id: String, hidden: Bool) -> Bool {
+        guard canOrganizeLibrary, let account, !id.isEmpty else { return false }
+        edits.flush()
+        let previous = preferences
+        var ids = hiddenBroadcastIDs
+        if hidden { ids.insert(id) } else { ids.remove(id) }
+        if preferences.hiddenBroadcasts == nil { preferences.hiddenBroadcasts = [:] }
+        preferences.hiddenBroadcasts?[account.id] = ids
+        if hidden, state.selectedBroadcast == id { preferences.states[account.id]?.selectedBroadcast = nil }
+        do {
+            try save()
+            message = hidden ? "Live ocultada neste Mac. Nada foi alterado no YouTube." : "Live exibida novamente neste Mac."
+            return true
+        } catch {
+            preferences = previous
+            message = "Não foi possível salvar a organização da lista. Tente novamente."
+            return false
+        }
+    }
     init(directory: URL, api: YouTubeAPI? = nil, vault: LiveKeyVault = .system) {
         self.directory = directory; self.api = api ?? YouTubeAPI(); self.vault = vault
         prefix = "youtube-" + SHA256.hash(data: Data(directory.path.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
@@ -113,7 +136,7 @@ struct LiveLaunch: Identifiable {
         refresh()
     }
     @discardableResult func selectBroadcast(_ id: String) -> Bool {
-        guard !busy, writable, let account else { return false }; edits.flush()
+        guard !busy, writable, let account, !hiddenBroadcastIDs.contains(id) else { return false }; edits.flush()
         let previous = state
         var value = state; value.selectedBroadcast = id.isEmpty ? nil : id
         if id.isEmpty, previous.selectedBroadcast != nil { value = YouTubeDraftState(); value.draft = previous.draft }

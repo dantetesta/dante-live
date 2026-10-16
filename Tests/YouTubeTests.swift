@@ -83,9 +83,24 @@ import CryptoKit
     model.refresh(); try await wait()
     try check(model.broadcasts.count == 1 && requests.dropFirst(refreshStart).allSatisfy { $0.httpMethod == "GET" })
     try check(model.selectBroadcast("video-1"))
+    let beforeHide = requests.count
+    try check(model.setBroadcastHidden("video-1", hidden: true))
+    try check(model.visibleBroadcasts.isEmpty && model.state.selectedBroadcast == nil)
+    try check(!model.selectBroadcast("video-1") && requests.count == beforeHide)
+    let hiddenReload = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
+    try check(hiddenReload.hiddenBroadcastIDs == ["video-1"])
+    hiddenReload.shutdown()
+    model.refresh(); try await wait()
+    try check(model.broadcasts.count == 1 && model.visibleBroadcasts.isEmpty)
+    let beforeRestore = requests.count
+    try check(model.setBroadcastHidden("video-1", hidden: false))
+    try check(model.visibleBroadcasts.count == 1 && requests.count == beforeRestore)
+    try check(model.selectBroadcast("video-1"))
     let preserved = try Data(contentsOf: file)
     try FileManager.default.removeItem(at: file)
     try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+    try check(!model.setBroadcastHidden("video-1", hidden: true))
+    try check(model.hiddenBroadcastIDs.isEmpty && model.state.selectedBroadcast == "video-1")
     try check(!model.selectBroadcast("") && model.state.selectedBroadcast == "video-1")
     try FileManager.default.removeItem(at: file); try preserved.write(to: file)
     let launch = try await model.confirmation()
@@ -96,6 +111,16 @@ import CryptoKit
     for secret in ["fixture-access","fixture-refresh","fixture-stream-secret","fixture-client-secret"] { try check(!json.contains(secret)) }
     let reloaded = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
     try check(reloaded.state.selectedBroadcast == "video-1")
+    // Hidden IDs are channel scoped, survive a new draft, and old files without the field load.
+    var otherPrefs = try JSONDecoder().decode(YouTubePreferences.self, from: Data(contentsOf: file))
+    otherPrefs.hiddenBroadcasts = ["other-channel": ["video-1"]]
+    try JSONEncoder().encode(otherPrefs).write(to: file)
+    let isolated = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
+    try check(isolated.hiddenBroadcastIDs.isEmpty)
+    try check(isolated.setBroadcastHidden("video-1", hidden: true))
+    isolated.newDraft()
+    try check(isolated.hiddenBroadcastIDs == ["video-1"] && isolated.preferences.hiddenBroadcasts?["other-channel"] == ["video-1"])
+    isolated.shutdown()
     model.newDraft(); ambiguous = true
     model.schedule(); try await wait()
     try check(creates == 2 && model.state.creationUncertain)
@@ -116,6 +141,7 @@ import CryptoKit
     try check(thumbnailSent)
     do { try await thumbnailAPI.thumbnail("video-1", data: Data(repeating: 0, count: 2 * 1024 * 1024 + 1), token: "fixture"); preconditionFailure("Expected size validation") } catch is StudioError { }
     model.shutdown(); reloaded.shutdown()
+    print("PASS: local hide/restore without API requests, persistence across refresh/reload/new draft, channel isolation, selection clearing and save failure rollback")
     print("PASS: live library routing/cancel without output or API mutations, read-only refresh, selected-video persistence rollback, local schedule date including fractional ISO and non-startable states")
     print("PASS: YouTube OAuth state/duplicate rejection, PKCE entropy/form encoding, schedule-bind-retry preserving video ID, metadata merge, secret-free persistence, lost-response duplicate prevention, sanitized errors (offline transport only)")
 }

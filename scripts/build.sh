@@ -24,6 +24,10 @@ if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/
   xcrun iconutil -c icns "$BUILD/DanteLive.iconset" -o "$BUILD/DanteLive.icns"
 fi
 cp "$BUILD/DanteLive.icns" "$APP/Contents/Resources/DanteLive.icns"
+# User-facing offline help, explicitly requested as part of the application.
+# Copy this exact runtime resource; never include the internal docs directory.
+mkdir -p "$APP/Contents/Resources/Help"
+cp Sources/Help/youtube-integration.html "$APP/Contents/Resources/Help/youtube-integration.html"
 mkdir -p "$BUILD/generated" "$BUILD/objects"
 cat > "$BUILD/generated/obsconfig.h" <<'EOF'
 #pragma once

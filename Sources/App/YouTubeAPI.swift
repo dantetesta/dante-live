@@ -76,6 +76,8 @@ struct YouTubePreferences: Codable {
     var accounts: [YouTubeAccount] = []
     var selectedAccount: String?
     var states: [String: YouTubeDraftState] = [:]
+    // Optional for compatibility with preferences saved before local library cleanup.
+    var hiddenBroadcasts: [String: Set<String>]?
 }
 
 @MainActor final class YouTubeAPI {

@@ -6,6 +6,21 @@ struct YouTubeSettingsView: View {
     @ObservedObject var youtube: YouTubeModel
     @ObservedObject var settings: LiveSettingsModel
     @LegacyState private var showingLibrary = false
+    @LegacyState private var showingManualError = false
+    @LegacyState private var manualError = ""
+
+    private func openIntegrationManual() {
+        guard let url = Bundle.main.resourceURL?.appendingPathComponent("Help/youtube-integration.html"),
+              FileManager.default.isReadableFile(atPath: url.path) else {
+            manualError = "O arquivo do manual está ausente ou não pode ser lido nesta cópia do Dante Live. Instale uma versão que inclua o manual. Você também pode acessar o tutorial em vídeo abaixo."
+            showingManualError = true
+            return
+        }
+        if !NSWorkspace.shared.open(url) {
+            manualError = "O manual está incluído nesta cópia, mas o macOS não conseguiu abri-lo. Confira o aplicativo padrão para arquivos HTML ou consulte o tutorial em vídeo abaixo."
+            showingManualError = true
+        }
+    }
     private func draft<T>(_ path: WritableKeyPath<YouTubeDraft, T>) -> Binding<T> {
         Binding(get: { youtube.state.draft[keyPath: path] }, set: { value in youtube.editDraft { $0[keyPath: path] = value } })
     }
@@ -21,6 +36,10 @@ struct YouTubeSettingsView: View {
                     Button("Conectar canal…") { youtube.connect() }.disabled(!youtube.clientConfigured)
                     Link("Configurar no Google Cloud", destination: URL(string: "https://console.cloud.google.com/apis/credentials")!)
                 }.disabled(youtube.busy || model.active)
+                Button(action: openIntegrationManual) {
+                    Label("Manual de integração com YouTube", systemImage: "book.closed")
+                }
+                .help("Abre o passo a passo no navegador. O manual está incluído no aplicativo e pode ser consultado offline.")
                 if !youtube.preferences.accounts.isEmpty {
                     Picker("Canal", selection: Binding(get: { youtube.preferences.selectedAccount ?? "" }, set: { youtube.selectAccount($0) })) {
                         ForEach(youtube.preferences.accounts) { Text($0.name).tag($0.id) }
@@ -86,6 +105,12 @@ struct YouTubeSettingsView: View {
         }.formStyle(.grouped).onAppear { youtube.loadClient() }.onDisappear { youtube.flush() }
             .sheet(isPresented: $showingLibrary) {
                 YouTubeLibraryView(youtube: youtube, forTransmission: false) { showingLibrary = false }
+            }
+            .alert("Não foi possível abrir o manual", isPresented: $showingManualError) {
+                Button("Assistir ao tutorial") { NSWorkspace.shared.open(URL(string: "https://youtu.be/WHGy0IJvG5Y")!) }
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(manualError)
             }
     }
 }

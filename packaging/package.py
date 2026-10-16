@@ -3,6 +3,9 @@
 import os, pathlib, plistlib, shutil, zipfile
 root = pathlib.Path(__file__).resolve().parent.parent
 build = root/os.environ.get('DANTE_BUILD_DIR','build')
+manual = pathlib.Path('Contents/Resources/Help/youtube-integration.html')
+if not (build/'Dante Live.app'/manual).is_file():
+    raise SystemExit('Missing user-facing YouTube integration manual; rebuild the app.')
 stage = build/'distribution-stage'
 if stage.exists(): shutil.rmtree(stage)
 stage.mkdir()
@@ -30,6 +33,7 @@ for directory in ('Sources','scripts','packaging'):
             allowed.append(path)
 if (root/'LICENSE').is_file(): allowed.append(root/'LICENSE')
 allowed.append(root/'packaging/assets/DanteLive.png')
+allowed.append(root/'Sources/Help/youtube-integration.html')
 with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED) as output:
     for path in allowed: output.write(path,path.relative_to(root))
     output.write(root/'vendor/obs-studio/COPYING','OBS-COPYING')

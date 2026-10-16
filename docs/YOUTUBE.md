@@ -2,7 +2,19 @@
 
 A chave RTMP transporta áudio/vídeo. Para criar vídeos, definir título, descrição, palavras-chave, capa, visibilidade e agendamento, o Dante usa a API oficial do YouTube com autorização Google. Não reutiliza as credenciais OAuth do OBS.
 
+## Tutorial em vídeo
+
+[Assista ao tutorial do autor](https://youtu.be/WHGy0IJvG5Y). O HTML foi revisado com o manual atualizado do Dante Studio, a transcrição e as telas do vídeo, com links para seis trechos. O caminho de **Tela de permissão OAuth**, os usuários de teste, a seleção do projeto e o download imediato do JSON foram detalhados.
+
+O vídeo configura `youtube.upload` e `youtube.readonly` para o Studio. O **Live usa `https://www.googleapis.com/auth/youtube`**: siga a etapa 5 do HTML adaptada ao Live. O vídeo termina no download; as etapas seguintes do guia mostram a importação e conexão do aplicativo. O projeto Dante Studio não foi alterado.
+
 ## Configuração inicial
+
+O botão **Manual de integração com YouTube**, em **Configurações da live → YouTube**, abre no navegador o guia HTML incluído no aplicativo. O manual pode ser lido offline; os links do Google e a autorização precisam de internet. A consulta permanece disponível mesmo enquanto os controles de conexão estão bloqueados por uma saída ativa.
+
+Fonte do guia: [`Sources/Help/youtube-integration.html`](../Sources/Help/youtube-integration.html). O build copia somente esse recurso para `Contents/Resources/Help/`, e o empacotamento exige sua presença. É documentação destinada ao usuário, incluída por solicitação explícita; os documentos internos continuam fora do runtime. Nenhuma credencial é incluída no HTML. Checklist e impressão são locais ao navegador.
+
+Validação local em 16/10/2026: tela SwiftUI real compilada em arm64 em aplicativo QA isolado, sem inicializar o motor e com cofre em memória vazio; botão abriu no Chrome o HTML de `Contents/Resources/Help/` com saída ativa simulada e importação bloqueada. Typecheck de todas as fontes do app passou para x86_64/macOS 14. HTML com oito etapas, âncoras válidas e recursos incorporados; cópias do projeto, Downloads e bundle QA idênticas. Sintaxe de build/empacotamento verificada. Não houve OAuth real, alteração do aplicativo instalado, novo DMG ou publicação nesta etapa; a integração será incluída no próximo build.
 
 1. No Google Cloud, crie ou selecione um projeto e habilite **YouTube Data API v3**.
 2. Configure a tela de consentimento Google Auth Platform e, se estiver em teste, inclua sua conta como usuário de teste.
@@ -48,3 +60,15 @@ No modo YouTube, **Transmitir** abre uma janela com as lives criadas/agendadas d
 Selecione o cartão e clique em **Continuar**. A próxima tela confirma os dados atuais do mesmo vídeo; só **Confirmar e transmitir** prepara a conexão e inicia a contagem regressiva. Cancelar a biblioteca não transmite. A aba YouTube das configurações também abre a biblioteca pelo botão **Ver minhas lives**, para salvar uma seleção sem iniciar a transmissão.
 
 O rascunho local fica separado dos eventos já criados. Selecioná-lo não publica nada: a criação remota continua acontecendo após confirmação. RTMP manual permanece com confirmação direta, sem biblioteca, porque a chave RTMP não oferece acesso à API de lives do canal.
+
+## Ocultar lives somente neste Mac (próximo build)
+
+No menu **•••** do cartão, ou com o botão direito, escolha **Ocultar neste Mac**. A live deixa de aparecer na lista local; nenhuma exclusão, edição, cancelamento ou alteração de visibilidade é enviada ao YouTube. A preferência é salva por canal e permanece após atualizar a lista ou reabrir o aplicativo.
+
+Marque **Mostrar ocultas** para vê-las e use **Mostrar novamente neste Mac** para restaurar cada cartão. Uma live oculta não pode ser escolhida para transmitir; se era a seleção salva, essa seleção é limpa. Ocultar não apaga o rascunho nem o registro de criação remota usado para evitar duplicações. A organização fica bloqueada durante uma operação do YouTube ou uma live acompanhada pelo app.
+
+Validação: testes offline exercitam ausência de chamadas à API ao ocultar/restaurar, persistência após atualização e reabertura, isolamento por canal, rascunhos e reversão quando o disco falha. Isso não constitui teste de uma transmissão real.
+
+### Correção do pacote de demonstração
+
+A cópia isolada usada para novas capturas inicialmente recebeu o executável atualizado sem `Resources/Help/youtube-integration.html`. O recurso foi incluído e a mensagem de erro passou a distinguir arquivo ausente de falha ao abrir o navegador, com acesso alternativo ao vídeo do autor. O script oficial de build copia o HTML e o empacotamento já exige sua presença; o DMG 0.1.10 continua inalterado.

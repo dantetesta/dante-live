@@ -58,6 +58,36 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 </details>
 
+## Tutorial: integrar com o YouTube
+
+[**▶ Assistir ao tutorial de Dante Testa — 5 min 54 s**](https://youtu.be/WHGy0IJvG5Y)
+
+Acompanhe os cliques para criar o projeto no Google Console, ativar a API e baixar o JSON de conexão. O vídeo usa o Dante Studio como exemplo; o [manual HTML do Dante Live](https://github.com/dantetesta/dante-live/raw/refs/heads/main/Sources/Help/youtube-integration.html) adapta as etapas para este aplicativo. Baixe o HTML e abra no navegador; ele também pode ser consultado offline.
+
+| Etapa | Ir ao trecho |
+|---|---|
+| Criar e selecionar o projeto | [00:25](https://youtu.be/WHGy0IJvG5Y?t=25) |
+| Ativar YouTube Data API v3 | [01:33](https://youtu.be/WHGy0IJvG5Y?t=93) |
+| Configurar a tela de permissão OAuth | [02:06](https://youtu.be/WHGy0IJvG5Y?t=126) |
+| Adicionar usuários de teste | [03:18](https://youtu.be/WHGy0IJvG5Y?t=198) |
+| Selecionar escopos | [04:05](https://youtu.be/WHGy0IJvG5Y?t=245) |
+| Criar cliente para computador e baixar JSON | [05:02](https://youtu.be/WHGy0IJvG5Y?t=302) |
+
+**Atenção à permissão:** o Dante Live solicita `https://www.googleapis.com/auth/youtube` para gerenciar lives e agendamentos. Na etapa dos escopos, siga o manual do Live: `youtube.upload` e `youtube.readonly`, mostrados para o Studio, não substituem essa permissão. O vídeo termina no download do JSON; o manual continua com importação e conexão no Dante Live. [Permissões aceitas para criar lives](https://developers.google.com/youtube/data/live/reference/rest/v3/liveBroadcasts/insert).
+
+O código atual inclui **Manual de integração com YouTube** ao lado da importação do JSON, para o próximo build. O DMG 0.1.10 acima ainda não inclui esse botão. [Guia da integração](docs/YOUTUBE.md).
+
+## Claro, escuro ou automático
+
+Em **Dante Live → Preferências… → Aparência** (⌘,), escolha **Claro**, **Escuro** ou **Automático**. A escolha fica salva neste Mac; Automático acompanha a aparência do macOS. Essas opções já existem no aplicativo.
+
+Capturas reais do código atual, em uma cópia isolada com projeto de demonstração e áudio sintético, sem transmissão. As telas de aparência também estão disponíveis na 0.1.10.
+
+![Estúdio Dante Live com interface escura e medidores de áudio ativos](docs/images/estudio-escuro.jpg)
+
+![Preferências com opções Automático, Claro e Escuro](docs/images/preferencias-aparencia.jpg)
+
+
 ## Por que estamos construindo o Dante Live
 
 Produzir uma live exige cuidar de muitas coisas ao mesmo tempo: enquadramento, cenas, áudio, arquivos, convidados e conexão. Queremos tornar esse trabalho mais claro e confortável para quem usa Mac, com uma interface organizada e controles que respeitem o jeito de trabalhar do sistema.

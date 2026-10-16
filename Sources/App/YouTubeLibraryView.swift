@@ -35,13 +35,14 @@ struct YouTubeLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @LegacyState private var selection = ""
     @LegacyState private var query = ""
+    @LegacyState private var showHidden = false
     private let draftID = "__local_draft__"
     private var events: [YouTubeBroadcast] {
-        youtube.broadcasts.filter { query.isEmpty || $0.title.localizedStandardContains(query) }
+        (showHidden ? youtube.broadcasts : youtube.visibleBroadcasts).filter { query.isEmpty || $0.title.localizedStandardContains(query) }
             .sorted { ($0.scheduledDate ?? .distantFuture, $0.id) < ($1.scheduledDate ?? .distantFuture, $1.id) }
     }
     private var selectedEvent: YouTubeBroadcast? { youtube.broadcasts.first { $0.id == selection } }
-    private var canContinue: Bool { !youtube.busy && youtube.account != nil && (selection == draftID || selectedEvent?.canTransmit == true) }
+    private var canContinue: Bool { !youtube.busy && youtube.account != nil && !youtube.hiddenBroadcastIDs.contains(selection) && (selection == draftID || selectedEvent?.canTransmit == true) }
     private var selectedTitle: String { selection == draftID ? (youtube.state.draft.title.isEmpty ? "Rascunho da próxima live" : youtube.state.draft.title) : selectedEvent?.title ?? "Escolha uma live" }
     private var sheetSize: CGSize {
         let size = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1200, height: 900)
@@ -65,15 +66,32 @@ struct YouTubeLibraryView: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    HStack { Text("Lives criadas e agendadas").font(.headline); Spacer(); Text("\(events.count)").foregroundStyle(.secondary) }
+                    HStack {
+                        Text("Lives criadas e agendadas").font(.headline)
+                        Text("\(events.count)").foregroundStyle(.secondary)
+                        Spacer()
+                        Toggle("Mostrar ocultas (\(youtube.hiddenBroadcastIDs.count))", isOn: $showHidden).toggleStyle(.checkbox)
+                    }
+                    Text("Use o menu ••• de uma live para ocultá-la somente neste Mac. Ela continuará no YouTube.")
+                        .font(.caption).foregroundStyle(.secondary)
                     if events.isEmpty {
                         ContentUnavailableView(youtube.busy ? "Consultando o canal" : query.isEmpty ? "Nenhuma live na lista" : "Nenhuma live com esse título", systemImage: "calendar", description: Text(query.isEmpty ? "Atualize a lista ou use seu rascunho para preparar uma nova live. As lives encerradas não aparecem aqui." : "Tente buscar outro título."))
                             .frame(maxWidth: .infinity).frame(height: 190)
                     } else {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
                             ForEach(events) { event in
-                                BroadcastCard(event: event, selected: selection == event.id) { selection = event.id }
-                                    .disabled(youtube.busy || !event.canTransmit)
+                                let hidden = youtube.hiddenBroadcastIDs.contains(event.id)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    BroadcastCard(event: event, selected: selection == event.id) { selection = event.id }
+                                        .disabled(youtube.busy || !event.canTransmit || hidden)
+                                    HStack {
+                                        if hidden { Label("Oculta neste Mac", systemImage: "eye.slash").font(.caption).foregroundStyle(.secondary) }
+                                        Spacer()
+                                        Menu { visibilityAction(event) } label: { Image(systemName: "ellipsis") }
+                                            .menuStyle(.borderlessButton).fixedSize()
+                                            .accessibilityLabel("Opções de \(event.title)")
+                                    }
+                                }.contextMenu { visibilityAction(event) }
                             }
                         }
                     }
@@ -113,6 +131,14 @@ struct YouTubeLibraryView: View {
             .background(Color(nsColor: .windowBackgroundColor)).tint(.teal)
             .onAppear { selection = youtube.state.selectedBroadcast ?? draftID; youtube.refresh() }
             .onChange(of: youtube.preferences.selectedAccount) { _, _ in selection = youtube.state.selectedBroadcast ?? draftID }
+    }
+    private func visibilityAction(_ event: YouTubeBroadcast) -> some View {
+        let hidden = youtube.hiddenBroadcastIDs.contains(event.id)
+        return Button {
+            if youtube.setBroadcastHidden(event.id, hidden: !hidden), !hidden, selection == event.id { selection = "" }
+        } label: {
+            Label(hidden ? "Mostrar novamente neste Mac" : "Ocultar neste Mac", systemImage: hidden ? "eye" : "eye.slash")
+        }.disabled(!youtube.canOrganizeLibrary)
     }
     private var header: some View {
         HStack(spacing: 24) {

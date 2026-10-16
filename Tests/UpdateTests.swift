@@ -25,8 +25,14 @@ import Sparkle
     preparationFails = true; gate.resume()
     precondition(installs == 0 && gate.pending && problem != nil)
     preparationFails = false; gate.resume(); gate.resume()
-    for _ in 0..<10 { await Task.yield() }
-    precondition(installs == 1 && saves == 1 && installing && !pending && !gate.pending)
+    // A fixed number of yields does not guarantee the deferred callback ran.
+    // Wait for its observable completion, retaining a bounded failure deadline.
+    let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+    while installs == 0 && ContinuousClock.now < deadline {
+        try await Task.sleep(for: .milliseconds(10))
+    }
+    precondition(installs == 1 && saves == 1 && installing && !pending && !gate.pending,
+                 "The deferred update callback must run exactly once after preparation")
     gate.finish(); precondition(!gate.installing && !installing)
     let comparator = SUStandardVersionComparator.default
     precondition(comparator.compareVersion("9", toVersion: "10") == .orderedAscending)

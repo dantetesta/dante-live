@@ -2,6 +2,8 @@
 
 # Dante Live
 
+<img src="packaging/assets/DanteLive.png" width="144" alt="Ícone do Dante Live: mascote em um monitor com luz vermelha" />
+
 **Um estúdio de produção audiovisual com experiência nativa de Mac.**
 
 Cenas, captura, áudio e transmissão ao vivo — com interface própria em Swift e o motor audiovisual do OBS Studio.
@@ -18,6 +20,43 @@ Versão experimental **0.1.9**. Assinado com Developer ID e notarizado pela Appl
 </div>
 
 ---
+
+## Conheça o estúdio
+
+Capturas reais da interface **0.1.10**, em um projeto de demonstração. Os textos e os sinais de áudio são exemplos sintéticos; nenhuma transmissão estava em andamento.
+
+**Cenas, canvas e mixer de áudio**
+
+![Dante Live com cena de abertura, lista de fontes e medidores estéreo](docs/images/estudio.png)
+
+<details>
+<summary><strong>Ver mais telas: fontes, modo estúdio, configurações e convidados</strong></summary>
+
+### Fontes por categoria
+
+Cartões com descrição de câmera, tela, microfone, imagens, texto e mídia.
+
+![Catálogo visual para adicionar fontes à cena](docs/images/fontes.png)
+
+### Prévia e programa
+
+Prepare outra cena antes de fazer o corte ou a transição.
+
+![Modo estúdio mostrando duas cenas diferentes](docs/images/modo-estudio.png)
+
+### Configurações organizadas
+
+Qualidade, vídeo e áudio, conexão, YouTube e diagnóstico em abas, com salvamento automático.
+
+![Configurações da live com presets e criação de combinação personalizada](docs/images/configuracoes.png)
+
+### Convidados por convite
+
+Interface de convite experimental para até dois participantes. A imagem mostra a sala aguardando um convidado; não comprova uma conexão entre redes diferentes. Veja os [limites de rede e TURN](docs/GUESTS.md).
+
+![Painel de convidados com convite criado e participante aguardado](docs/images/convidados.png)
+
+</details>
 
 ## Por que estamos construindo o Dante Live
 
@@ -41,7 +80,7 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.9** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.10** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
 - Distribuição oficial assinada com Developer ID e notarizada pela Apple a partir da 0.1.8.
 - Atualizações pelo menu do Mac, aviso ao abrir, changelog e instalação/reinício com proteção durante a live.
@@ -56,6 +95,7 @@ A versão **0.1.9** amplia a base funcional, em estágio experimental, com funci
 - Mixer vertical estéreo com escala em dB, nível médio, pico e retenção de pico; volume, mute e filtros reais.
 - ⌘F para ajustar ao canvas, Option/Alt nas alças para recortar e dentro da fonte para reenquadrar.
 - Máscaras de câmera com formatos, cantos arredondados, zoom e enquadramento.
+- Divisória visível e arrastável entre canvas e painéis, com proporção salva, teclado e VoiceOver.
 - Preferências de aparência: automática pelo Mac, clara ou escura.
 - Convites temporários para até dois convidados no navegador, com câmera, microfone, tela e retorno de áudio sem a própria voz.
 - Modo estúdio, corte/fade e transmissão manual RTMP/RTMPS, com início pelo estúdio e contagem regressiva cancelável.

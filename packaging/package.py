@@ -29,6 +29,7 @@ for directory in ('Sources','scripts','packaging'):
         if path.is_file() and path.suffix in ('.swift','.h','.mm','.m','.c','.cpp','.sh','.py','.plist','.txt','.json','.patch'):
             allowed.append(path)
 if (root/'LICENSE').is_file(): allowed.append(root/'LICENSE')
+allowed.append(root/'packaging/assets/DanteLive.png')
 with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED) as output:
     for path in allowed: output.write(path,path.relative_to(root))
     output.write(root/'vendor/obs-studio/COPYING','OBS-COPYING')

@@ -26,7 +26,7 @@ struct StudioView: View {
             HSplitView {
                 if showScenes { sceneSidebar.frame(minWidth: 170, idealWidth: 205, maxWidth: 320) }
                 else { collapsedSidebar(title: "Mostrar cenas", icon: "sidebar.left") { showScenes = true } }
-                VSplitView {
+                CanvasPanelSplit {
                     VStack(spacing: 0) {
                         HStack {
                             Label(model.studioMode ? "PRÉVIA" : "CANVAS", systemImage: "rectangle.inset.filled")
@@ -46,11 +46,12 @@ struct StudioView: View {
                                 Button("Transição") { model.take() }.keyboardShortcut(.space, modifiers: []).buttonStyle(.borderedProminent)
                             }
                         }.padding(10)
-                    }.frame(minWidth: 420, minHeight: 260)
+                    }.frame(minWidth: 420, maxHeight: .infinity)
+                } controls: {
                     HSplitView {
                         sourcePanel.frame(minWidth: 210)
                         MixerView(model: model).frame(minWidth: 220)
-                    }.frame(minHeight: 280, idealHeight: 330)
+                    }.frame(maxHeight: .infinity)
                 }
                 if showProperties { InspectorView(model: model, onCollapse: { showProperties = false }).frame(minWidth: 240, idealWidth: 290, maxWidth: 420) }
                 else { collapsedSidebar(title: "Mostrar propriedades", icon: "sidebar.right") { showProperties = true } }
@@ -85,7 +86,7 @@ struct StudioView: View {
     }
     var topBar: some View {
         HStack(spacing: 14) {
-            ZStack { RoundedRectangle(cornerRadius: 9).fill(.teal.gradient); Image(systemName: "waveform.path").foregroundStyle(.white).font(.title3.bold()) }.frame(width: 34, height: 34)
+            Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage()).resizable().interpolation(.high).scaledToFit().frame(width: 40, height: 40).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) { Text("DANTE LIVE").font(.headline.weight(.heavy)); Text("Estúdio de produção • \(appVersion)").font(.caption2).foregroundStyle(.secondary) }
             Spacer()
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)

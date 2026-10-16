@@ -19,8 +19,8 @@ python3 packaging/fetch-sparkle.py
 python3 packaging/runtime.py prepare
 python3 packaging/fetch-sparkle.py --embed
 python3 packaging/fetch-guests.py
-if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/DanteLive.icns" ]]; then
-  xcrun swift packaging/generate-icon.swift "$BUILD/DanteLive.iconset"
+if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/DanteLive.icns" || packaging/assets/DanteLive.png -nt "$BUILD/DanteLive.icns" ]]; then
+  xcrun swift packaging/generate-icon.swift packaging/assets/DanteLive.png "$BUILD/DanteLive.iconset"
   xcrun iconutil -c icns "$BUILD/DanteLive.iconset" -o "$BUILD/DanteLive.icns"
 fi
 cp "$BUILD/DanteLive.icns" "$APP/Contents/Resources/DanteLive.icns"

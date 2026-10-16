@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Release experimental atual: **0.1.9 (10)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.10 (11)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
@@ -98,3 +98,11 @@ Implementados: cartões de fontes e biblioteca visual YouTube, ⌘F, crop/pan co
 Fontes: Sources/App/GuestModel.swift, GuestHTTPServer.swift, GuestsView.swift, Sources/Bridge/DanteGuestRTC.mm, Sources/GuestWeb. Dependências e hashes em packaging/guests-lock.json. LiveKitWebRTC BSD/patentes e empacotamento MIT; cloudflared Apache 2.0 e Go com licenças transitivas. Ambos Universal 2; helper recompilado com deployment target 14.0 porque o binário upstream exigia 15.0.
 
 Aceitação: dois peers Chrome com mídia sintética real, fontes e medidores libobs, retorno espectral sem própria voz, revogação; segurança HTTP/token/origem; máscaras verificadas em pixels GPU. Não equivale a teste de redes NAT distintas, TURN, Safari, duas horas, Intel físico ou macOS 14 real. TURN não provisionado; Quick Tunnel temporário sem SLA. As pendências históricas de convidados passam a ser estes limites, não ausência total da funcionalidade.
+
+## Incremento 0.1.10 — identidade e espaço de trabalho
+
+Ícone oficial fornecido pelo mantenedor, com variantes 16–1024 px e transparência, usado também no cabeçalho. Galeria de capturas reais de um projeto sintético no README.
+
+Divisória abaixo do canvas com alça de 12 pontos, ajuste por arrasto, proporção persistente, dois cliques para restaurar e alternativa por teclado/acessibilidade. O enquadramento da cena não muda: somente o espaço disponível para prévia, fontes e mixer.
+
+CUA confirmou arrasto, setas, ação acessível, restauração por dois cliques, reabertura com a proporção salva e ampliação/redução da janela. Não houve nova validação em Intel físico, macOS 14 real ou transmissão pública neste incremento.

@@ -6,6 +6,31 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.9</title>
+      <pubDate>Fri, 16 Oct 2026 03:43:50 +0000</pubDate>
+      <sparkle:version>10</sparkle:version>
+      <sparkle:shortVersionString>0.1.9</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.9 — convidados, editor e mixer
+
+• Convide até duas pessoas por link HTTPS: nome, câmera, microfone e tela pelo navegador.
+• Insira cada mídia na cena e controle volume, mute e visibilidade. Retorno de áudio exclui a própria voz; convites podem ser revogados.
+• Mixer vertical estéreo com escala em dB, nível médio, pico e retenção de pico.
+• ⌘F ajusta a fonte ao canvas. Option/Alt nas alças recorta; dentro da fonte reenquadra.
+• Máscaras de câmera: quadrado, círculo, oval e retângulos, cantos arredondados, zoom e posição.
+• Preferências de aparência automática, clara e escura.
+• Fontes em cartões com busca/categorias; biblioteca visual de lives YouTube com capa e horário local.
+
+macOS 14+; Universal 2 (Apple Silicon e Intel). Distribuição oficial assinada e notarizada. O aplicativo continua exclusivo para lives, sem gravação de arquivos.
+
+Experimental: convidados usam conexão direta STUN e ponte HTTPS temporária sem SLA. TURN aceita credenciais temporárias opcionais, mas não vem configurado; certas redes podem não conectar. Sem garantia de duração ou ausência de quedas. Compartilhamento de áudio da tela, relay TURN, redes distintas, Safari/Firefox, Intel físico, macOS 14 real e sessões prolongadas ainda não validados.
+
+Validação: testes de persistência/editor/segurança, pixels de máscaras na GPU, medidores estéreo com PCM, dois navegadores Chrome com WebRTC real e mídia sintética, retorno mix-minus e revogação. Nenhuma transmissão pública durante os testes.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.9/Dante-Live-0.1.9-macOS-universal.dmg" length="92813809" type="application/octet-stream" sparkle:edSignature="RXbXJXrilZNArgDg4gtnl02N0OgTbaFX1/3fXFA9ctODFC31LcWVXEm7QuVybE6JHrO7aZRfw9mqGajZCoZcAw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.8</title>
       <pubDate>Thu, 15 Oct 2026 23:10:45 +0000</pubDate>
       <sparkle:version>9</sparkle:version>
@@ -61,6 +86,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: aAP7RZ+PRnsavaUss1rkep2N0gta9PTpCfVO2ts3zpX95oIhWqRHJyNjtgaO7gfM0GTq+ODjlWZrpO8gJaFeAw==
-length: 5255
+edSignature: DEWxUG2PQ2p+exO5Qx6GvIWz51w+i16ss7ywB8wfOJVpm7y3GJ1GDLzWKOIu+uvj717wlxxbvUZ9nGs3T1WjDg==
+length: 7598
 -->

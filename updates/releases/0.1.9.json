@@ -1,0 +1,16 @@
+{
+  "version": "0.1.9",
+  "build": 10,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.9/Dante-Live-0.1.9-macOS-universal.dmg",
+  "length": 92813809,
+  "sha256": "895efc85e721a6af30ffe94259a03aed4789a6c78051ce53664cefc2e49bc275",
+  "signature": "RXbXJXrilZNArgDg4gtnl02N0OgTbaFX1/3fXFA9ctODFC31LcWVXEm7QuVybE6JHrO7aZRfw9mqGajZCoZcAw==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T03:43:50.374944+00:00",
+  "changelog": "Dante Live 0.1.9 — convidados, editor e mixer\n\n• Convide até duas pessoas por link HTTPS: nome, câmera, microfone e tela pelo navegador.\n• Insira cada mídia na cena e controle volume, mute e visibilidade. Retorno de áudio exclui a própria voz; convites podem ser revogados.\n• Mixer vertical estéreo com escala em dB, nível médio, pico e retenção de pico.\n• ⌘F ajusta a fonte ao canvas. Option/Alt nas alças recorta; dentro da fonte reenquadra.\n• Máscaras de câmera: quadrado, círculo, oval e retângulos, cantos arredondados, zoom e posição.\n• Preferências de aparência automática, clara e escura.\n• Fontes em cartões com busca/categorias; biblioteca visual de lives YouTube com capa e horário local.\n\nmacOS 14+; Universal 2 (Apple Silicon e Intel). Distribuição oficial assinada e notarizada. O aplicativo continua exclusivo para lives, sem gravação de arquivos.\n\nExperimental: convidados usam conexão direta STUN e ponte HTTPS temporária sem SLA. TURN aceita credenciais temporárias opcionais, mas não vem configurado; certas redes podem não conectar. Sem garantia de duração ou ausência de quedas. Compartilhamento de áudio da tela, relay TURN, redes distintas, Safari/Firefox, Intel físico, macOS 14 real e sessões prolongadas ainda não validados.\n\nValidação: testes de persistência/editor/segurança, pixels de máscaras na GPU, medidores estéreo com PCM, dois navegadores Chrome com WebRTC real e mídia sintética, retorno mix-minus e revogação. Nenhuma transmissão pública durante os testes.\n",
+  "notarized": true
+}

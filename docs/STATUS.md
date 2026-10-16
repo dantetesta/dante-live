@@ -1,3 +1,9 @@
+## Versão 0.1.11 — manual YouTube e organização local
+
+Inclui guia HTML offline revisado com o tutorial do autor, vídeo e links por etapa; recurso exigido no pacote. A biblioteca permite ocultar/restaurar lives somente neste Mac, por canal, sem chamadas de alteração à API. README com novas capturas reais em modo escuro e preferências. Claro, Escuro e Automático continuam disponíveis.
+
+Contratos offline de ocultação/persistência/reversão passaram; compilação arm64 e typecheck x86_64/macOS 14 passaram antes da preparação da release. Build Universal 2, suíte e assinatura/notarização são verificados novamente pelo pipeline de publicação. Intel físico, macOS 14 real e testes prolongados continuam pendentes.
+
 # Estado do projeto
 
 Release experimental atual: **0.1.10 (11)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.

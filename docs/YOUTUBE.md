@@ -14,7 +14,7 @@ O botão **Manual de integração com YouTube**, em **Configurações da live �
 
 Fonte do guia: [`Sources/Help/youtube-integration.html`](../Sources/Help/youtube-integration.html). O build copia somente esse recurso para `Contents/Resources/Help/`, e o empacotamento exige sua presença. É documentação destinada ao usuário, incluída por solicitação explícita; os documentos internos continuam fora do runtime. Nenhuma credencial é incluída no HTML. Checklist e impressão são locais ao navegador.
 
-Validação local em 16/10/2026: tela SwiftUI real compilada em arm64 em aplicativo QA isolado, sem inicializar o motor e com cofre em memória vazio; botão abriu no Chrome o HTML de `Contents/Resources/Help/` com saída ativa simulada e importação bloqueada. Typecheck de todas as fontes do app passou para x86_64/macOS 14. HTML com oito etapas, âncoras válidas e recursos incorporados; cópias do projeto, Downloads e bundle QA idênticas. Sintaxe de build/empacotamento verificada. Não houve OAuth real, alteração do aplicativo instalado, novo DMG ou publicação nesta etapa; a integração será incluída no próximo build.
+Validação local em 16/10/2026: tela SwiftUI real compilada em arm64 em aplicativo QA isolado, sem inicializar o motor e com cofre em memória vazio; botão abriu no Chrome o HTML de `Contents/Resources/Help/` com saída ativa simulada e importação bloqueada. Typecheck de todas as fontes do app passou para x86_64/macOS 14. HTML com oito etapas, âncoras válidas e recursos incorporados; cópias do projeto, Downloads e bundle QA idênticas. Sintaxe de build/empacotamento verificada. Não houve OAuth real, alteração do aplicativo instalado, novo DMG ou publicação nesta etapa; a integração foi preparada para o build 0.1.11.
 
 1. No Google Cloud, crie ou selecione um projeto e habilite **YouTube Data API v3**.
 2. Configure a tela de consentimento Google Auth Platform e, se estiver em teste, inclua sua conta como usuário de teste.
@@ -61,7 +61,7 @@ Selecione o cartão e clique em **Continuar**. A próxima tela confirma os dados
 
 O rascunho local fica separado dos eventos já criados. Selecioná-lo não publica nada: a criação remota continua acontecendo após confirmação. RTMP manual permanece com confirmação direta, sem biblioteca, porque a chave RTMP não oferece acesso à API de lives do canal.
 
-## Ocultar lives somente neste Mac (próximo build)
+## Ocultar lives somente neste Mac (0.1.11)
 
 No menu **•••** do cartão, ou com o botão direito, escolha **Ocultar neste Mac**. A live deixa de aparecer na lista local; nenhuma exclusão, edição, cancelamento ou alteração de visibilidade é enviada ao YouTube. A preferência é salva por canal e permanece após atualizar a lista ou reabrir o aplicativo.
 

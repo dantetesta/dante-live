@@ -75,7 +75,7 @@ Acompanhe os cliques para criar o projeto no Google Console, ativar a API e baix
 
 **Atenção à permissão:** o Dante Live solicita `https://www.googleapis.com/auth/youtube` para gerenciar lives e agendamentos. Na etapa dos escopos, siga o manual do Live: `youtube.upload` e `youtube.readonly`, mostrados para o Studio, não substituem essa permissão. O vídeo termina no download do JSON; o manual continua com importação e conexão no Dante Live. [Permissões aceitas para criar lives](https://developers.google.com/youtube/data/live/reference/rest/v3/liveBroadcasts/insert).
 
-O código atual inclui **Manual de integração com YouTube** ao lado da importação do JSON, para o próximo build. O DMG 0.1.10 acima ainda não inclui esse botão. [Guia da integração](docs/YOUTUBE.md).
+A versão **0.1.11** inclui **Manual de integração com YouTube** ao lado da importação do JSON, com o guia disponível offline e atalhos para o vídeo. [Guia da integração](docs/YOUTUBE.md).
 
 ## Claro, escuro ou automático
 
@@ -110,10 +110,11 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.10** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.11** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
 - Distribuição oficial assinada com Developer ID e notarizada pela Apple a partir da 0.1.8.
 - Atualizações pelo menu do Mac, aviso ao abrir, changelog e instalação/reinício com proteção durante a live.
+- Ocultar e restaurar lives da lista somente neste Mac, por canal, sem alterar o YouTube.
 - Biblioteca visual de lives do YouTube com capa, título, visibilidade e horário local; seleção pelo botão Transmitir antes da confirmação.
 - Adição de fontes em cartões ilustrados, com descrições simples, busca, categorias e opção separada para reutilizar uma fonte existente.
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.

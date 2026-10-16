@@ -1,3 +1,7 @@
+## Versão 0.1.15 — nova compilação de distribuição
+
+Nova compilação da base 0.1.14, com versão/build próprios para distribuição e atualização. Não adiciona funcionalidades nem altera o comportamento do aplicativo. Permanecem os recursos e limites de validação descritos abaixo.
+
 ## Versão 0.1.14 — participantes, retorno e estúdio
 
 Painel Participantes abaixo de Cenas: câmera, tela e microfone agrupados, nome de entrada, cor estável por participante, escolha/mudança da cena, visibilidade, mute, volume e escuta local. Componentes da sala saem da lista comum de fontes; a ordem das demais camadas preserva seus lugares. Revogar/encerrar a sala remove seus itens da composição. Fontes órfãs de versões antigas continuam acessíveis para remoção manual.
@@ -34,7 +38,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.14 (15)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.15 (16)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|

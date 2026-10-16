@@ -1,0 +1,16 @@
+{
+  "version": "0.1.12",
+  "build": 13,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.12/Dante-Live-0.1.12-macOS-universal.dmg",
+  "length": 94006348,
+  "sha256": "6404107fd8844e19dda345b9088c305094fbd9b06309ea739db80c78dd2944d8",
+  "signature": "UfAfoGlGARSE/kP1jgsizDthzd15FhJ1AK7WHfUbuHy3EaT2ab6H//sbHnzV6ZW4nUW4ZzHJtVKZkK8a4VgtCw==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T13:44:12.435530+00:00",
+  "changelog": "Dante Live 0.1.12 — câmera e microfone dos convidados\n\n- Corrigida a primeira ativação dos dispositivos no convite: o texto de orientação não é mais confundido com uma câmera ou microfone.\n- Prévia local e seletores de dispositivos reorganizados, com mensagens para permissão negada, dispositivo ocupado ou desconectado.\n- Nova tentativa após permitir o acesso; medidor de áudio suspenso não bloqueia os controles.\n- Oval, retângulo e retângulo arredondado agora têm opções horizontal e vertical, mantendo zoom e enquadramento.\n\nMac com macOS 14 ou superior, Universal 2. Distribuição experimental. Testes locais com Chrome isolado e dispositivos sintéticos; hardware físico dos convidados, Safari/Firefox, redes NAT distintas, TURN e sessões longas ainda não validados.\n\nDepois de atualizar, reabra o Dante Live fora de uma transmissão e gere um novo convite. No navegador do convidado, clique em Ativar câmera e microfone e permita o acesso.\n",
+  "notarized": true
+}

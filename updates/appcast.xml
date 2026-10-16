@@ -6,6 +6,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.12</title>
+      <pubDate>Fri, 16 Oct 2026 13:44:12 +0000</pubDate>
+      <sparkle:version>13</sparkle:version>
+      <sparkle:shortVersionString>0.1.12</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.12 — câmera e microfone dos convidados
+
+- Corrigida a primeira ativação dos dispositivos no convite: o texto de orientação não é mais confundido com uma câmera ou microfone.
+- Prévia local e seletores de dispositivos reorganizados, com mensagens para permissão negada, dispositivo ocupado ou desconectado.
+- Nova tentativa após permitir o acesso; medidor de áudio suspenso não bloqueia os controles.
+- Oval, retângulo e retângulo arredondado agora têm opções horizontal e vertical, mantendo zoom e enquadramento.
+
+Mac com macOS 14 ou superior, Universal 2. Distribuição experimental. Testes locais com Chrome isolado e dispositivos sintéticos; hardware físico dos convidados, Safari/Firefox, redes NAT distintas, TURN e sessões longas ainda não validados.
+
+Depois de atualizar, reabra o Dante Live fora de uma transmissão e gere um novo convite. No navegador do convidado, clique em Ativar câmera e microfone e permita o acesso.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.12/Dante-Live-0.1.12-macOS-universal.dmg" length="94006348" type="application/octet-stream" sparkle:edSignature="UfAfoGlGARSE/kP1jgsizDthzd15FhJ1AK7WHfUbuHy3EaT2ab6H//sbHnzV6ZW4nUW4ZzHJtVKZkK8a4VgtCw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.11</title>
       <pubDate>Fri, 16 Oct 2026 13:20:26 +0000</pubDate>
       <sparkle:version>12</sparkle:version>
@@ -131,6 +151,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: ANBh5dUBrCYafUj01h2Z9+aY3i8wgImJx3euku1LayKHy396rLvj2GOoZKl3hzevA2ncAjn+RR8hBgYFUrb2DQ==
-length: 11528
+edSignature: fwQU61Fg0im2pzojCd3BAG353T1Q1CQphgq8tiEjKETyeG4sGqScSLrIm1J//SKq+T05hLbL060Sf+r1gfhXAg==
+length: 13284
 -->

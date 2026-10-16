@@ -31,6 +31,23 @@ import CoreGraphics
             }
         }
         precondition(degenerate.resize(corner: 0, translation: .zero, position: .zero) == nil)
+        let noCrop = CanvasGeometry.Crop(left:0,top:0,right:0,bottom:0)
+        let crop = box.crop(handle:0,translation:CGSize(width:20,height:10),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!
+        precondition(crop.crop == .init(left:20,top:10,right:0,bottom:0) && crop.position == CGPoint(x:30,y:30))
+        let rotatedCrop = rotated.crop(handle:0,translation:CGSize(width:-10,height:20),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!
+        precondition(rotatedCrop.crop == crop.crop && rotatedCrop.position == CGPoint(x:0,y:40))
+        let mirroredCrop = flipped.crop(handle:7,translation:CGSize(width:-20,height:0),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:110,y:20),alignment:5)!
+        precondition(mirroredCrop.crop.left == 20 && mirroredCrop.position.x == 90)
+        let centeredCrop = box.crop(handle:7,translation:CGSize(width:20,height:0),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:60,y:45),alignment:0)!
+        precondition(centeredCrop.position == CGPoint(x:70,y:45))
+        let clamped = box.crop(handle:4,translation:CGSize(width:-500,height:-500),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:.zero,alignment:5)!
+        precondition(clamped.crop.right == 99 && clamped.crop.bottom == 49)
+        let restored = box.crop(handle:0,translation:CGSize(width:-500,height:-500),sourceSize:CGSize(width:100,height:50),initial:crop.crop,position:.zero,alignment:5)!
+        precondition(restored.crop == noCrop)
+        let pan = box.panCrop(translation:CGSize(width:500,height:-500),sourceSize:CGSize(width:140,height:70),initial:.init(left:20,top:10,right:20,bottom:10))!
+        precondition(pan == .init(left:0,top:20,right:40,bottom:0))
+        precondition(degenerate.crop(handle:0,translation:.zero,sourceSize:CGSize(width:100,height:50),initial:noCrop,position:.zero,alignment:5) == nil)
+        print("PASS: crop edges/corners with rotation, mirror and centered anchor; nonempty clamp, uncrop and content pan preserving frame")
         print("PASS: canvas selection and proportional resize with rotation, mirroring, degenerate and invalid bounds")
     }
 }

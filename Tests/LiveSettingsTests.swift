@@ -96,7 +96,7 @@ import Foundation
     func ascii(_ value: String) { wav.append(contentsOf: value.utf8) }
     func le<T: FixedWidthInteger>(_ value: T) { var value = value.littleEndian; withUnsafeBytes(of: &value) { wav.append(contentsOf: $0) } }
     ascii("RIFF"); le(UInt32(36 + 192000)); ascii("WAVEfmt "); le(UInt32(16)); le(UInt16(1)); le(UInt16(2)); le(UInt32(48000)); le(UInt32(192000)); le(UInt16(4)); le(UInt16(16)); ascii("data"); le(UInt32(192000))
-    for frame in 0..<48000 { let sample = Int16(sin(Double(frame) * 2 * Double.pi * 440 / 48000) * 10000); le(sample); le(sample) }
+    for frame in 0..<48000 { let sample = Int16(sin(Double(frame) * 2 * Double.pi * 440 / 48000) * 10000); le(sample); le(sample/4) }
     let tone = directory.appendingPathComponent("signal.wav"); try wav.write(to: tone)
     try verify(model.command("source.add", ["type":"ffmpeg_source", "name":"Signal fixture", "settings":["local_file":tone.path,"is_local_file":true,"looping":true]]))
     try verify(model.command("audio.set", ["name":"Signal fixture", "monitoring":0]))
@@ -107,11 +107,20 @@ import Foundation
         if source.number("signalAge", -1) >= 0 && source.number("signalAge") < 1 { observed = true; break }
     }
     try verify(observed)
+    let meter = jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")
+    let peaks = meter["peak"] as! [Double], rms = meter["rms"] as! [Double], hold = meter["hold"] as! [Double]
+    try verify(peaks.count == 2 && peaks[0] > -20 && peaks[0]-peaks[1] > 10 && peaks[0]-peaks[1] < 14)
+    try verify(rms[0] < peaks[0] && hold[0] >= peaks[0]-0.1)
+    try verify(model.command("audio.set",["name":"Signal fixture","muted":true]))
+    try verify((jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")["peak"] as! [Double]).allSatisfy { $0 == -96 })
+    try verify(model.command("audio.set",["name":"Signal fixture","muted":false]))
     try verify(model.command("media.stop", ["name":"Signal fixture"]))
     try await Task.sleep(for: .milliseconds(1300)); model.refresh()
     try verify(model.items.first { $0.string("name") == "Signal fixture" }!.number("signalAge") > 0.5)
+    try verify((jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")["peak"] as! [Double]).allSatisfy { $0 == -96 })
     try verify(dante_engine_load(model.engine, savedEngine)); model.refresh()
     print("PASS: real libobs synthetic PCM updates signal timestamp; stopped media ages out without stale-level false recovery")
+    print("PASS: stereo peak/RMS/hold from real PCM, independent channel levels, mute and stopped-source meters clear")
 
     var watch = MicrophoneSilenceWatch()
     func mic(_ age: Double?, enabled: Bool = true) -> [MicrophoneSample] { [MicrophoneSample(id: "mic", name: "Microfone", enabled: enabled, signalAge: age)] }

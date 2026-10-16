@@ -58,3 +58,9 @@ Rascunhos são locais até a ação explícita Agendar ou Confirmar e transmitir
 `AppUpdateCoordinator` integra Sparkle ao menu AppKit e à consulta de inicialização. `UpdateInstallationGate` serializa decisão de instalar, impede reinício durante transmissão/preparação/operação YouTube e exige salvamento do projeto. Um download adiado requer retomada explícita. O catálogo assinado em `updates/` aponta para assets imutáveis do GitHub, publicados e verificados antes de atualizar o feed. Sparkle substitui somente o bundle e relança o processo; dados persistentes continuam fora dele.
 
 A distribuição 0.1.8+ assina todo o código nativo com Developer ID/Hardened Runtime e preserva a validação de bibliotecas. App e DMG são notarizados e recebem tickets antes de assinar o download com Ed25519. O publicador valida a assinatura, tickets e Gatekeeper de ambos; não usa um marcador textual como prova de aprovação. Nenhuma chave privada integra este repositório.
+
+## Convidados e editor 0.1.9
+
+GuestModel coordena convites/sinalização na main thread; GuestHTTPServer limita HTTP em loopback e o helper cloudflared publica somente página e sinalização via HTTPS temporário. DanteGuestPeer retém fontes libobs e recebe vídeo I420/PCM via LiveKitWebRTC. Retorno usa dois mixes reservados e buffer SPSC limitado; o callback de áudio não toca UI/disco. Encerrar peers precede o motor. Tokens e TURN não são persistidos. Consulte GUESTS.md.
+
+DanteCameraMask registra filtro GPU com alpha e transformação UV. CanvasGeometry calcula crop/pan em espaço da fonte, inclusive rotação/mirror. MixerView usa snapshots de áudio estéreo a 30 Hz separados do estado completo do editor.

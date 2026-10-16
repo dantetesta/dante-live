@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow?
     lazy var updates = AppUpdateCoordinator(model: model, enabled: model.projectDirectory == nil)
     private var projectorWindows: [NSWindow] = []
+    private var preferencesWindow: NSWindow?
     override init() {
         let arguments = CommandLine.arguments
         let index = arguments.firstIndex(of: "--validation-directory")
@@ -26,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         super.init()
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppAppearance.restore()
         setupMenus()
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1350, height: 850), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = model.projectDirectory == nil ? "Dante Live \(appVersion)" : "Dante Live \(appVersion) • Validação isolada"
@@ -44,8 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         model.refresh()
         if model.liveOperationInProgress {
-            let alert = NSAlert(); alert.messageText = "Há saídas ativas no Dante Live"
-            alert.informativeText = "Pare a transmissão e aguarde a finalização antes de sair."
+            let alert = NSAlert(); alert.messageText = "O estúdio ainda está em uso"
+            alert.informativeText = "Pare a transmissão, encerre a sala de convidados e aguarde a finalização antes de sair."
             alert.addButton(withTitle: "Voltar ao estúdio"); alert.runModal(); return .terminateCancel
         }
         // Destroy native displays while the engine remains alive.
@@ -65,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if sender !== window { return true }
         model.refresh()
         if model.liveOperationInProgress {
-            let alert = NSAlert(); alert.messageText = "Finalize as saídas antes de fechar o estúdio."
+            let alert = NSAlert(); alert.messageText = "Pare a transmissão e encerre a sala de convidados antes de fechar o estúdio."
             alert.runModal(); return false
         }
         return true
@@ -74,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let projector = notification.object as? NSWindow else { return }
         if projector === window {
             for secondary in projectorWindows { secondary.close() }
+            preferencesWindow?.close()
             return
         }
         detachPreviews(projector.contentView)
@@ -90,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let application = NSMenuItem(); menu.addItem(application)
         let appMenu = NSMenu(); application.submenu = appMenu
         appMenu.addItem(withTitle: "Sobre o Dante Live", action: #selector(about), keyEquivalent: "").target = self
+        add(appMenu, "Preferências…", #selector(openPreferences), ",")
         let updateItem = appMenu.addItem(withTitle: "Verificar atualizações…", action: #selector(AppUpdateCoordinator.checkForUpdates(_:)), keyEquivalent: "")
         updateItem.target = updates
         appMenu.addItem(.separator())
@@ -102,6 +106,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let editItem = NSMenuItem(); menu.addItem(editItem); let edit = NSMenu(title: "Editar"); editItem.submenu = edit
         add(edit, "Desfazer", #selector(undoProject), "z")
         let redo = add(edit, "Refazer", #selector(redoProject), "z"); redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(.separator())
+        add(edit, "Ajustar fonte ao canvas", #selector(fitSource), "f")
         edit.addItem(.separator())
         for (title, action, key) in [("Recortar", "cut:", "x"), ("Copiar", "copy:", "c"), ("Colar", "paste:", "v"), ("Selecionar tudo", "selectAll:", "a")] { edit.addItem(withTitle: title, action: Selector(action), keyEquivalent: key) }
         let viewItem = NSMenuItem(); menu.addItem(viewItem); let view = NSMenu(title: "Visualizar"); viewItem.submenu = view
@@ -118,9 +124,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func exportProject() { model.exportProject() }
     @objc func undoProject() { model.undo() }
     @objc func redoProject() { model.redo() }
-    @objc func systemAppearance() { NSApp.appearance = nil }
-    @objc func lightAppearance() { NSApp.appearance = NSAppearance(named: .aqua) }
-    @objc func darkAppearance() { NSApp.appearance = NSAppearance(named: .darkAqua) }
+    @objc func systemAppearance() { AppAppearance.select(.system) }
+    @objc func lightAppearance() { AppAppearance.select(.light) }
+    @objc func darkAppearance() { AppAppearance.select(.dark) }
+    @objc func fitSource() {
+        guard NSApp.keyWindow === window, window?.sheets.isEmpty == true, !(window?.firstResponder is NSTextView) else { return }
+        model.fitSelectedSource()
+    }
+    @objc func openPreferences() {
+        if let preferencesWindow { preferencesWindow.makeKeyAndOrderFront(nil); return }
+        let preferences = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 566, height: 370), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        preferences.title = "Preferências do Dante Live"; preferences.isReleasedWhenClosed = false
+        preferences.contentView = NSHostingView(rootView: PreferencesView())
+        preferences.center(); preferences.makeKeyAndOrderFront(nil); preferencesWindow = preferences
+    }
     @objc func openProjector() {
         guard model.engine != nil else { return }
         let projector = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540),

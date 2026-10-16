@@ -17,6 +17,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "DanteCameraMask.hpp"
 
 static std::string creationError;
 static NSString *S(const char *s) { return s ? [NSString stringWithUTF8String:s] ?: @"" : @""; }
@@ -52,7 +53,11 @@ static bool hardwareEncoder(const char *id) {
     }
     CFRelease(values);return hardware;
 }
-struct Meter { obs_volmeter_t *meter = nullptr; std::atomic<float> level{-96.0f}; std::atomic<uint64_t> lastSignalNS{0}; };
+struct Meter {
+    obs_volmeter_t *meter = nullptr;
+    std::atomic<float> level{-96.0f}, peaks[2]{{-96.f},{-96.f}}, rms[2]{{-96.f},{-96.f}}, hold[2]{{-96.f},{-96.f}};
+    std::atomic<uint64_t> lastSignalNS{0}, updatedNS{0}, holdNS[2]{{0},{0}};
+};
 struct Output {
     obs_output_t *output = nullptr;
     obs_encoder_t *video = nullptr;
@@ -96,13 +101,39 @@ static bool registeredType(NSString *name,enum obs_source_type expected) {
         if([name isEqual:S(id)])return true;
     return false;
 }
-static void meterCallback(void *data, const float *, const float *peak, const float *inputPeak) {
+static void meterCallback(void *data, const float *magnitude, const float *peak, const float *inputPeak) {
     auto *m = static_cast<Meter *>(data);
     float level = std::max(peak[0], peak[1]);
     // Timestamp signal in the audio callback so brief sound between UI polls is retained.
     // No allocations, locks, file IO or UI work here. Input peak is before the volume fader.
     if (std::max(inputPeak[0], inputPeak[1]) > -90.f) m->lastSignalNS.store(os_gettime_ns(), std::memory_order_relaxed);
     m->level.store(std::isfinite(level) ? std::max(-96.f, level) : -96.f, std::memory_order_relaxed);
+    const uint64_t now=os_gettime_ns();
+    for(int i=0;i<2;i++) {
+        const float p=std::isfinite(peak[i]) ? std::clamp(peak[i],-96.f,6.f) : -96.f;
+        m->peaks[i].store(p,std::memory_order_relaxed);
+        m->rms[i].store(std::isfinite(magnitude[i]) ? std::clamp(magnitude[i],-96.f,6.f) : -96.f,std::memory_order_relaxed);
+        if(p>=m->hold[i].load(std::memory_order_relaxed)||now-m->holdNS[i].load(std::memory_order_relaxed)>800000000ULL) {
+            m->hold[i].store(p,std::memory_order_relaxed);m->holdNS[i].store(now,std::memory_order_relaxed);
+        }
+    }
+    m->updatedNS.store(now,std::memory_order_relaxed);
+}
+const char *dante_engine_audio_levels(dante_engine_t *e) {
+    if(!e)return "{}";
+    NSMutableDictionary *levels=[NSMutableDictionary dictionary];const uint64_t now=os_gettime_ns();
+    for(auto &entry:e->meters) {
+        auto *m=entry.second.get();const bool silent=obs_source_muted(entry.first)||!obs_source_active(entry.first)||now-m->updatedNS.load(std::memory_order_relaxed)>300000000ULL;
+        NSMutableArray *peaks=[NSMutableArray array],*rms=[NSMutableArray array],*hold=[NSMutableArray array];
+        const int channels=std::clamp(obs_volmeter_get_nr_channels(m->meter),1,2);
+        for(int i=0;i<channels;i++) {
+            [peaks addObject:@(silent ? -96.f : m->peaks[i].load(std::memory_order_relaxed))];
+            [rms addObject:@(silent ? -96.f : m->rms[i].load(std::memory_order_relaxed))];
+            [hold addObject:@(silent ? -96.f : m->hold[i].load(std::memory_order_relaxed))];
+        }
+        levels[S(obs_source_get_name(entry.first))]=@{@"peak":peaks,@"rms":rms,@"hold":hold};
+    }
+    e->scratch=J(levels);return e->scratch.c_str();
 }
 static Meter *ensureMeter(dante_engine *e, obs_source_t *source) {
     if (!(obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO)) return nullptr;
@@ -278,6 +309,8 @@ dante_engine_t *dante_engine_create_with_config(const char *bundlePath,uint32_t 
         [e->modules addObject:@{@"name":name,@"loaded":@(loaded),@"code":@(status)}];
     }
     obs_post_load_modules();
+    dante_register_guest_sources();
+    DanteMask::registerFilter();
     e->transition=obs_source_create_private("fade_transition","Dante fade",nullptr);
     if (!e->transition) { creationError="Módulo de transição ausente."; obs_shutdown(); delete e; return nullptr; }
     obs_transition_set_size(e->transition,width,height);
@@ -449,10 +482,12 @@ static bool itemState(obs_scene_t *,obs_sceneitem_t *item,void *data) {
     obs_source_enum_filters(source,[](obs_source_t *,obs_source_t *filter,void *p){
         [(__bridge NSMutableArray*)p addObject:@{@"name":S(obs_source_get_name(filter)),@"type":S(obs_source_get_id(filter)),@"enabled":@(obs_source_enabled(filter))}];
     },(__bridge void*)filters);
-    [ctx->items addObject:@{@"id":@(obs_sceneitem_get_id(item)),@"name":S(obs_source_get_name(source)),@"type":S(obs_source_get_id(source)),
+    auto *mask=DanteMask::find(source);NSDictionary *maskSettings=@{};
+    if(mask){auto *data=obs_source_get_settings(mask);maskSettings=jsonSettings(data);obs_data_release(data);obs_source_release(mask);}
+    [ctx->items addObject:@{@"id":@(obs_sceneitem_get_id(item)),@"name":S(obs_source_get_name(source)),@"type":S(obs_source_get_id(source)),@"cameraMask":maskSettings,
         @"x":@(pos.x),@"y":@(pos.y),@"scaleX":@(scale.x),@"scaleY":@(scale.y),@"width":@(obs_source_get_width(source)),@"height":@(obs_source_get_height(source)),
         @"rotation":@(obs_sceneitem_get_rot(item)),@"visible":@(obs_sceneitem_visible(item)),@"locked":@(obs_sceneitem_locked(item)),
-        @"boxCorners":corners,@"boundsType":@(obs_sceneitem_get_bounds_type(item)),@"pendingPlacement":@(pendingPlacement),@"awaitingVideo":@((obs_source_get_output_flags(source)&OBS_SOURCE_VIDEO) && (!obs_source_get_width(source)||!obs_source_get_height(source))),
+        @"boxCorners":corners,@"alignment":@(obs_sceneitem_get_alignment(item)),@"boundsType":@(obs_sceneitem_get_bounds_type(item)),@"pendingPlacement":@(pendingPlacement),@"awaitingVideo":@((obs_source_get_output_flags(source)&OBS_SOURCE_VIDEO) && (!obs_source_get_width(source)||!obs_source_get_height(source))),
         @"cropLeft":@(crop.left),@"cropRight":@(crop.right),@"cropTop":@(crop.top),@"cropBottom":@(crop.bottom),
         @"sourceUUID":S(obs_source_get_uuid(source)),@"sourceActive":@(obs_source_active(source)),
         @"signalAge":@(lastSignal ? double(os_gettime_ns()-lastSignal)/1e9 : -1.0),
@@ -595,7 +630,16 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
     if([op hasPrefix:@"source."] || [op hasPrefix:@"audio."] || [op hasPrefix:@"filter."] || [op hasPrefix:@"media."]) {
         auto *source=obs_get_source_by_name([a[@"name"] UTF8String]);if(!source)return fail(e,"Fonte não encontrada.");
         bool result=true;
-        if([op isEqual:@"source.update"]) {
+        if([op isEqual:@"source.cameraMask"]) {
+            if(!(obs_source_get_output_flags(source)&OBS_SOURCE_VIDEO)){obs_source_release(source);return fail(e,"Esta fonte não contém vídeo.");}
+            auto *data=settings(a[@"settings"]);auto *filter=DanteMask::find(source);
+            if(obs_data_get_int(data,"shape")==0) {if(filter)obs_source_filter_remove(source,filter);}
+            else if(filter) {obs_source_update(filter,data);obs_source_set_enabled(filter,true);}
+            else {filter=obs_source_create_private(DanteMask::type,"Formato da câmera • Dante",data);
+                if(filter&&DanteMask::creationSucceeded)obs_source_filter_add(source,filter);else result=fail(e,"Não foi possível preparar a máscara na GPU.");}
+            if(filter)obs_source_release(filter);obs_data_release(data);
+        }
+        else if([op isEqual:@"source.update"]) {
             // Explicit repair for an old, not-yet-configured zero-sized capture.
             // Existing non-default composition is never repositioned by settings edits.
             if([a[@"autoPlace"] boolValue] && (!obs_source_get_width(source)||!obs_source_get_height(source))) {
@@ -614,7 +658,11 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
             if(a[@"volume"])obs_source_set_volume(source,std::clamp([a[@"volume"] floatValue],0.f,20.f));
             if(a[@"muted"])obs_source_set_muted(source,[a[@"muted"] boolValue]);
             if(a[@"syncMS"])obs_source_set_sync_offset(source,[a[@"syncMS"] longLongValue]*1000000);
-            if(a[@"tracks"])obs_source_set_audio_mixers(source,[a[@"tracks"] unsignedIntValue]&63);
+            if(a[@"tracks"]) {
+                uint32_t tracks=[a[@"tracks"] unsignedIntValue]&63;
+                if(strcmp(obs_source_get_unversioned_id(source),"dante_guest_audio")==0){auto *data=obs_source_get_settings(source);int slot=(int)obs_data_get_int(data,"return_slot");obs_data_release(data);if(slot>=0&&slot<2)tracks&=~(1<<(4+slot));}
+                obs_source_set_audio_mixers(source,tracks);
+            }
             if(a[@"monitoring"])obs_source_set_monitoring_type(source,(obs_monitoring_type)std::clamp([a[@"monitoring"] intValue],0,2));
         } else if([op isEqual:@"filter.add"]) {
             if(!registeredType(a[@"type"],OBS_SOURCE_TYPE_FILTER)){obs_source_release(source);return fail(e,"Tipo de filtro não registrado no motor.");}
@@ -773,3 +821,5 @@ void *dante_engine_source_preview_create(dante_engine_t *e,void *nsview,const ch
 }
 void dante_engine_preview_resize(void *preview,uint32_t width,uint32_t height) {if(preview)obs_display_resize(static_cast<Preview*>(preview)->display,std::max(1u,width),std::max(1u,height));}
 void dante_engine_preview_destroy(void *preview) {if(!preview)return;auto *p=static_cast<Preview*>(preview);obs_display_remove_draw_callback(p->display,drawPreview,p);obs_display_destroy(p->display);if(p->source){obs_source_dec_showing(p->source);obs_source_release(p->source);}delete p;}
+
+#include "DanteGuestRTC.mm"

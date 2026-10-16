@@ -18,19 +18,20 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
         def add(path, name, **metadata):
             archive.write(path, name)
             manifest['archives'].append(dict(archive=name, sha256=sha(path), **metadata))
-        def tree(path, name, commit, url):
+        def tree(path, name, commit, url, exclude_agent_files=False):
             if git(path, 'rev-parse', 'HEAD') != commit:
                 raise SystemExit('Source revision mismatch: '+name)
             if git(path, 'status', '--porcelain', '--untracked-files=no'):
                 raise SystemExit('Tracked source modifications: '+name)
             files = git(path, 'ls-files').splitlines()
             forbidden = {'AGENTS.md', 'CLAUDE.md', 'MEMORY.md', '.env'}
-            if any(pathlib.PurePosixPath(f).name in forbidden for f in files):
+            omitted = [f for f in files if pathlib.PurePosixPath(f).name in forbidden]
+            if omitted and not exclude_agent_files:
                 raise SystemExit('Internal or environment file in source: '+name)
             tar = temp/(name.replace('/', '-')+'.tar.gz')
             subprocess.run(['git','-C',str(path),'archive','--format=tar.gz',
-                            '-o',str(tar),commit],check=True)
-            add(tar, 'sources/'+tar.name, extract_to=name, commit=commit, url=url)
+                            '-o',str(tar),commit,'--','.',*[':(exclude)'+f for f in omitted]],check=True)
+            add(tar, 'sources/'+tar.name, extract_to=name, commit=commit, url=url, omitted_agent_files=omitted)
             # Export gitlinks as distinct archives; no Git database or credentials.
             for entry in git(path, 'ls-tree', '-r', 'HEAD').splitlines():
                 info, filename = entry.split('\t',1)
@@ -50,6 +51,15 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
             tree(root/'vendor'/name,name,commit,url)
         sparkle = json.loads((root/'packaging/sparkle-lock.json').read_text())
         tree(root/'vendor/sparkle-source', 'Sparkle', sparkle['source_commit'], 'https://github.com/sparkle-project/Sparkle')
+        guests = json.loads((root/'packaging/guests-lock.json').read_text())
+        tree(root/'vendor/cloudflared-source','cloudflared',guests['tunnel']['source_commit'],'https://github.com/cloudflare/cloudflared',exclude_agent_files=True)
+        webrtc = guests['webrtc']
+        path = root/'vendor/corresponding-source'/('webrtc-'+webrtc['source_commit']+'.tar.gz')
+        if not path.exists():
+            import urllib.request
+            urllib.request.urlretrieve(webrtc['source_url'],path)
+        if sha(path)!=webrtc['source_sha256']:raise SystemExit('WebRTC source digest mismatch')
+        add(path,'sources/'+path.name,extract_to='webrtc',commit=webrtc['source_commit'],url=webrtc['source_url'])
         for record in lock['components']:
             name=record['name']; base=root/'vendor/corresponding-source'
             if 'git_commit' in record:
@@ -60,6 +70,7 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
                 add(path,'sources/'+path.name,extract_to=name,version=record['version'],url=record['url'])
         archive.write(root/'packaging/SOURCE-ACQUISITION.txt','BUILD-SOURCES.txt')
         archive.write(root/'packaging/source-lock.json','source-lock.json')
+        archive.write(root/'packaging/guests-lock.json','guests-lock.json')
         archive.writestr('SOURCE-MANIFEST.json', json.dumps(manifest,indent=2)+'\n')
 with zipfile.ZipFile(output) as check:
     if check.testzip(): raise SystemExit('Source ZIP integrity failure')

@@ -1,4 +1,4 @@
-Dante Live 0.1.8 — componentes de terceiros
+Dante Live 0.1.9 — componentes de terceiros
 
 OBS Studio / libobs / módulos OBS 32.2.2
 Copyright OBS Project contributors. GPL version 2 or later.
@@ -39,3 +39,12 @@ No affiliation with or endorsement by the OBS Project is implied.
 
 Sparkle 2.10.0 (https://sparkle-project.org): macOS update framework.
 See Sparkle-LICENSE.txt for its BSD/MIT and third-party notices.
+
+LiveKitWebRTC 150.7871.03, WebRTC source commit
+0385653a83f21acf3c916466d4088b29fe2f160b: BSD-style license and patent grant.
+LiveKit packaging: MIT. WebRTC authors, patents and third-party licenses included.
+cloudflared 2026.10.1, source commit 8e090e5bfa7a53e824fb2d7eb276f8ab08337b80:
+Apache 2.0. Rebuilt unchanged for macOS 14 with Go 1.27.2 for both architectures.
+Go and linked dependency notices are included in cloudflared-dependencies.txt.
+Pinned sources and dependency provenance: packaging/guests-lock.json in the
+corresponding source release. These components provide optional guest invitations.

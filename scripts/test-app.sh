@@ -31,7 +31,7 @@ cat evidence/runtime/upload-probe-tests.txt
 xcrun swiftc -parse-as-library -O -target "$ARCH-apple-macos14.0" \
   -import-objc-header Sources/Bridge/DanteEngine.h Tests/PreviewLifecycleTests.swift \
   "$BUILD/objects/DanteEngine-$ARCH.o" -F "$APP/Contents/Frameworks" \
-  -framework libobs -framework AppKit -framework VideoToolbox -lc++ \
+  -framework LiveKitWebRTC -framework libobs -framework AppKit -framework VideoToolbox -lc++ \
   -Xlinker -rpath -Xlinker "$APP/Contents/Frameworks" -o build/tests/PreviewLifecycleTests
 sign_test build/tests/PreviewLifecycleTests
 build/tests/PreviewLifecycleTests "$APP" > evidence/runtime/preview-lifecycle-tests.txt
@@ -42,9 +42,9 @@ for file in Sources/App/*.swift; do
   [[ "$file" == Sources/App/DanteLiveApp.swift ]] || EDITOR_SOURCES+=("$file")
 done
 xcrun swiftc -parse-as-library -O -target "$ARCH-apple-macos14.0" \
-  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift Tests/UpdateTests.swift \
+  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift Tests/UpdateTests.swift Tests/GuestSecurityTests.swift \
   "$BUILD/objects/DanteEngine-$ARCH.o" -F "$APP/Contents/Frameworks" \
-  -F "$ROOT/vendor/sparkle-2.10.0" -framework Sparkle -framework libobs -framework AppKit -framework SwiftUI -framework Metal -framework MetalKit \
+  -F "$ROOT/vendor/sparkle-2.10.0" -framework Sparkle -framework LiveKitWebRTC -framework libobs -framework AppKit -framework SwiftUI -framework Metal -framework MetalKit \
   -framework AVFoundation -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
   -Xlinker -rpath -Xlinker "$APP/Contents/Frameworks" -o build/tests/EditorInteractionTests
 sign_test build/tests/EditorInteractionTests

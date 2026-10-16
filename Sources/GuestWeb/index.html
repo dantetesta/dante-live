@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Seu convite • Dante Live</title><link rel="stylesheet" href="/guest.css"><script src="/guest.js" defer></script></head>
+<body><main><header><span class="brand">DANTE LIVE <small>CONVIDADO</small></span><h1>Você faz parte da conversa.</h1><p>Prepare sua câmera e seu microfone. O apresentador decide quando colocar você na live.</p></header>
+<div class="layout"><section class="preview"><video id="preview" muted autoplay playsinline></video><div class="preview-caption">Sua câmera • prévia local</div><label for="level">Nível do microfone</label><meter id="level" min="0" max="1" value="0" aria-label="Nível do microfone"></meter><video id="screenPreview" muted autoplay playsinline hidden></video></section>
+<section class="controls"><label for="name">Seu nome</label><input id="name" maxlength="60" autocomplete="given-name" placeholder="Como podemos chamar você?">
+<button id="devices" class="secondary">Preparar câmera e microfone</button><label for="camera">Câmera</label><select id="camera" disabled><option>Autorize os dispositivos primeiro</option></select><label for="microphone">Microfone</label><select id="microphone" disabled><option>Autorize os dispositivos primeiro</option></select>
+<div class="toggles"><button id="toggleCamera" class="secondary" disabled>Desligar câmera</button><button id="toggleMic" class="secondary" disabled>Silenciar microfone</button></div>
+<button id="screen" class="secondary">Compartilhar uma tela…</button><p class="hint">A tela é opcional. Escolha somente a janela que deseja mostrar. Use fones para evitar eco.</p>
+<button id="join" disabled>Entrar no estúdio</button><button id="leave" class="danger" hidden>Sair e desligar dispositivos</button><button id="listen" class="secondary" hidden>Ouvir o apresentador</button>
+<p id="status" role="status" aria-live="polite">Prepare os dispositivos para começar.</p><audio id="returnAudio" autoplay></audio></section></div>
+<footer>Este link é pessoal. Não compartilhe. Câmera, áudio e tela são enviados ao computador do apresentador por WebRTC; a página e a negociação passam pela ponte HTTPS. O retorno exclui a sua própria voz.</footer>
+</main></body></html>

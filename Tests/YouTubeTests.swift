@@ -55,10 +55,39 @@ import CryptoKit
     }
     let model = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
     func wait() async throws { for _ in 0..<100 { if !model.busy { return }; try await Task.sleep(for: .milliseconds(10)) }; preconditionFailure("YouTube fixture did not finish") }
+    var dated = YouTubeBroadcast(event())
+    dated.scheduledAt = "2026-10-17T02:30:46Z"
+    let localLabel = dated.scheduleLabel(timeZone: TimeZone(identifier: "America/Sao_Paulo")!)
+    try check(localLabel.contains("16") && localLabel.contains("23:30") && !localLabel.contains("T02"))
+    let wholeDate = dated.scheduledDate
+    dated.scheduledAt = "2026-10-17T02:30:46.000Z"
+    try check(dated.scheduledDate == wholeDate)
+    dated.scheduledAt = "invalid"; try check(dated.scheduleLabel() == "Data não informada")
+    for status in ["live", "liveStarting", "complete", "revoked"] { dated.lifeCycle = status; try check(!dated.canTransmit) }
+    dated.lifeCycle = "ready"; try check(dated.canTransmit)
+    let studio = StudioModel(projectDirectory: fixtureDirectory)
+    studio.youtube = model
+    studio.liveSettings = LiveSettingsModel(model: studio, vault: vault)
+    studio.liveSettings.edit({ $0.youtubeMode = true }, immediate: true)
+    let beforeOpen = requests.count
+    studio.beginLive(); studio.beginLive()
+    try check(studio.showingLiveLibrary && studio.pendingLive == nil && !studio.preparingLive && studio.countdown.remaining == nil)
+    try check(studio.liveOperationInProgress && requests.count == beforeOpen)
+    studio.showingLiveLibrary = false; studio.liveLibraryDismissed()
+    try check(studio.pendingLive == nil && !studio.preparingLive && requests.count == beforeOpen)
     model.schedule(); try await wait()
     try check(creates == 1 && model.state.createdBroadcast == "video-1" && !model.state.streamCreationUncertain)
     model.schedule(); try await wait()
     try check(creates == 1 && model.state.selectedBroadcast == "video-1" && bound)
+    let refreshStart = requests.count
+    model.refresh(); try await wait()
+    try check(model.broadcasts.count == 1 && requests.dropFirst(refreshStart).allSatisfy { $0.httpMethod == "GET" })
+    try check(model.selectBroadcast("video-1"))
+    let preserved = try Data(contentsOf: file)
+    try FileManager.default.removeItem(at: file)
+    try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+    try check(!model.selectBroadcast("") && model.state.selectedBroadcast == "video-1")
+    try FileManager.default.removeItem(at: file); try preserved.write(to: file)
     let launch = try await model.confirmation()
     let prepared = try await model.prepare(launch)
     try check(prepared.broadcastID == "video-1" && prepared.key == "fixture-stream-secret")
@@ -87,5 +116,6 @@ import CryptoKit
     try check(thumbnailSent)
     do { try await thumbnailAPI.thumbnail("video-1", data: Data(repeating: 0, count: 2 * 1024 * 1024 + 1), token: "fixture"); preconditionFailure("Expected size validation") } catch is StudioError { }
     model.shutdown(); reloaded.shutdown()
+    print("PASS: live library routing/cancel without output or API mutations, read-only refresh, selected-video persistence rollback, local schedule date including fractional ISO and non-startable states")
     print("PASS: YouTube OAuth state/duplicate rejection, PKCE entropy/form encoding, schedule-bind-retry preserving video ID, metadata merge, secret-free persistence, lost-response duplicate prevention, sanitized errors (offline transport only)")
 }

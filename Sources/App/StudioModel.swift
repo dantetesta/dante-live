@@ -12,6 +12,7 @@ final class StudioModel: ObservableObject {
     @Published var notice = "Pronto para criar"
     @Published var studioMode = false
     @Published var showingAdd = false
+    @Published var showingGuests = false
     @Published var showingOutput = false
     @Published var outputTab = "quality"
     @Published var showingFilters = false
@@ -25,13 +26,16 @@ final class StudioModel: ObservableObject {
     let countdown = LiveCountdown()
     @Published var microphoneWarnings: [String] = []
     private var silenceWatch = MicrophoneSilenceWatch()
+    lazy var guests = GuestModel(studio: self)
     lazy var liveSettings = LiveSettingsModel(model: self)
     lazy var youtube = YouTubeModel(directory: projectDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Dante Live"))
     @Published var pendingLive: LiveLaunch?
+    @Published var showingLiveLibrary = false
+    private var continueAfterLiveLibrary = false
     @Published var preparingLive = false
     @Published var updateInstalling = false
     @Published var pendingUpdateMessage: String?
-    var liveOperationInProgress: Bool { active || preparingLive || countdown.remaining != nil || pendingLive != nil || youtube.busy }
+    var liveOperationInProgress: Bool { guests.inUse || active || preparingLive || countdown.remaining != nil || pendingLive != nil || showingLiveLibrary || continueAfterLiveLibrary || youtube.busy }
     private var launchTask: Task<Void, Never>?
     var engine: OpaquePointer?
     private var timer: Timer?
@@ -133,25 +137,41 @@ final class StudioModel: ObservableObject {
     func watchesMicrophone(_ source: [String: Any]) -> Bool {
         liveSettings.document.audioWatchOverrides[source.string("sourceUUID", source.string("name"))] ?? source.string("type").contains("coreaudio_input")
     }
+    func fitSelectedSource() {
+        guard let item = selected, !item.flag("locked"), !updateInstalling else { return }
+        _ = command("item.fit", ["scene": sceneName, "id": item.sceneItemID])
+    }
     func setMicrophoneWatch(_ source: [String: Any], enabled: Bool) {
         let id = source.string("sourceUUID", source.string("name"))
         liveSettings.edit({ $0.audioWatchOverrides[id] = enabled }, immediate: true)
         refresh()
     }
     func beginLive() {
-        guard !active, !preparingLive, !updateInstalling, countdown.remaining == nil else { return }
+        guard !active, !preparingLive, !updateInstalling, countdown.remaining == nil, pendingLive == nil, !showingLiveLibrary else { return }
         if liveSettings.document.youtubeMode == true {
-            guard liveSettings.prepareVideo() else { outputTab = "video"; showingOutput = true; return }
-            preparingLive = true
-            launchTask = Task { [weak self] in
-                guard let self else { return }; defer { self.preparingLive = false }
-                do { self.pendingLive = try await self.youtube.confirmation() }
-                catch { self.youtube.message = error.localizedDescription; self.outputTab = "youtube"; self.showingOutput = true }
-            }
+            guard youtube.account != nil else { outputTab = "youtube"; showingOutput = true; return }
+            showingLiveLibrary = true
         } else {
             liveSettings.loadKey()
             guard liveSettings.prepareStream() else { outputTab = "connection"; showingOutput = true; return }
             pendingLive = LiveLaunch(channel: liveSettings.selectedChannel?.name ?? "Conexão RTMP", title: "Live configurada no serviço de destino", thumbnailURL: nil, server: liveSettings.document.server, key: liveSettings.key)
+        }
+    }
+    func continueFromLiveLibrary() {
+        guard showingLiveLibrary, !active, !preparingLive, !updateInstalling, !youtube.busy else { return }
+        continueAfterLiveLibrary = true
+        showingLiveLibrary = false
+    }
+    func liveLibraryDismissed() {
+        guard continueAfterLiveLibrary else { return }
+        continueAfterLiveLibrary = false
+        guard !active, !preparingLive, !updateInstalling, countdown.remaining == nil, liveSettings.document.youtubeMode == true else { return }
+        guard liveSettings.prepareVideo() else { outputTab = "video"; showingOutput = true; return }
+        preparingLive = true
+        launchTask = Task { [weak self] in
+            guard let self else { return }; defer { self.preparingLive = false }
+            do { self.pendingLive = try await self.youtube.confirmation(); try Task.checkCancellation() }
+            catch { self.pendingLive = nil; self.youtube.message = error.localizedDescription; self.outputTab = "youtube"; self.showingOutput = true }
         }
     }
     func confirmLive(_ selection: LiveLaunch) {
@@ -216,13 +236,13 @@ final class StudioModel: ObservableObject {
     }
     private func updateHistory() { undoCount = undoStack.count; redoCount = redoStack.count }
     func undo() {
-        guard !active, let engine, let previous = undoStack.last else { return }
+        guard !active, !guests.inUse, let engine, let previous = undoStack.last else { return }
         let current = copied(dante_engine_save(engine))
         if dante_engine_load(engine, previous) { undoStack.removeLast(); redoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
     }
     func redo() {
-        guard !active, let engine, let next = redoStack.last else { return }
+        guard !active, !guests.inUse, let engine, let next = redoStack.last else { return }
         let current = copied(dante_engine_save(engine))
         if dante_engine_load(engine, next) { redoStack.removeLast(); undoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
@@ -299,7 +319,7 @@ final class StudioModel: ObservableObject {
     }
     func importProject() {
         refresh()
-        guard !active, let engine else { error = "Pare as saídas antes de abrir outra coleção."; return }
+        guard !active, !guests.inUse, let engine else { error = "Pare a live e encerre a sala de convidados antes de abrir outra coleção."; return }
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
@@ -326,7 +346,7 @@ final class StudioModel: ObservableObject {
         completion()
     }
     func shutdown() {
-        countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()
+        guests.stop(); countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()
         timer?.invalidate(); timer = nil; saveTask?.cancel(); save()
         if let engine { dante_engine_destroy(engine); self.engine = nil }
     }

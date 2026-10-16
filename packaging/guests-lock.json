@@ -1,0 +1,20 @@
+{
+  "webrtc": {
+    "version": "150.7871.03",
+    "url": "https://github.com/livekit/webrtc-xcframework/releases/download/150.7871.03/LiveKitWebRTC.xcframework.zip",
+    "sha256": "5727a03c32ed902da570b699e3983e3fb4bfe853ab4da045af70912a7db44557",
+    "source_commit": "0385653a83f21acf3c916466d4088b29fe2f160b",
+    "build_commit": "c8cf9f952fc073b16501e23d97ac484df7cc8096",
+    "source_url": "https://codeload.github.com/webrtc-sdk/webrtc/tar.gz/0385653a83f21acf3c916466d4088b29fe2f160b",
+    "source_sha256": "70ee92736cf0d930a35d6286629f0c75f58168bfbd98406a4b9b6965b4cc58f5"
+  },
+  "tunnel": {
+    "version": "2026.10.1",
+    "archives": {
+      "arm64": "647615df99d49cd179ea5e13ef760b9bbfb33630f6ae62f87e33dfadda60adcc",
+      "amd64": "3b0dbaf378337e9d7fb6cd235a76d1d6a7dee434c2d8edf9281164fb6a3837ab"
+    },
+    "source_commit": "8e090e5bfa7a53e824fb2d7eb276f8ab08337b80",
+    "toolchain": "go1.27.2"
+  }
+}

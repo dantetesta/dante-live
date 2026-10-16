@@ -1,0 +1,55 @@
+import Foundation
+
+/// Presentation metadata only. Available sources always come from the engine catalog.
+struct SourceChoice: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let detail: String
+    let symbol: String
+    let category: String
+    let order: Int
+    let originalName: String
+
+    init(_ source: [String: Any]) {
+        id = source.string("id"); originalName = source.string("name")
+        let data: (String, String, String, String, String, Int)
+        switch id {
+        case "macos-avcapture":
+            data = ("Câmera", "Webcam, câmera USB ou iPhone compatível.", "Adicione a câmera e escolha o dispositivo e a resolução na janela de prévia. O iPhone precisa estar disponível como câmera no macOS.", "web.camera.fill", "Câmera e tela", 0)
+        case "screen_capture":
+            data = ("Tela ou janela", "Compartilhe um monitor, uma janela ou um app.", "Mostre uma apresentação, um aplicativo ou sua tela. Após adicionar, escolha o conteúdo no painel Propriedades e autorize a captura no macOS.", "macwindow.on.rectangle", "Câmera e tela", 1)
+        case "coreaudio_input_capture":
+            data = ("Microfone", "Sua voz, uma interface ou outra entrada de som.", "Escolha a entrada de áudio que deseja enviar à live. Depois, ajuste volume e mute pelo mixer.", "mic.fill", "Áudio", 2)
+        case "sck_audio_capture":
+            data = ("Áudio do Mac", "Som do sistema ou de um aplicativo.", "Leve o áudio do computador para a live. Após adicionar, selecione a captura disponível e autorize o acesso quando solicitado pelo macOS.", "speaker.wave.2.fill", "Áudio", 3)
+        case let value where value.hasPrefix("image_source"):
+            data = ("Imagem", "Logo, foto, arte ou sobreposição.", "Escolha um arquivo de imagem. Depois de adicionar, arraste e redimensione a imagem no canvas para compor sua cena.", "photo.fill", "Elementos", 4)
+        case let value where value.hasPrefix("text_ft2_source"):
+            data = ("Texto", "Títulos, legendas e chamadas na tela.", "Escreva o texto e escolha sua aparência. Use para identificar participantes, exibir títulos ou destacar uma mensagem durante a live.", "textformat", "Elementos", 5)
+        case "ffmpeg_source":
+            data = ("Vídeo ou áudio", "Reproduza um arquivo de mídia na live.", "Adicione um vídeo, vinheta ou arquivo de áudio. Configure repetição e reprodução nas propriedades da fonte.", "play.rectangle.fill", "Elementos", 6)
+        case let value where value.hasPrefix("slideshow"):
+            data = ("Slides de imagens", "Uma sequência de fotos ou artes.", "Selecione várias imagens e configure o tempo e a transição entre elas. Para mostrar slides de um aplicativo, use Tela ou janela.", "photo.stack.fill", "Elementos", 7)
+        case let value where value.hasPrefix("color_source"):
+            data = ("Cor de fundo", "Um fundo liso ou bloco de cor.", "Escolha a cor e o tamanho. Você pode usar como fundo da cena ou como faixa atrás de um texto.", "paintpalette.fill", "Elementos", 8)
+        case "macos-avcapture-fast":
+            data = ("Placa de captura", "Vídeo de uma capturadora compatível.", "Adicione uma entrada de vídeo fornecida por uma placa de captura. A disponibilidade de dispositivos e formatos depende do suporte no macOS.", "externaldrive.connected.to.line.below", "Câmera e tela", 9)
+        case "display_capture":
+            data = ("Monitor • legado", "Alternativa para capturar um monitor.", "Captura de compatibilidade. Prefira Tela ou janela para novas fontes; use esta alternativa se precisar do método antigo.", "display", "Compatibilidade", 20)
+        case "window_capture":
+            data = ("Janela • legado", "Alternativa para capturar uma janela.", "Captura de compatibilidade. Prefira Tela ou janela para novas fontes; use esta alternativa se precisar do método antigo.", "macwindow", "Compatibilidade", 21)
+        case "coreaudio_output_capture":
+            data = ("Saída de áudio", "Dispositivo de áudio de retorno ou virtual.", "Selecione um dispositivo de áudio compatível, como uma interface virtual instalada. Para capturar o som do sistema diretamente, use Áudio do Mac.", "hifispeaker.fill", "Áudio", 10)
+        case "av_capture_input":
+            data = ("Câmera • legado", "Método antigo de captura de câmera.", "Fonte de compatibilidade. Prefira Câmera para novas cenas, quando disponível.", "video.fill", "Compatibilidade", 22)
+        default:
+            data = (originalName, "Fonte adicional disponível neste Mac.", "Configure esta fonte com as opções fornecidas pelo módulo instalado.", "square.stack.3d.up.fill", "Outras", 30)
+        }
+        (title, subtitle, detail, symbol, category, order) = data
+    }
+
+    func matches(_ query: String) -> Bool {
+        query.isEmpty || [title, subtitle, detail, originalName].contains { $0.localizedStandardContains(query) }
+    }
+}

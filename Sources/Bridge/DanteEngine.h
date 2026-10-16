@@ -17,6 +17,8 @@ dante_engine_t *dante_engine_create_with_config(const char *app_bundle_path, uin
 void dante_engine_destroy(dante_engine_t *engine);
 const char *dante_engine_last_error(dante_engine_t *engine);
 const char *dante_engine_state(dante_engine_t *engine);
+/* Lightweight meter snapshot for UI polling; no full scene enumeration. */
+const char *dante_engine_audio_levels(dante_engine_t *engine);
 const char *dante_engine_catalog(dante_engine_t *engine);
 const char *dante_engine_properties(dante_engine_t *engine, const char *source_name);
 const char *dante_engine_type_properties(dante_engine_t *engine, const char *source_type);
@@ -28,6 +30,8 @@ const char *dante_engine_properties_with_settings(dante_engine_t *engine, const 
  * scene.delete {scene}; scene.select {scene,studio?:bool}; scene.take {scene?,duration?:ms,transition?:"fade"|"cut"};
  * scene.order {scene,index}; source.add {scene,type,name,settings?:object};
  * source.reuse {scene,name}; source.update {name,settings:object,autoPlace?:bool}; source.rename {name,newName};
+ * source.cameraMask {name,settings:{shape:0...6,aspect?:ratio,roundness?:0...1,zoom?:1...4,panX?:-1...1,panY?:-1...1}};
+ * shape 0 removes the native filter; 1 square, 2 oval, 3 circle, 4 rounded square, 5 rectangle, 6 rounded rectangle.
  * source.remove {scene,id}; item.transform {scene,id,x?,y?,scaleX?,scaleY?,rotation?,cropLeft?,cropRight?,cropTop?,cropBottom?};
  * item.fit/item.native/item.center {scene,id}; item.visible/item.locked {scene,id,value:bool}; item.order {scene,id,index};
  * audio.set {name,volume?:linear,muted?:bool,syncMS?:number,tracks?:bitmask,monitoring?:0|1|2};
@@ -62,4 +66,8 @@ void dante_engine_preview_resize(void *preview, uint32_t width, uint32_t height)
 void dante_engine_preview_destroy(void *preview);
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __OBJC__
+#import "DanteGuestRTC.h"
 #endif

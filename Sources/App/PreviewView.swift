@@ -39,6 +39,7 @@ struct CanvasView: View {
     var program = false
     @LegacyState private var dragStart: [String: Any]?
     @LegacyState private var dragUndo: String?
+    @LegacyState private var cropping = false
     var body: some View {
         GeometryReader { geometry in
             let factor = min(geometry.size.width / model.canvasWidth, geometry.size.height / model.canvasHeight)
@@ -60,13 +61,14 @@ struct CanvasView: View {
                         path.stroke(item.flag("locked") ? Color.orange : Color.cyan, lineWidth: 1.5)
                             .allowsHitTesting(false)
                         if !item.flag("locked"), item.number("boundsType") == 0 {
-                            ForEach(0..<4, id: \.self) { corner in
-                                Rectangle().fill(.white).frame(width: 12, height: 12)
-                                    .overlay(Rectangle().stroke(.cyan, lineWidth: 2))
+                            ForEach(0..<8, id: \.self) { handle in
+                                Rectangle().fill(.white).frame(width: 10, height: 10)
+                                    .overlay(Rectangle().stroke(cropping ? .green : .cyan, lineWidth: 2))
                                     .frame(width: 28, height: 28).contentShape(Rectangle())
-                                    .position(handlePosition(box.corners[corner], factor: factor, size: size))
-                                    .highPriorityGesture(resizeGesture(item: item, factor: factor, corner: corner))
-                                    .accessibilityLabel("Redimensionar fonte pelo canto \(corner + 1)")
+                                    .position(handlePosition(pointForHandle(handle, box: box), factor: factor, size: size))
+                                    .highPriorityGesture(resizeGesture(item: item, factor: factor, handle: handle))
+                                    .help("Arraste para redimensionar. Option (⌥) + arrasto para recortar.")
+                                    .accessibilityLabel("Redimensionar ou recortar fonte, controle \(handle + 1)")
                             }
                         }
                     }
@@ -96,24 +98,44 @@ struct CanvasView: View {
             item.flag("visible", true) && (geometryFor(item)?.contains(canvasPoint) ?? false)
         }).map { $0.sceneItemID }
     }
-    func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo() } }
-    func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil }
+    func pointForHandle(_ handle: Int, box: CanvasGeometry) -> CGPoint {
+        let a = box.corners[handle/2], b = box.corners[(handle/2+1)%4]
+        return handle%2 == 0 ? a : CGPoint(x: (a.x+b.x)/2, y: (a.y+b.y)/2)
+    }
+    func cropFor(_ item: [String: Any]) -> CanvasGeometry.Crop { .init(left: item.number("cropLeft"), top: item.number("cropTop"), right: item.number("cropRight"), bottom: item.number("cropBottom")) }
+    func applyCrop(_ crop: CanvasGeometry.Crop, item: [String: Any], position: CGPoint) {
+        _ = model.command("item.transform", ["scene": model.sceneName, "id": item.sceneItemID, "x": position.x, "y": position.y,
+            "cropLeft": crop.left, "cropTop": crop.top, "cropRight": crop.right, "cropBottom": crop.bottom], undo: false)
+    }
+    func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo(); cropping = NSEvent.modifierFlags.contains(.option) } }
+    func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil; cropping = false }
     func moveGesture(item: [String: Any], factor: Double) -> some Gesture {
         DragGesture(minimumDistance: 2).onChanged { value in
             guard !item.flag("locked") else { return }; begin(item)
             let origin = dragStart ?? item
+            if cropping, origin.number("boundsType") == 0, let box = geometryFor(origin),
+               let crop = box.panCrop(translation: CGSize(width: value.translation.width/factor, height: value.translation.height/factor), sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), initial: cropFor(origin)) {
+                applyCrop(crop, item: origin, position: CGPoint(x: origin.number("x"), y: origin.number("y"))); return
+            }
             var x = origin.number("x") + value.translation.width / factor
             var y = origin.number("y") + value.translation.height / factor
             if abs(x) < 8 { x = 0 }; if abs(y) < 8 { y = 0 }
             _ = model.command("item.transform", ["scene": model.sceneName, "id": item.sceneItemID, "x": x, "y": y], undo: false)
         }.onEnded { _ in end() }
     }
-    func resizeGesture(item: [String: Any], factor: Double, corner: Int) -> some Gesture {
+    func resizeGesture(item: [String: Any], factor: Double, handle: Int) -> some Gesture {
         DragGesture(minimumDistance: 1).onChanged { value in
             begin(item); let origin = dragStart ?? item
             guard let box = geometryFor(origin) else { return }
-            guard let resize = box.resize(corner: corner,
-                translation: CGSize(width: value.translation.width / factor, height: value.translation.height / factor),
+            let translation = CGSize(width: value.translation.width/factor, height: value.translation.height/factor)
+            if cropping {
+                if let edit = box.crop(handle: handle, translation: translation, sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), initial: cropFor(origin), position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment", 5))) {
+                    applyCrop(edit.crop, item: origin, position: edit.position)
+                }
+                return
+            }
+            guard let resize = box.resize(handle: handle,
+                translation: translation,
                 position: CGPoint(x: origin.number("x"), y: origin.number("y"))) else { return }
             _ = model.command("item.transform", ["scene": model.sceneName, "id": item.sceneItemID,
                 "x": resize.position.x, "y": resize.position.y,

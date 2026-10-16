@@ -50,7 +50,7 @@ struct StudioView: View {
                     HSplitView {
                         sourcePanel.frame(minWidth: 210)
                         MixerView(model: model).frame(minWidth: 220)
-                    }.frame(minHeight: 150, idealHeight: 215)
+                    }.frame(minHeight: 280, idealHeight: 330)
                 }
                 if showProperties { InspectorView(model: model, onCollapse: { showProperties = false }).frame(minWidth: 240, idealWidth: 290, maxWidth: 420) }
                 else { collapsedSidebar(title: "Mostrar propriedades", icon: "sidebar.right") { showProperties = true } }
@@ -68,6 +68,10 @@ struct StudioView: View {
             model.cameraSourceName = ""; model.inspectorRevision += 1
         }) { CameraSetupView(model: model, sourceName: model.cameraSourceName) }
         .sheet(item: $model.pendingLive) { launch in LiveConfirmationView(model: model, launch: launch) }
+        .sheet(isPresented: $model.showingLiveLibrary, onDismiss: { model.liveLibraryDismissed() }) {
+            YouTubeLibraryView(youtube: model.youtube, forTransmission: true) { model.continueFromLiveLibrary() }
+        }
+        .sheet(isPresented: $model.showingGuests) { GuestsView(guests: model.guests, studio: model) }
         .sheet(isPresented: $model.showingOutput) { OutputSettingsView(model: model) }
         .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
             VStack(spacing: 0) {
@@ -85,8 +89,9 @@ struct StudioView: View {
             VStack(alignment: .leading, spacing: 1) { Text("DANTE LIVE").font(.headline.weight(.heavy)); Text("Estúdio de produção • \(appVersion)").font(.caption2).foregroundStyle(.secondary) }
             Spacer()
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)
-            Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active).help("Desfazer ⌘Z")
-            Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active).help("Refazer ⇧⌘Z")
+            Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active || model.guests.inUse).help("Desfazer ⌘Z")
+            Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active || model.guests.inUse).help("Refazer ⇧⌘Z")
+            Button { model.showingGuests = true } label: { Image(systemName: "person.badge.plus") }.help("Convidar participantes")
             Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
 
             Button {
@@ -161,38 +166,6 @@ func iconForSource(_ type: String) -> String {
     if type.contains("text") { return "textformat" }
     if type.contains("ffmpeg") { return "film" }
     return "square.on.square"
-}
-
-struct MixerView: View {
-    @ObservedObject var model: StudioModel
-    var channels: [[String: Any]] { model.state.array("audio").isEmpty ? model.items.filter { $0.flag("audio") } : model.state.array("audio") }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack { Text("MIXER DE ÁUDIO").font(.caption.weight(.bold)); Spacer(); Image(systemName: "waveform").foregroundStyle(.secondary) }.padding(12)
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(channels, id: \.entryName) { channel in
-                        VStack(spacing: 5) {
-                            HStack { Text(channel.string("name")).lineLimit(1); Spacer(); Text(channel.flag("muted") ? "MUDO" : String(format: "%.1f dB", 20 * log10(max(0.00001, channel.number("volume", 1))))).font(.caption.monospaced()) }
-                            Toggle("Alertar se ficar sem sinal por 30 s", isOn: Binding(get: { model.watchesMicrophone(channel) }, set: { model.setMicrophoneWatch(channel, enabled: $0) }))
-                                .toggleStyle(.checkbox).font(.caption)
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 2).fill(.secondary.opacity(0.15))
-                                    RoundedRectangle(cornerRadius: 2).fill(channel.number("level", -60) > -3 ? .orange : .green).frame(width: geo.size.width * min(1, max(0, (channel.number("level", -60) + 60) / 60)))
-                                }
-                            }.frame(height: 5).accessibilityLabel("Nível de áudio \(channel.number("level", -60)) decibéis")
-                            HStack {
-                                Slider(value: Binding(get: { channel.number("volume", 1) }, set: { _ = model.command("audio.set", ["name": channel.string("name"), "volume": $0], undo: false) }), in: 0...2).accessibilityLabel("Volume de \(channel.string("name"))")
-                                Button { _ = model.command("audio.set", ["name": channel.string("name"), "muted": !channel.flag("muted")], undo: false) } label: { Image(systemName: channel.flag("muted") ? "speaker.slash.fill" : "speaker.wave.2") }.buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    if channels.isEmpty { Text("Adicione um microfone ou uma fonte com áudio para usar o mixer.").font(.caption).foregroundStyle(.secondary).padding(.vertical, 20) }
-                }.padding(.horizontal, 12)
-            }
-        }
-    }
 }
 
 struct CountdownBanner: View {

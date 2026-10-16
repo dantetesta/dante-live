@@ -89,6 +89,7 @@ var appVersion: String { "test" }
         precondition(model.properties(name:"A").object("settings").number("width") == 321)
         precondition(model.properties(name:"B").object("settings").number("width") == 640)
         try await runLiveSettingsTests(model: model, directory: directory)
+        try await runGuestSecurityTests(model:model,directory:directory)
         model.shutdown()
         print("PASS: actual engine reorder, one-step undo/redo, stable selection, stale/invalid order rejection, save/load and source-bound edits; no physical devices or public output")
     }

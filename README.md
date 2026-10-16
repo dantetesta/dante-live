@@ -41,17 +41,23 @@ O deployment target 14.0 e as slices Universal 2 foram inspecionados; testes em 
 
 ## O que já existe
 
-A versão **0.1.8** amplia a base funcional, em estágio experimental, com funcionalidades reais:
+A versão **0.1.9** amplia a base funcional, em estágio experimental, com funcionalidades reais:
 
 - Distribuição oficial assinada com Developer ID e notarizada pela Apple a partir da 0.1.8.
 - Atualizações pelo menu do Mac, aviso ao abrir, changelog e instalação/reinício com proteção durante a live.
+- Biblioteca visual de lives do YouTube com capa, título, visibilidade e horário local; seleção pelo botão Transmitir antes da confirmação.
+- Adição de fontes em cartões ilustrados, com descrições simples, busca, categorias e opção separada para reutilizar uma fonte existente.
 - Cenas e fontes com criação, duplicação, renomeação, ordenação por arrasto, visibilidade e bloqueio.
 - Propriedades de fontes aplicadas automaticamente: seleções imediatas e campos digitados com pausa de 300 ms.
 - Menu de contexto com propriedades em modal, filtros, renomear, ocultar, bloquear, transformar, ordenar e remover.
 - Preview, seleção de elementos, arrasto, redimensionamento proporcional, crop, rotação, ajuste ao canvas e centralização.
 - Integração de tela, janela, câmera, microfone, mídia, imagem, cor e texto por módulos selecionados da libobs; a validação varia por fonte e dispositivo.
 - Painel de câmera com dispositivos, presets, formato/FPS e prévia da fonte.
-- Mixer com volume, mute, medidores e filtros disponíveis no catálogo real.
+- Mixer vertical estéreo com escala em dB, nível médio, pico e retenção de pico; volume, mute e filtros reais.
+- ⌘F para ajustar ao canvas, Option/Alt nas alças para recortar e dentro da fonte para reenquadrar.
+- Máscaras de câmera com formatos, cantos arredondados, zoom e enquadramento.
+- Preferências de aparência: automática pelo Mac, clara ou escura.
+- Convites temporários para até dois convidados no navegador, com câmera, microfone, tela e retorno de áudio sem a própria voz.
 - Modo estúdio, corte/fade e transmissão manual RTMP/RTMPS, com início pelo estúdio e contagem regressiva cancelável.
 - Configurações em abas, autosave, presets automáticos e criação contextual de presets personalizados.
 - Diagnóstico de internet legível, canais RTMP nomeados e painéis laterais recolhíveis.
@@ -74,9 +80,9 @@ Evoluir grupos, seleção múltipla, alinhamento e atalhos. Painéis recolhívei
 
 ### Convidados por link
 
-Permitir gerar um convite temporário para a pessoa abrir no navegador, informar o nome, escolher câmera e microfone e compartilhar a tela. No Dante, cada mídia deve aparecer como fonte independente, com controle de volume, mute e visibilidade.
+Disponível de forma **experimental na 0.1.9**: clique no ícone de convidar, gere um link e envie à pessoa. Ela informa o nome, autoriza câmera/microfone e pode compartilhar uma tela. O apresentador insere câmera, microfone e tela como fontes independentes, com mute, volume e visibilidade.
 
-A proposta usa WebRTC com conexão direta quando possível e TURN como alternativa. Reconexão, retorno de áudio sem eco, acesso por token e custos de infraestrutura precisam fazer parte da implementação. **Esse recurso ainda não está disponível no código publicado.**
+A mídia usa WebRTC; o link HTTPS usa uma ponte temporária Cloudflare Quick Tunnel, sem garantia de disponibilidade. A conexão direta usa STUN. TURN aceita credenciais temporárias opcionais e **não vem provisionado**: redes restritas podem não conectar. Não há limite de duração imposto pelo Dante, mas não prometemos sessões sem quedas. [Guia de convidados e limites](docs/GUESTS.md).
 
 ### Desempenho demonstrável
 
@@ -94,7 +100,7 @@ Uma contribuição útil pode ser pequena: reproduzir um bug, tornar uma mensage
 
 ## Compilar
 
-O build requer um Mac, ferramentas Apple, Python 3, Git e o runtime oficial **OBS Studio 32.2.2**. Ainda há dependência de binários OBS pré-compilados; não é uma reconstrução integral de todas as bibliotecas a partir das fontes.
+O build requer um Mac, ferramentas Apple, Python 3, Git, Go (toolchain 1.27.2 para o helper de convidados) e o runtime oficial **OBS Studio 32.2.2**. Ainda há dependência de binários OBS pré-compilados; não é uma reconstrução integral de todas as bibliotecas a partir das fontes.
 
 ```sh
 git clone https://github.com/dantetesta/dante-live.git

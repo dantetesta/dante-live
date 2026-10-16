@@ -72,3 +72,9 @@ O build baixa e verifica o SDK Sparkle 2.10.0 por hash fixado, incorpora somente
 ## Releases oficiais 0.1.8+
 
 Builds locais sem identidade continuam ad hoc. Para uma release oficial, configure `DANTE_SIGN_IDENTITY` com uma identidade Developer ID Application instalada e `DANTE_NOTARY_PROFILE` com um perfil local existente do notarytool. `scripts/release.sh` exige essas referências e notariza app/DMG antes de publicar. A chave privada e a credencial nunca são copiadas para o Git ou para o instalador. Forks usam credenciais próprias. Veja [NOTARIZATION.md](NOTARIZATION.md).
+
+## Dependências e testes de convidados (0.1.9)
+
+Instale Go com suporte a toolchains automáticos. O build fixa GOTOOLCHAIN=go1.27.2 e compila cloudflared 2026.10.1 para arm64/x86_64, target macOS 14, sem modificar a fonte upstream. A distribuição binária upstream exigia macOS 15. LiveKitWebRTC 150.7871.03 é obtido com SHA-256 fixado em packaging/guests-lock.json. O primeiro build precisa de rede.
+
+`env DANTE_BUILD_DIR=build/dev bash scripts/test-masks.sh` verifica pixels reais da GPU com fontes sintéticas. `scripts/build-guest-tests.sh` compila o harness nativo para o Mac Apple Silicon de desenvolvimento. `Tests/guest-browser.cjs` usa Playwright (dependência somente de QA) e Chrome, com câmeras/telas/áudio sintéticos em dois contextos. O harness aceita caminho absoluto do app e diretório isolado; o modo --public exige estar em um bundle QA com o helper cloudflared e testa HTTPS temporário, nunca transmissão ao YouTube. Não use projeto ou dispositivos de produção nesses testes.

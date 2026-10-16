@@ -112,12 +112,14 @@ struct LiveLaunch: Identifiable {
         do { try save() } catch { message = error.localizedDescription; return }
         refresh()
     }
-    func selectBroadcast(_ id: String) {
-        guard !busy, writable, let account else { return }; edits.flush()
-        if id.isEmpty, state.selectedBroadcast != nil { newDraft(); return }
+    @discardableResult func selectBroadcast(_ id: String) -> Bool {
+        guard !busy, writable, let account else { return false }; edits.flush()
+        let previous = state
         var value = state; value.selectedBroadcast = id.isEmpty ? nil : id
+        if id.isEmpty, previous.selectedBroadcast != nil { value = YouTubeDraftState(); value.draft = previous.draft }
         preferences.states[account.id] = value
-        do { try save() } catch { message = error.localizedDescription }
+        do { try save(); return true }
+        catch { preferences.states[account.id] = previous; message = error.localizedDescription; return false }
     }
     func newDraft() {
         guard !busy, writable, let account else { return }

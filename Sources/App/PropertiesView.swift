@@ -99,71 +99,6 @@ struct PropertyFields: View {
     }
 }
 
-struct AddSourceView: View {
-    @ObservedObject var model: StudioModel
-    @Environment(\.dismiss) var dismiss
-    @LegacyState private var type = ""
-    @LegacyState private var name = ""
-    @LegacyState private var settings: [String: Any] = [:]
-    @LegacyState private var properties: [[String: Any]] = []
-    @LegacyState private var existing = ""
-    @LegacyState private var instanceRequired = false
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Adicionar fonte").font(.title2.bold())
-            HStack(alignment: .top, spacing: 20) {
-                List(selection: $type) {
-                    ForEach(model.catalog.array("sources"), id: \.entryID) { source in
-                        Label(source.string("name"), systemImage: iconForSource(source.string("id"))).tag(source.string("id"))
-                    }
-                }.frame(width: 220, height: 390)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        TextField("Nome da fonte", text: $name).textFieldStyle(.roundedBorder)
-                        PropertyFields(properties: properties, settings: $settings)
-                        if instanceRequired { Text("Adicione esta fonte e selecione o dispositivo, monitor ou janela no painel Propriedades. A permissão do macOS será solicitada quando necessária.").font(.caption).foregroundStyle(.secondary) }
-                        if type.isEmpty { Text("Escolha um tipo de fonte à esquerda.").foregroundStyle(.secondary) }
-                    }.padding(4)
-                }.frame(width: 350, height: 390)
-            }
-            Divider()
-            HStack {
-                Picker("Reutilizar", selection: $existing) {
-                    Text("Fonte ou cena existente…").tag("")
-                    ForEach(existingNames, id: \.self) { Text($0).tag($0) }
-                }
-                Button("Inserir referência") { if model.command("source.reuse", ["scene": model.sceneName, "name": existing]) { dismiss() } }.disabled(existing.isEmpty)
-            }
-            HStack {
-                Text("Os dispositivos só serão abertos ao adicionar a fonte.").font(.caption).foregroundStyle(.secondary)
-                Spacer(); Button("Cancelar") { dismiss() }
-                Button("Adicionar") {
-                    let add = {
-                        if model.command("source.add", ["scene": model.sceneName, "type": type, "name": name, "settings": settings]) {
-                            if let last = model.items.last { model.selectedItem = last.sceneItemID }
-                            if isCameraSource(type) { model.cameraSourceName = name }
-                            dismiss()
-                        }
-                    }
-                    if isCameraSource(type) { add() }
-                    else { model.requestPermission(for: type, completion: add) }
-                }.buttonStyle(.borderedProminent).disabled(type.isEmpty || name.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-        }.padding(24).onChange(of: type) { _, new in
-            let props = model.properties(type: new); settings = props.object("settings"); properties = props.array("properties")
-            instanceRequired = props.flag("requiresInstance")
-            name = model.catalog.array("sources").first { $0.string("id") == new }?.string("name") ?? "Fonte"
-        }
-        .task(id: type + jsonString(settings)) {
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled, !type.isEmpty, let engine = model.engine else { return }
-            let result = jsonObject(copied(dante_engine_type_properties_with_settings(engine, type, jsonString(settings))))
-            properties = result.array("properties"); instanceRequired = result.flag("requiresInstance")
-        }
-    }
-    var existingNames: [String] { Array(Set(model.scenes.flatMap { $0.array("items").map { $0.string("name") } } + model.scenes.map { $0.string("name") })).sorted() }
-}
-
 struct InspectorView: View {
     @ObservedObject var model: StudioModel
     var allowsSecondarySheets = true
@@ -185,6 +120,10 @@ struct InspectorView: View {
                             Button("Escolher câmera e visualizar…") {
                                 model.cameraSourceName = model.selectedName; model.showingCamera = true
                             }.buttonStyle(.borderedProminent)
+                        }
+                        if isCameraSource(item.string("type")) || item.string("type")=="dante_guest_video" || !item.object("cameraMask").isEmpty {
+                            CameraMaskView(model:model,item:item)
+                            Divider()
                         }
                         if item.number("width") <= 0 || item.number("height") <= 0 {
                             Text("Esta fonte ainda não fornece imagem. Selecione o dispositivo ou arquivo. O enquadramento será preparado quando o vídeo estiver disponível.")
@@ -212,6 +151,7 @@ struct InspectorView: View {
                                 Button("Ajustar ao canvas") { _ = model.command("item.fit", ["scene": model.sceneName, "id": item.sceneItemID]) }.disabled(item.flag("locked"))
                             }.padding(.top, 8)
                         }
+                        Text("⌘F ajusta à cena. ⌥ + arrasto das bordas recorta; por dentro, ajusta o enquadramento recortado.").font(.caption2).foregroundStyle(.secondary)
                         if allowsSecondarySheets { Button("Filtros (\(item.array("filters").count))") { model.showingFilters = true } }
                         if item.flag("audio") { AudioAdvancedView(model: model, item: item) }
                         if item.number("mediaDuration") > 0 || item.string("type").contains("ffmpeg") {

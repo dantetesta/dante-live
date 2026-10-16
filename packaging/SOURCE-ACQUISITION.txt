@@ -70,3 +70,13 @@ Xcode project and Configurations define the upstream build. The SDK was not
 rebuilt locally from source; no bit-identical reconstruction is claimed.
 Production update signing requires the maintainer Keychain key, which is never
 included. Contributors can compile the app without that private signing key.
+
+Guest runtime (0.1.9): packaging/guests-lock.json pins LiveKitWebRTC release,
+WebRTC source commit/archive SHA256, build recipe revision and cloudflared source
+commit. The source bundle includes WebRTC and cloudflared source archives.
+Cloudflared is rebuilt unchanged with Go 1.27.2, go.mod/go.sum dependencies,
+CGO_ENABLED=1 and MACOSX_DEPLOYMENT_TARGET=14.0 for arm64 and amd64; see
+packaging/fetch-guests.py. Go downloads checksummed dependencies/toolchain.
+WebRTC uses the pinned LiveKit precompiled XCFramework; upstream build recipes
+are at the revision recorded in guests-lock.json. Transitive license sources
+and SHA256 are recorded in packaging/webrtc-license-sources.json.

@@ -18,6 +18,7 @@ fi
 python3 packaging/fetch-sparkle.py
 python3 packaging/runtime.py prepare
 python3 packaging/fetch-sparkle.py --embed
+python3 packaging/fetch-guests.py
 if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/DanteLive.icns" ]]; then
   xcrun swift packaging/generate-icon.swift "$BUILD/DanteLive.iconset"
   xcrun iconutil -c icns "$BUILD/DanteLive.iconset" -o "$BUILD/DanteLive.icns"
@@ -43,11 +44,13 @@ for ARCH in $ARCHS; do
   xcrun clang++ -c Sources/Bridge/DanteEngine.mm -std=c++17 -fobjc-arc -O2 \
     -target "$ARCH-apple-macos14.0" -isysroot "$SDK" \
     -I vendor/obs-studio/libobs -I vendor/simde -I "$BUILD/generated" -I Sources/Bridge \
+    -F "$ROOT/vendor/guest-runtime/LiveKitWebRTC.xcframework/macos-arm64_x86_64" \
     -F "$APP/Contents/Frameworks" -o "$BUILD/objects/DanteEngine-$ARCH.o"
   xcrun swiftc Sources/App/*.swift "$BUILD/objects/DanteEngine-$ARCH.o" \
     -O -whole-module-optimization -target "$ARCH-apple-macos14.0" -sdk "$SDK" \
     -import-objc-header Sources/Bridge/DanteEngine.h -I Sources/Bridge \
-    -F "$ROOT/vendor/sparkle-2.10.0" -F "$APP/Contents/Frameworks" -framework Sparkle -framework libobs -framework SwiftUI \
+    -F "$ROOT/vendor/guest-runtime/LiveKitWebRTC.xcframework/macos-arm64_x86_64" \
+    -F "$ROOT/vendor/sparkle-2.10.0" -F "$APP/Contents/Frameworks" -framework Sparkle -framework LiveKitWebRTC -framework libobs -framework SwiftUI \
     -framework AppKit -framework Metal -framework MetalKit -framework AVFoundation \
     -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
     -Xlinker -rpath -Xlinker @executable_path/../Frameworks \

@@ -5,6 +5,7 @@ struct YouTubeSettingsView: View {
     @ObservedObject var model: StudioModel
     @ObservedObject var youtube: YouTubeModel
     @ObservedObject var settings: LiveSettingsModel
+    @LegacyState private var showingLibrary = false
     private func draft<T>(_ path: WritableKeyPath<YouTubeDraft, T>) -> Binding<T> {
         Binding(get: { youtube.state.draft[keyPath: path] }, set: { value in youtube.editDraft { $0[keyPath: path] = value } })
     }
@@ -30,24 +31,29 @@ struct YouTubeSettingsView: View {
                 if let message = youtube.message { Text(message).font(.callout).textSelection(.enabled) }
             }
             if youtube.account != nil {
-                Section("Qual live você vai transmitir?") {
-                    Picker("Live", selection: Binding(get: { youtube.state.selectedBroadcast ?? "" }, set: { youtube.selectBroadcast($0) })) {
-                        Text("Novo rascunho • começar na hora ou agendar").tag("")
-                        if let id = youtube.state.selectedBroadcast, !youtube.broadcasts.contains(where: { $0.id == id }) { Text("Live selecionada • atualize a lista").tag(id) }
-                        ForEach(youtube.broadcasts) { Text($0.title).tag($0.id) }
+                Section("Suas lives no YouTube") {
+                    HStack(alignment: .top, spacing: 18) {
+                        if let event = youtube.selectedBroadcast {
+                            LiveCover(url: event.thumbnailURL.flatMap(URL.init(string:)))
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(event.title).font(.headline)
+                                Label(event.scheduleLabel(), systemImage: "calendar").font(.callout)
+                                Text(privacyName(event.privacy)).foregroundStyle(.secondary)
+                                if let url = event.watchURL { Link("Abrir esta live no YouTube", destination: url) }
+                            }
+                        } else {
+                            Image(systemName: "calendar.badge.play").font(.largeTitle).foregroundStyle(.teal)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(youtube.state.selectedBroadcast == nil ? "Prepare sua próxima live" : "Você tem uma live selecionada").font(.headline)
+                                Text("Veja suas lives em cartões com capa, título e horário.").foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     HStack {
-                        Button("Atualizar lives agendadas") { youtube.refresh() }
+                        Button("Ver minhas lives…") { showingLibrary = true }.buttonStyle(.borderedProminent)
                         Button("Criar outro rascunho…") { model.confirm("Criar outro rascunho? As lives já criadas continuam no YouTube.") { youtube.newDraft() } }
                     }
-                    if let event = youtube.selectedBroadcast {
-                        LiveCover(url: event.thumbnailURL.flatMap(URL.init(string:)))
-                        Text(event.title).font(.headline)
-                        Text("Visibilidade: \(privacyName(event.privacy)) • \(event.scheduledAt)").font(.caption)
-                        Text(event.description).lineLimit(3).font(.caption).foregroundStyle(.secondary)
-                        if let url = event.watchURL { Link("Abrir o link desta live", destination: url) }
-                        Text("Transmitir enviará o vídeo para esta live, preservando o link e as definições do YouTube. Edite os dados de uma live já criada no YouTube Studio.").font(.caption).foregroundStyle(.secondary)
-                    }
+                    Text("No estúdio, Transmitir abre essa lista antes da confirmação. Edite lives já criadas no YouTube Studio.").font(.caption).foregroundStyle(.secondary)
                 }.disabled(youtube.busy || model.active)
                 if youtube.state.selectedBroadcast == nil {
                     Section("Dados da próxima live • salvos neste Mac") {
@@ -78,6 +84,9 @@ struct YouTubeSettingsView: View {
                 }
             }
         }.formStyle(.grouped).onAppear { youtube.loadClient() }.onDisappear { youtube.flush() }
+            .sheet(isPresented: $showingLibrary) {
+                YouTubeLibraryView(youtube: youtube, forTransmission: false) { showingLibrary = false }
+            }
     }
 }
 func privacyName(_ value: String) -> String {

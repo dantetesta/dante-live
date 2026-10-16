@@ -40,3 +40,11 @@ Agendar não faz o Mac ligar, abrir o Dante ou transmitir sozinho. É necessári
 Referência fixada OBS Studio 32.2.2: `frontend/dialogs/OBSYoutubeActions.cpp`, `frontend/utility/YoutubeApiWrappers.cpp`, `frontend/oauth/YoutubeAuth.cpp`. O frontend Qt não é incorporado.
 
 [Fluxo oficial de lives](https://developers.google.com/youtube/data/live/getting-started) · [Vínculo broadcast/stream](https://developers.google.com/youtube/v3/live/docs/liveBroadcasts/bind) · [OAuth desktop](https://developers.google.com/identity/protocols/oauth2/native-app).
+
+## Biblioteca visual de lives (0.1.9)
+
+No modo YouTube, **Transmitir** abre uma janela com as lives criadas/agendadas do canal conectado. Cada cartão mostra capa (ou indicação visual quando indisponível), título, visibilidade e data/hora no fuso do Mac. A busca filtra pelo título; Atualizar consulta novamente o YouTube. Lives concluídas não fazem parte da lista de próximas transmissões.
+
+Selecione o cartão e clique em **Continuar**. A próxima tela confirma os dados atuais do mesmo vídeo; só **Confirmar e transmitir** prepara a conexão e inicia a contagem regressiva. Cancelar a biblioteca não transmite. A aba YouTube das configurações também abre a biblioteca pelo botão **Ver minhas lives**, para salvar uma seleção sem iniciar a transmissão.
+
+O rascunho local fica separado dos eventos já criados. Selecioná-lo não publica nada: a criação remota continua acontecendo após confirmação. RTMP manual permanece com confirmação direta, sem biblioteca, porque a chave RTMP não oferece acesso à API de lives do canal.

@@ -32,3 +32,11 @@ Browser CEF, plugins profissionais e câmera virtual ainda exigem implementaçã
 0.1.6: integração YouTube usa Foundation/URLSession, Network (retorno OAuth local), CryptoKit/Security (PKCE, entropia e Keychain) e UniformTypeIdentifiers. Frameworks do macOS, sem biblioteca externa ou cliente Google embutido. Contratos oficiais e configuração em [YOUTUBE.md](YOUTUBE.md).
 
 0.1.7: SDK Sparkle fixado por SHA-256 em `packaging/sparkle-lock.json`; fontes exatas acompanham o ZIP separado. Runtime não sandboxed inclui framework, Autoupdate e Updater.app, sem ferramentas de assinatura, headers ou serviços XPC opcionais. Nenhuma chave privada é distribuída.
+
+## Incremento 0.1.9 — editor, áudio e convidados
+
+Implementados: cartões de fontes e biblioteca visual YouTube, ⌘F, crop/pan com Option, máscaras GPU com enquadramento, aparência persistente e mixer estéreo vertical RMS/pico/hold. Convidados por token: até dois navegadores, câmera/tela/microfone separados, admissão, revogação e retorno mix-minus. Ver [GUESTS.md](GUESTS.md) para operação e limites.
+
+Fontes: Sources/App/GuestModel.swift, GuestHTTPServer.swift, GuestsView.swift, Sources/Bridge/DanteGuestRTC.mm, Sources/GuestWeb. Dependências e hashes em packaging/guests-lock.json. LiveKitWebRTC BSD/patentes e empacotamento MIT; cloudflared Apache 2.0 e Go com licenças transitivas. Ambos Universal 2; helper recompilado com deployment target 14.0 porque o binário upstream exigia 15.0.
+
+Aceitação: dois peers Chrome com mídia sintética real, fontes e medidores libobs, retorno espectral sem própria voz, revogação; segurança HTTP/token/origem; máscaras verificadas em pixels GPU. Não equivale a teste de redes NAT distintas, TURN, Safari, duas horas, Intel físico ou macOS 14 real. TURN não provisionado; Quick Tunnel temporário sem SLA. As pendências históricas de convidados passam a ser estes limites, não ausência total da funcionalidade.

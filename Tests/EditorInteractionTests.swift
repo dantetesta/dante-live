@@ -10,8 +10,13 @@ var appVersion: String { "test" }
         var edits: [String] = []
         queue.submit(immediate: false) { edits.append("old") }
         queue.submit(immediate: false) { edits.append("latest") }
-        try await Task.sleep(for: .milliseconds(400))
-        precondition(edits == ["latest"])
+        // Wait for the asynchronous debounce result with a bounded deadline. A fixed
+        // 400 ms sleep races the task's initial scheduling under build load.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while edits.isEmpty && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        precondition(edits == ["latest"], "debounced edit must execute once")
         queue.submit(immediate: false) { edits.append("canceled") }; queue.cancel()
         try await Task.sleep(for: .milliseconds(350))
         precondition(edits == ["latest"])

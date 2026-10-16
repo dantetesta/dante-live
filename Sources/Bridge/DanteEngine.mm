@@ -77,6 +77,8 @@ struct dante_engine {
     uint32_t width = 1280, height = 720, fps = 30;
     std::vector<obs_scene_t *> scenes;
     obs_scene_t *selected = nullptr, *program = nullptr;
+    obs_scene_t *programSnapshot = nullptr;
+    std::atomic<bool> studioMode{false};
     obs_source_t *transition = nullptr;
     std::mutex previewLock;
     std::map<obs_source_t *, std::unique_ptr<Meter>> meters;
@@ -84,6 +86,21 @@ struct dante_engine {
     NSMutableArray *modules = [NSMutableArray array];
 };
 static bool fail(dante_engine *e, const char *message) { if(e) e->error = message; return false; }
+// Private scene/items keep preview transforms and editable text independent.
+// Capture sources marked DO_NOT_DUPLICATE keep a single live device/RTC track.
+static bool publishScene(dante_engine *e, obs_scene_t *scene, int duration) {
+    auto *snapshot = e->studioMode ? obs_scene_duplicate(scene, "Dante program", OBS_SCENE_DUP_PRIVATE_COPY) : nullptr;
+    if(e->studioMode && !snapshot)return fail(e,"Não foi possível preparar a cena para o programa.");
+    auto *source=obs_scene_get_source(snapshot ? snapshot : scene);
+    if(duration>0 && !obs_transition_start(e->transition,OBS_TRANSITION_MODE_AUTO,duration,source)) {
+        if(snapshot)obs_scene_release(snapshot);
+        return fail(e,"A transição não pôde iniciar.");
+    }
+    if(duration==0)obs_transition_set(e->transition,source);
+    auto *previous=e->programSnapshot;e->programSnapshot=snapshot;e->program=scene;
+    if(previous)obs_scene_release(previous); // Transition owns its outgoing reference until fade ends.
+    return true;
+}
 static obs_scene_t *findScene(dante_engine *e, NSString *name) {
     if (![name isKindOfClass:NSString.class] || !name.length) return e->selected;
     for (auto *s : e->scenes) if ([S(obs_source_get_name(obs_scene_get_source(s))) isEqual:name]) return s;
@@ -324,6 +341,7 @@ void dante_engine_destroy(dante_engine_t *e) {
     if (!e) return;
     releaseOutput(e->recording); releaseOutput(e->streaming); releaseOutput(e->replay);
     clearMeters(e); obs_set_output_source(0,nullptr); obs_transition_clear(e->transition);
+    if(e->programSnapshot)obs_scene_release(e->programSnapshot);
     if(e->selected)obs_source_dec_showing(obs_scene_get_source(e->selected));
     obs_source_release(e->transition);
     // OBS 32 canvases retain scene references. Remove them before releasing our
@@ -466,6 +484,13 @@ static bool resolvePlacement(dante_engine *e,obs_sceneitem_t *item) {
     if(pending && !obs_sceneitem_locked(item) && placeItem(e,item,mode))pending=false;
     return pending;
 }
+static bool resolvePublishedPlacement(obs_scene_t *,obs_sceneitem_t *item,void *raw) {
+    auto *engine=static_cast<dante_engine*>(raw);
+    resolvePlacement(engine,item);
+    auto *source=obs_sceneitem_get_source(item);
+    if(obs_source_is_scene(source))obs_scene_enum_items(obs_scene_from_source(source),resolvePublishedPlacement,raw);
+    return true;
+}
 static bool itemState(obs_scene_t *,obs_sceneitem_t *item,void *data) {
     auto *ctx=static_cast<ItemContext *>(data); auto *source=obs_sceneitem_get_source(item);
     bool pendingPlacement=resolvePlacement(ctx->engine,item);
@@ -502,6 +527,7 @@ const char *dante_engine_state(dante_engine_t *e) {
     NSMutableArray *scenes=[NSMutableArray array];
     for(auto *scene:e->scenes) { ItemContext ctx={e,[NSMutableArray array]};obs_scene_enum_items(scene,itemState,&ctx);
         [scenes addObject:@{@"name":S(obs_source_get_name(obs_scene_get_source(scene))),@"items":ctx.items}]; }
+    if(e->programSnapshot)obs_scene_enum_items(e->programSnapshot,resolvePublishedPlacement,e);
     NSDictionary *rec=outputState(e->recording),*stream=outputState(e->streaming,true),*replay=outputState(e->replay);
     e->scratch=J(@{@"scenes":scenes,@"selectedScene":e->selected ? S(obs_source_get_name(obs_scene_get_source(e->selected))) : @"",
         @"programScene":e->program ? S(obs_source_get_name(obs_scene_get_source(e->program))) : @"",
@@ -564,16 +590,19 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
             obs_source_set_name(obs_scene_get_source(scene),[a[@"name"] UTF8String]);return true;
         }
         if([op isEqual:@"scene.select"]) {
+            bool studio=[a[@"studio"] boolValue];
+            if(studio && !e->studioMode) {
+                e->studioMode=true;
+                if(!publishScene(e,e->program,0)){e->studioMode=false;return false;}
+            }
             if(e->selected!=scene){auto *previous=e->selected;{std::lock_guard<std::mutex> lock(e->previewLock);e->selected=scene;}
                 obs_source_inc_showing(obs_scene_get_source(scene));if(previous)obs_source_dec_showing(obs_scene_get_source(previous));}
-            if(![a[@"studio"] boolValue]) { e->program=scene;obs_transition_set(e->transition,obs_scene_get_source(scene)); }
+            if(!studio) { e->studioMode=false;return publishScene(e,scene,0); }
             return true;
         }
         if([op isEqual:@"scene.take"]) {
-            if([a[@"transition"] isEqual:@"cut"] || [a[@"duration"] intValue]==0) obs_transition_set(e->transition,obs_scene_get_source(scene));
-            else if(!obs_transition_start(e->transition,OBS_TRANSITION_MODE_AUTO,std::clamp([a[@"duration"] intValue],1,20000),obs_scene_get_source(scene)))
-                return fail(e,"A transição não pôde iniciar.");
-            e->program=scene;return true;
+            int duration=([a[@"transition"] isEqual:@"cut"] || [a[@"duration"] intValue]==0) ? 0 : std::clamp([a[@"duration"] intValue],1,20000);
+            return publishScene(e,scene,duration);
         }
         if([op isEqual:@"scene.order"]) {
             auto it=std::find(e->scenes.begin(),e->scenes.end(),scene);e->scenes.erase(it);
@@ -582,10 +611,11 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
         if([op isEqual:@"scene.delete"]) {
             if(e->scenes.size()==1)return fail(e,"Mantenha pelo menos uma cena.");
             if(active(e) && e->program==scene)return fail(e,"A cena está no programa de uma saída ativa.");
+            auto *replacement=e->selected==scene ? (e->scenes.front()==scene ? e->scenes[1] : e->scenes.front()) : e->selected;
+            if(e->program==scene && !publishScene(e,replacement,0))return false;
             e->scenes.erase(std::find(e->scenes.begin(),e->scenes.end(),scene));
             if(e->selected==scene){{std::lock_guard<std::mutex> lock(e->previewLock);e->selected=e->scenes.front();}
                 obs_source_dec_showing(obs_scene_get_source(scene));obs_source_inc_showing(obs_scene_get_source(e->selected));}
-            if(e->program==scene) {e->program=e->selected;obs_transition_set(e->transition,obs_scene_get_source(e->program));}
             obs_source_remove(obs_scene_get_source(scene));obs_scene_release(scene);clearMeters(e);return true;
         }
     }
@@ -766,6 +796,7 @@ bool dante_engine_load(dante_engine_t *e,const char *json) {
     auto *previous=e->selected;
     {std::lock_guard<std::mutex> lock(e->previewLock);e->selected=e->program=nullptr;}
     clearMeters(e);obs_transition_clear(e->transition);if(previous)obs_source_dec_showing(obs_scene_get_source(previous));
+    if(e->programSnapshot){obs_scene_release(e->programSnapshot);e->programSnapshot=nullptr;}
     for(auto *scene:e->scenes){obs_source_remove(obs_scene_get_source(scene));obs_scene_release(scene);}e->scenes.clear();
     // Flush deferred source destruction before loading names again.
     obs_wait_for_destroy_queue();
@@ -787,7 +818,8 @@ bool dante_engine_load(dante_engine_t *e,const char *json) {
     auto *program=findScene(e,root[@"programScene"]);if(!program)program=selected;
     {std::lock_guard<std::mutex> lock(e->previewLock);e->selected=selected;e->program=program;}
     obs_source_inc_showing(obs_scene_get_source(e->selected));
-    obs_transition_set(e->transition,obs_scene_get_source(e->program));e->error.clear();return true;
+    if(!publishScene(e,e->program,0))return false;
+    e->error.clear();return true;
 }
 struct Preview { dante_engine *engine;obs_display_t *display;bool program;obs_source_t *source=nullptr; };
 static void drawPreview(void *data,uint32_t width,uint32_t height) {
@@ -800,7 +832,11 @@ static void drawPreview(void *data,uint32_t width,uint32_t height) {
     float scale=std::min((float)width/canvasWidth,(float)height/canvasHeight);
     int w=round(canvasWidth*scale),h=round(canvasHeight*scale);
     gs_viewport_push();gs_projection_push();gs_set_viewport((width-w)/2,(height-h)/2,w,h);gs_ortho(0,canvasWidth,0,canvasHeight,-100,100);
-    obs_source_video_render(source);gs_projection_pop();gs_viewport_pop();obs_source_release(source);
+    // Program is already composed by libobs. Reuse it instead of rendering every
+    // source and filter again for each local display (also matches encoder output).
+    if(p->program || (!p->source && !e->studioMode))obs_render_main_texture_src_color_only();
+    else obs_source_video_render(source);
+    gs_projection_pop();gs_viewport_pop();obs_source_release(source);
 }
 void *dante_engine_preview_create(dante_engine_t *e,void *nsview,bool program) {
     if(!e || !nsview)return nullptr;

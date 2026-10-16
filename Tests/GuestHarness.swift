@@ -36,6 +36,34 @@ let appVersion = "0.1.9 QA"
                     if let raw=try? Data(contentsOf:root.appendingPathComponent("revoke")),let index=Int(String(decoding:raw,as:UTF8.self)),guests.invites.indices.contains(index) {
                         guests.revoke(guests.invites[index].id);try? FileManager.default.removeItem(at:root.appendingPathComponent("revoke"))
                     }
+                    let panelRequest=root.appendingPathComponent("panel-checks")
+                    if FileManager.default.fileExists(atPath:panelRequest.path),guests === studio.guests,let guest=guests.invites.first,guests.invites.count==2 {
+                        try FileManager.default.removeItem(at:panelRequest)
+                        let original=studio.sceneName
+                        precondition(studio.listedSources.isEmpty)
+                        precondition(guests.displayName(for:guest.camera).hasPrefix(guest.firstName))
+                        precondition(guests.participantSlot(for:guest.camera) != guests.participantSlot(for:guests.invites[1].camera))
+                        guests.toggleMicrophone(guest.id);guests.toggleVideo(guest.id,screen:false)
+                        precondition(studio.command("scene.create",["name":"Participantes QA"]))
+                        guests.admit(guest.id,to:"Participantes QA")
+                        precondition(guests.scene(for:guest)=="Participantes QA")
+                        precondition(guests.item(guest.microphone,in:"Participantes QA")!.flag("muted"))
+                        precondition(!guests.item(guest.camera,in:"Participantes QA")!.flag("visible"))
+                        precondition(studio.command("scene.rename",["scene":"Participantes QA","name":"Renomeada QA"]))
+                        precondition(guests.scene(for:guest)=="Renomeada QA")
+                        guests.admit(guest.id,to:original);studio.selectScene(original)
+                        guests.toggleMicrophone(guest.id);guests.toggleVideo(guest.id,screen:false)
+                        for name in ["Layer QA 1","Layer QA 2"] { precondition(studio.command("source.add",["scene":original,"type":"color_source_v3","name":name,"settings":["width":10,"height":10]])) }
+                        let hiddenBefore=studio.items.enumerated().filter {guests.managedSourceNames.contains($0.element.string("name"))}.map {[$0.offset,Int($0.element.sceneItemID)]}
+                        let ids=studio.listedSources.reversed().map(\.sceneItemID)
+                        precondition(ids.count==2);studio.moveSources(in:original,ids:ids,from:[0],to:2)
+                        precondition(studio.listedSources.reversed().map(\.sceneItemID)==Array(ids.reversed()))
+                        let hiddenAfter=studio.items.enumerated().filter {guests.managedSourceNames.contains($0.element.string("name"))}.map {[$0.offset,Int($0.element.sceneItemID)]}
+                        precondition(hiddenBefore==hiddenAfter)
+                        for component in studio.listedSources { _=studio.command("source.remove",["scene":original,"id":component.sceneItemID]) }
+                        guests.select(guest.camera,guest:guest);precondition(studio.selectedName==guest.camera)
+                        try Data("passed".utf8).write(to:root.appendingPathComponent("panel-checks-passed"))
+                    }
                     let state=studio.state;let levels=jsonObject(copied(dante_engine_audio_levels(studio.engine)))
                     let snapshot:[String:Any]=["state":state,"levels":levels,"guests":guests.invites.map{["name":$0.name,"status":$0.status,"media":$0.peer?.mediaDiagnostics ?? [:]]}]
                     try JSONSerialization.data(withJSONObject:snapshot).write(to:root.appendingPathComponent("state.json"),options:.atomic)

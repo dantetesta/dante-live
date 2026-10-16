@@ -37,12 +37,22 @@ sign_test build/tests/PreviewLifecycleTests
 build/tests/PreviewLifecycleTests "$APP" > evidence/runtime/preview-lifecycle-tests.txt
 cat evidence/runtime/preview-lifecycle-tests.txt
 
+xcrun clang++ Tests/StudioIsolation.mm "$BUILD/objects/DanteEngine-$ARCH.o" \
+  -std=c++17 -fobjc-arc -O2 -target "$ARCH-apple-macos14.0" \
+  -I Sources/Bridge -I vendor/obs-studio/libobs -I vendor/simde -I "$BUILD/generated" \
+  -F "$APP/Contents/Frameworks" -framework LiveKitWebRTC -framework libobs \
+  -framework AppKit -framework VideoToolbox -Wl,-rpath,"$APP/Contents/Frameworks" \
+  -o build/tests/StudioIsolation
+sign_test build/tests/StudioIsolation
+build/tests/StudioIsolation "$APP" > evidence/runtime/studio-isolation-tests.txt
+cat evidence/runtime/studio-isolation-tests.txt
+
 EDITOR_SOURCES=()
 for file in Sources/App/*.swift; do
   [[ "$file" == Sources/App/DanteLiveApp.swift ]] || EDITOR_SOURCES+=("$file")
 done
 xcrun swiftc -parse-as-library -O -target "$ARCH-apple-macos14.0" \
-  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift Tests/UpdateTests.swift Tests/GuestSecurityTests.swift \
+  -import-objc-header Sources/Bridge/DanteEngine.h "${EDITOR_SOURCES[@]}" Tests/EditorInteractionTests.swift Tests/CanvasGestureTests.swift Tests/LiveSettingsTests.swift Tests/YouTubeTests.swift Tests/UpdateTests.swift Tests/GuestSecurityTests.swift \
   "$BUILD/objects/DanteEngine-$ARCH.o" -F "$APP/Contents/Frameworks" \
   -F "$ROOT/vendor/sparkle-2.10.0" -framework Sparkle -framework LiveKitWebRTC -framework libobs -framework AppKit -framework SwiftUI -framework Metal -framework MetalKit \
   -framework AVFoundation -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \

@@ -22,23 +22,23 @@ struct CameraMaskView: View {
         .init(id:"oval-portrait",shape:2,title:"Oval vertical",aspect:3/4.0),
         .init(id:"rectangle-landscape",shape:5,title:"Retângulo horizontal",aspect:16/9.0),
         .init(id:"rectangle-portrait",shape:5,title:"Retângulo vertical",aspect:9/16.0),
-        .init(id:"rounded-landscape",shape:6,title:"Retângulo arredondado\nHorizontal",aspect:16/9.0),
-        .init(id:"rounded-portrait",shape:6,title:"Retângulo arredondado\nVertical",aspect:9/16.0),
+        .init(id:"rounded-landscape",shape:6,title:"Arredondado H",aspect:16/9.0),
+        .init(id:"rounded-portrait",shape:6,title:"Arredondado V",aspect:9/16.0),
         .init(id:"rounded-square",shape:4,title:"Quadrado arredondado",aspect:1)
     ]
     private func isSelected(_ format: Format) -> Bool {
         shape == format.shape && (!format.oriented || (values.number("aspect",16/9.0) < 1) == (format.aspect < 1))
     }
     private func symbol(_ format: Format) -> some View {
-        let width: CGFloat = format.aspect < 1 ? 20 : 32
-        let height: CGFloat = format.aspect > 1 ? 20 : 32
+        let width: CGFloat = format.aspect < 1 ? 16 : 25
+        let height: CGFloat = format.aspect > 1 ? 16 : 25
         return Group {
-            if [2,3].contains(format.shape) { Ellipse().strokeBorder(lineWidth:2).frame(width:width,height:height) }
-            else { RoundedRectangle(cornerRadius:[4,6].contains(format.shape) ? 7 : 2).strokeBorder(lineWidth:2).frame(width:width,height:height) }
-        }.frame(height:34).accessibilityHidden(true)
+            if [2,3].contains(format.shape) { Ellipse().strokeBorder(lineWidth:1.4).frame(width:width,height:height) }
+            else { RoundedRectangle(cornerRadius:[4,6].contains(format.shape) ? 7 : 2).strokeBorder(lineWidth:1.4).frame(width:width,height:height) }
+        }.frame(height:27).accessibilityHidden(true)
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Formato da câmera").font(.headline)
             Button {
                 let snapshot = model.captureUndo()
@@ -48,19 +48,19 @@ struct CameraMaskView: View {
                 }
             } label: { Label("Nativo • ajustar à cena", systemImage:"arrow.up.left.and.arrow.down.right").frame(maxWidth:.infinity) }
                 .buttonStyle(.bordered).tint(shape==0 ? .teal : .secondary)
-            LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:8) {
+            LazyVGrid(columns:[GridItem(.adaptive(minimum:78,maximum:110),spacing:6)],spacing:6) {
                 ForEach(formats) { format in
                     Button { update(["shape":format.shape,"aspect":format.aspect]) } label: {
-                        VStack(spacing:6) {
+                        VStack(spacing:4) {
                             symbol(format)
-                            Text(format.title).font(.caption).lineLimit(3).multilineTextAlignment(.center)
-                        }.padding(.horizontal,4).frame(maxWidth:.infinity).frame(height:94)
+                            Text(format.title).font(.system(size:10)).lineLimit(2).multilineTextAlignment(.center)
+                        }.padding(.horizontal,4).frame(maxWidth:.infinity).frame(height:64)
                             .background(isSelected(format) ? Color.teal.opacity(0.14) : Color.primary.opacity(0.04),in:RoundedRectangle(cornerRadius:8))
                             .overlay(RoundedRectangle(cornerRadius:8).strokeBorder(isSelected(format) ? Color.teal : .clear))
                     }.buttonStyle(.plain).accessibilityLabel(format.title.replacingOccurrences(of:"\n",with:" "))
                         .accessibilityAddTraits(isSelected(format) ? .isSelected : [])
                 }
-            }
+            }.frame(maxWidth:400,alignment:.leading)
             if shape != 0 {
                 if [2,5,6].contains(shape) { control("Proporção",key:"aspect",range:0.5...2.4,fallback:16/9.0) }
                 if [4,6].contains(shape) { control("Arredondamento",key:"roundness",range:0...1,fallback:0.2) }

@@ -7,6 +7,7 @@ import Security
     let slot: Int
     let created = Date()
     var name: String
+    var firstName: String { name.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? name }
     var client: String?
     var lastSeen = Date()
     var peer: DanteGuestPeer?
@@ -14,11 +15,14 @@ import Security
     var negotiating = false
     var negotiation: String?
     var admitted = false
+    var cameraEnabled = true
+    var screenEnabled = false
+    var microphoneEnabled = true
     var savedNames: [String] = []
     var names: [String] { let current=peer?.sourceNames ?? [];return current.count==3 ? current : savedNames }
-    var camera: String { names.count==3 ? names[0] : "Convidado \(id.uuidString.prefix(6)) • câmera" }
-    var screen: String { names.count==3 ? names[1] : "Convidado \(id.uuidString.prefix(6)) • tela" }
-    var microphone: String { names.count==3 ? names[2] : "Convidado \(id.uuidString.prefix(6)) • microfone" }
+    var camera: String { names.count==3 ? names[0] : "\(firstName) • câmera · \(id.uuidString.prefix(6))" }
+    var screen: String { names.count==3 ? names[1] : "\(firstName) • tela · \(id.uuidString.prefix(6))" }
+    var microphone: String { names.count==3 ? names[2] : "\(firstName) • microfone · \(id.uuidString.prefix(6))" }
 }
 
 @MainActor
@@ -124,26 +128,94 @@ final class GuestModel: ObservableObject {
     }
     func link(_ invite: GuestInvite) -> String? { publicURL.map { $0.absoluteString+"/#"+invite.token } }
     func copy(_ invite: GuestInvite) { guard let link=link(invite) else { return };NSPasteboard.general.clearContents();NSPasteboard.general.setString(link,forType:.string);message="Convite copiado. Envie somente para a pessoa convidada." }
-    func admit(_ id: UUID) {
+    var managedSourceNames: Set<String> {
+        Set(invites.flatMap { [$0.camera, $0.screen, $0.microphone] })
+    }
+    func participantSlot(for source: String) -> Int? {
+        invites.first { [$0.camera,$0.screen,$0.microphone].contains(source) }?.slot
+    }
+    func displayName(for source: String) -> String {
+        guard let guest = invites.first(where: { [$0.camera,$0.screen,$0.microphone].contains(source) }) else { return source }
+        return guest.firstName + " • " + (source == guest.camera ? "câmera" : source == guest.screen ? "tela" : "microfone")
+    }
+    func scene(for guest: GuestInvite) -> String? {
+        studio?.scenes.first { scene in scene.array("items").contains { $0.string("name") == guest.camera || $0.string("name") == guest.microphone } }?.string("name")
+    }
+    func item(_ source: String, in scene: String) -> [String:Any]? {
+        studio?.scenes.first { $0.string("name") == scene }?.array("items").first { $0.string("name") == source }
+    }
+    func admit(_ id: UUID, to destination: String? = nil) {
         guard let i=invites.firstIndex(where:{$0.id==id}),invites[i].peer != nil,let studio else { return }
-        let guest=invites[i]
-        for name in [guest.camera,guest.microphone] {
-            if !studio.items.contains(where:{$0.string("name")==name}) { guard studio.command("source.reuse",["scene":studio.sceneName,"name":name]) else { return } }
+        let guest=invites[i], target=destination ?? scene(for:guest) ?? studio.sceneName
+        guard studio.scenes.contains(where:{$0.string("name")==target}) else { return }
+        let oldScenes = studio.scenes
+        let hadScreen = oldScenes.contains { $0.array("items").contains { $0.string("name") == guest.screen } }
+        for name in [guest.camera,guest.microphone] + (hadScreen ? [guest.screen] : []) {
+            if item(name,in:target) == nil {
+                guard studio.command("source.reuse",["scene":target,"name":name]) else { return }
+                if let inserted=item(name,in:target) {
+                    if let previous=oldScenes.flatMap({$0.array("items")}).first(where:{$0.string("name")==name}) {
+                        var transform:[String:Any]=["scene":target,"id":inserted.sceneItemID]
+                        for key in ["x","y","scaleX","scaleY","rotation","cropLeft","cropRight","cropTop","cropBottom"] { transform[key]=previous[key] }
+                        if name != guest.microphone { _=studio.command("item.transform",transform,undo:false) }
+                        _=studio.command("item.visible",["scene":target,"id":inserted.sceneItemID,"value":previous.flag("visible")],undo:false)
+                        _=studio.command("item.locked",["scene":target,"id":inserted.sceneItemID,"value":previous.flag("locked")],undo:false)
+                    } else if name != guest.microphone {
+                        _=studio.command("item.fit",["scene":target,"id":inserted.sceneItemID],undo:false)
+                    }
+                }
+            }
         }
-        _=studio.command("audio.set",["name":guest.microphone,"muted":false,"monitoring":2],undo:false)
-        invites[i].admitted=true;message="Câmera e microfone inseridos. Use fones para evitar eco. Controle volume, mute e visibilidade nas fontes e no mixer."
+        // Move only after the new membership exists. Volume/mute are source state
+        // and must survive scene changes and reconnects.
+        for old in oldScenes where old.string("name") != target {
+            for component in old.array("items") where [guest.camera,guest.microphone,guest.screen].contains(component.string("name")) {
+                _=studio.command("source.remove",["scene":old.string("name"),"id":component.sceneItemID],undo:false)
+            }
+        }
+        if !guest.admitted { _=studio.command("audio.set",["name":guest.microphone,"monitoring":2],undo:false) }
+        invites[i].admitted=true;message="\(guest.name) adicionado à cena \(target). Controle câmera, tela e microfone no painel Participantes."
     }
     func insertScreen(_ id: UUID) {
         guard let guest=invites.first(where:{$0.id==id}),guest.peer != nil,let studio else { return }
-        if !studio.items.contains(where:{$0.string("name")==guest.screen}) { _=studio.command("source.reuse",["scene":studio.sceneName,"name":guest.screen]) }
+        let target=scene(for:guest) ?? studio.sceneName
+        if item(guest.screen,in:target) == nil {
+            guard studio.command("source.reuse",["scene":target,"name":guest.screen]) else {return}
+            if let added=item(guest.screen,in:target) { _=studio.command("item.fit",["scene":target,"id":added.sceneItemID],undo:false) }
+        }
+    }
+    func toggleVideo(_ id: UUID, screen: Bool) {
+        guard let guest=invites.first(where:{$0.id==id}),let studio,let target=scene(for:guest) else {return}
+        let name=screen ? guest.screen : guest.camera
+        if let current=item(name,in:target) {
+            _=studio.command("item.visible",["scene":target,"id":current.sceneItemID,"value":!current.flag("visible")])
+        } else if screen { insertScreen(id) }
+    }
+    func toggleMicrophone(_ id: UUID) {
+        guard let guest=invites.first(where:{$0.id==id}),let target=scene(for:guest),let current=item(guest.microphone,in:target),let studio else {return}
+        _=studio.command("audio.set",["name":guest.microphone,"muted":!current.flag("muted")],undo:false)
+    }
+    func select(_ source: String, guest: GuestInvite) {
+        guard let studio,let target=scene(for:guest),let selected=item(source,in:target) else {return}
+        studio.selectScene(target);studio.selectedItem=selected.sceneItemID
+    }
+    func removeFromScene(_ id: UUID) {
+        guard let i=invites.firstIndex(where:{$0.id==id}),let studio else {return}
+        let guest=invites[i]
+        for scene in studio.scenes {
+            for component in scene.array("items") where [guest.camera,guest.screen,guest.microphone].contains(component.string("name")) {
+                _=studio.command("source.remove",["scene":scene.string("name"),"id":component.sceneItemID],undo:false)
+            }
+        }
+        invites[i].admitted=false
     }
     func revoke(_ id: UUID) {
         guard let i=invites.firstIndex(where:{$0.id==id}) else { return }
-        invites[i].peer?.close();invites.remove(at:i)
+        removeFromScene(id);invites[i].peer?.close();invites.remove(at:i)
     }
     func stop() {
         generation=UUID();timer?.invalidate();timer=nil
-        for guest in invites { guest.peer?.close() };invites=[]
+        for guest in invites { removeFromScene(guest.id);guest.peer?.close() };invites=[]
         pipe?.fileHandleForReading.readabilityHandler=nil
         tunnel?.terminationHandler=nil;if tunnel?.isRunning == true { tunnel?.terminate() }
         tunnel=nil;pipe=nil;publicURL=nil;tunnelOutput="";server?.stop();server=nil
@@ -173,7 +245,10 @@ final class GuestModel: ObservableObject {
             for candidate in candidates {
                 peer.addRemoteCandidate(candidate["candidate"] as! String,mid:candidate["sdpMid"] as! String,line:(candidate["sdpMLineIndex"] as! NSNumber).int32Value)
             }
-            if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool { peer.setCameraEnabled(camera,screenEnabled:screen) }
+            if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool {
+                invites[i].cameraEnabled=camera;invites[i].screenEnabled=screen;invites[i].microphoneEnabled=payload["microphone"] as? Bool ?? true
+                peer.setCameraEnabled(camera,screenEnabled:screen)
+            }
             respond(200,["candidates":peer.localCandidates,"status":peer.connectionStatus,"admitted":invites[i].admitted]);return
         }
         if path=="/status" {

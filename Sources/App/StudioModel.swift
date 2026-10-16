@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import AVFoundation
 import CoreGraphics
+import ScreenCaptureKit
 
 @MainActor
 final class StudioModel: ObservableObject {
@@ -53,6 +54,18 @@ final class StudioModel: ObservableObject {
     var scenes: [[String: Any]] { state.array("scenes") }
     var sceneName: String { state.string("selectedScene", scenes.first?.string("name") ?? "") }
     var items: [[String: Any]] { scenes.first(where: { $0.string("name") == sceneName })?.array("items") ?? [] }
+    var listedSources: [[String:Any]] { items.filter { !guests.managedSourceNames.contains($0.string("name")) } }
+    var reusableSourceNames: [String] {
+        let names = Set(scenes.flatMap { $0.array("items").map { $0.string("name") } } + scenes.map { $0.string("name") })
+        // A -> B is invalid if B already reaches A, including indirect nesting.
+        func reachesCurrent(_ name: String, visited: Set<String>) -> Bool {
+            if name == sceneName { return true }
+            guard !visited.contains(name), let scene = scenes.first(where: { $0.string("name") == name }) else { return false }
+            return scene.array("items").contains { reachesCurrent($0.string("name"), visited: visited.union([name])) }
+        }
+        return names.filter { !reachesCurrent($0, visited: []) && !guests.managedSourceNames.contains($0) }.sorted()
+    }
+
     var selected: [String: Any]? { items.first { $0.sceneItemID == selectedItem } }
     var selectedName: String { selected?.string("name") ?? "" }
     var recording: Bool { state.flag("recording") || state.object("outputs").object("recording").flag("active") }
@@ -279,8 +292,7 @@ final class StudioModel: ObservableObject {
     }
     func take() { _ = command("scene.take", ["scene": sceneName, "duration": 300, "transition": "fade"], undo: false) }
     func setStudio(_ value: Bool) {
-        studioMode = value
-        if !value { _ = command("scene.select", ["scene": sceneName, "studio": false], undo: false) }
+        if command("scene.select", ["scene": sceneName, "studio": value], undo: false) { studioMode = value }
     }
     func askName(title: String, initial: String = "", action: (String) -> Void) {
         let alert = NSAlert(); alert.messageText = title
@@ -298,6 +310,14 @@ final class StudioModel: ObservableObject {
         alert.addButton(withTitle: "Confirmar"); alert.addButton(withTitle: "Cancelar")
         if alert.runModal() == .alertFirstButtonReturn { action() }
     }
+    func confirmEndLive() {
+        let alert = NSAlert()
+        alert.messageText = "Encerrar a live?"
+        alert.informativeText = "O Dante Live vai parar de enviar vídeo e áudio para esta transmissão. Suas cenas e configurações continuarão salvas."
+        alert.addButton(withTitle: "Continuar ao vivo")
+        alert.addButton(withTitle: "Encerrar live")
+        if alert.runModal() == .alertSecondButtonReturn { endLive() }
+    }
     func removeSelected() {
         guard let selectedItem else { return }
         removeSource(id: selectedItem, scene: sceneName)
@@ -306,9 +326,12 @@ final class StudioModel: ObservableObject {
         confirm("Remover a fonte desta cena?") { _ = command("source.remove", ["scene": scene, "id": id]) }
     }
     func moveSources(in scene: String, ids: [Int64], from offsets: IndexSet, to destination: Int) {
-        guard scene == sceneName, ids == items.reversed().map(\.sceneItemID),
+        guard scene == sceneName, ids == listedSources.reversed().map(\.sceneItemID),
               let reordered = SourceOrder.moving(ids, from: offsets, to: destination), reordered != ids else { return }
-        _ = command("scene.reorderSources", ["scene": scene, "ids": Array(reordered.reversed())])
+        var ordered = reordered.makeIterator()
+        let visibleIDs = Set(ids)
+        let complete = items.reversed().map { visibleIDs.contains($0.sceneItemID) ? ordered.next()! : $0.sceneItemID }
+        _ = command("scene.reorderSources", ["scene": scene, "ids": Array(complete.reversed())])
     }
     func exportProject() {
         guard let engine else { return }
@@ -334,16 +357,45 @@ final class StudioModel: ObservableObject {
     }
     func requestPermission(for type: String, completion: @escaping () -> Void) {
         let media: AVMediaType? = type.contains("av_capture") || type.contains("avcapture") ? .video : type.contains("coreaudio_input") ? .audio : nil
-        if let media, AVCaptureDevice.authorizationStatus(for: media) == .notDetermined {
-            AVCaptureDevice.requestAccess(for: media) { [weak self] granted in Task { @MainActor in
-                if granted { completion() } else { self?.error = "Permissão negada. Ative o Dante Live em Ajustes do Sistema › Privacidade e Segurança." }
-            } }; return
+        if let media {
+            let status = AVCaptureDevice.authorizationStatus(for: media)
+            if status == .authorized { completion(); return }
+            if status == .notDetermined {
+                AVCaptureDevice.requestAccess(for: media) { [weak self] granted in Task { @MainActor in
+                    if granted { completion() }
+                    else { self?.showPermissionRecovery(media == .audio ? "Microfone" : "Câmera", pane: media == .audio ? "Privacy_Microphone" : "Privacy_Camera") }
+                } }
+            } else { showPermissionRecovery(media == .audio ? "Microfone" : "Câmera", pane: media == .audio ? "Privacy_Microphone" : "Privacy_Camera") }
+            return
         }
-        if let media, AVCaptureDevice.authorizationStatus(for: media) != .authorized { error = "Permissão de \(media == .audio ? "microfone" : "câmera") negada. Verifique Privacidade e Segurança."; return }
-        if type.contains("screen_capture") || type.contains("display_capture") || type.contains("sck") {
-            guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else { error = "Autorize a gravação de tela nas configurações de privacidade do macOS."; return }
+        if Self.requiresScreenPermission(type) {
+            // ScreenCaptureKit is the authority for modern capture. A stale CG
+            // preflight must not reject working SCK authorization after an update.
+            Task { @MainActor [weak self] in
+                do {
+                    _ = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+                    completion()
+                } catch {
+                    let ns = error as NSError
+                    if ns.domain == SCStreamErrorDomain && ns.code == -3801 {
+                        self?.showPermissionRecovery("Gravação de tela e áudio do sistema", pane:"Privacy_ScreenCapture")
+                    } else {
+                        self?.error = "O macOS não conseguiu preparar a captura. Tente novamente. Se você acabou de alterar a autorização de tela, reabra o Dante fora de uma live. Código: \(ns.domain) (\(ns.code))."
+                    }
+                }
+            }
+            return
         }
         completion()
+    }
+    static func requiresScreenPermission(_ type: String) -> Bool {
+        type.contains("screen_capture") || type.contains("display_capture") || type.contains("window_capture") || type.contains("sck")
+    }
+    private func showPermissionRecovery(_ title: String, pane: String) {
+        let alert=NSAlert();alert.messageText="Autorizar \(title)"
+        alert.informativeText="Abra Ajustes do Sistema › Privacidade e Segurança › \(title) e habilite o Dante Live. Depois, tente adicionar a fonte novamente.\n\nSe já estiver habilitado, o macOS pode estar usando uma autorização de outra cópia do app. Fora de uma live, feche o Dante, remova apenas a entrada dele nessa lista e adicione novamente o Dante Live instalado em Aplicativos. Não é necessário remover as permissões de outros programas."
+        alert.addButton(withTitle:"Abrir Ajustes do Sistema");alert.addButton(withTitle:"Agora não")
+        if alert.runModal() == .alertFirstButtonReturn,let url=URL(string:"x-apple.systempreferences:com.apple.preference.security?"+pane) { NSWorkspace.shared.open(url) }
     }
     func shutdown() {
         guests.stop(); countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()

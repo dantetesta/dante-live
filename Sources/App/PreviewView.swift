@@ -37,9 +37,11 @@ struct EnginePreview: NSViewRepresentable {
 struct CanvasView: View {
     @ObservedObject var model: StudioModel
     var program = false
+    var cropModifier: () -> Bool = { NSEvent.modifierFlags.contains(.option) }
     @LegacyState private var dragStart: [String: Any]?
     @LegacyState private var dragUndo: String?
     @LegacyState private var cropping = false
+    private var canvasSpace: String { program ? "program-canvas" : "preview-canvas" }
     var body: some View {
         GeometryReader { geometry in
             let factor = min(geometry.size.width / model.canvasWidth, geometry.size.height / model.canvasHeight)
@@ -74,7 +76,8 @@ struct CanvasView: View {
                     }
                 }
             }
-            .frame(width: size.width, height: size.height).clipped().background(.black)
+            .frame(width: size.width, height: size.height)
+            .coordinateSpace(name: canvasSpace).clipped().background(.black)
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
         }
         .background(Color.black.opacity(0.85))
@@ -107,10 +110,10 @@ struct CanvasView: View {
         _ = model.command("item.transform", ["scene": model.sceneName, "id": item.sceneItemID, "x": position.x, "y": position.y,
             "cropLeft": crop.left, "cropTop": crop.top, "cropRight": crop.right, "cropBottom": crop.bottom], undo: false)
     }
-    func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo(); cropping = NSEvent.modifierFlags.contains(.option) } }
+    func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo(); cropping = cropModifier() } }
     func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil; cropping = false }
     func moveGesture(item: [String: Any], factor: Double) -> some Gesture {
-        DragGesture(minimumDistance: 2).onChanged { value in
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(canvasSpace)).onChanged { value in
             guard !item.flag("locked") else { return }; begin(item)
             let origin = dragStart ?? item
             if cropping, origin.number("boundsType") == 0, let box = geometryFor(origin),
@@ -124,7 +127,7 @@ struct CanvasView: View {
         }.onEnded { _ in end() }
     }
     func resizeGesture(item: [String: Any], factor: Double, handle: Int) -> some Gesture {
-        DragGesture(minimumDistance: 1).onChanged { value in
+        DragGesture(minimumDistance: 1, coordinateSpace: .named(canvasSpace)).onChanged { value in
             begin(item); let origin = dragStart ?? item
             guard let box = geometryFor(origin) else { return }
             let translation = CGSize(width: value.translation.width/factor, height: value.translation.height/factor)

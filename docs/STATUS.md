@@ -1,3 +1,17 @@
+## Versão 0.1.14 — participantes, retorno e estúdio
+
+Painel Participantes abaixo de Cenas: câmera, tela e microfone agrupados, nome de entrada, cor estável por participante, escolha/mudança da cena, visibilidade, mute, volume e escuta local. Componentes da sala saem da lista comum de fontes; a ordem das demais camadas preserva seus lugares. Revogar/encerrar a sala remove seus itens da composição. Fontes órfãs de versões antigas continuam acessíveis para remoção manual.
+
+Retorno direto do programa por WebRTC, até 960×540 e 15 FPS, independente da qualidade da transmissão principal. O convidado pode silenciar somente sua escuta. Câmera/microfone usam verde/vermelho; tela usa verde/neutro. Receivers são associados também ao aplicar a descrição remota, cobrindo tracks disponibilizadas antes do callback de recepção. Compartilhamento iniciado após conexão e parado/reiniciado foi testado.
+
+Modo estúdio publica uma composição privada: edição de texto, posição, crop e visibilidade na prévia só chegam ao programa após Corte/Transição. Dispositivos e tracks continuam compartilhados: troca de câmera/microfone, filtros de uma captura e mixer continuam operações globais em tempo real. O programa local reutiliza a textura já composta em vez de desenhar novamente todas as fontes. Teste sintético 2560×1440/30 FPS, dois displays, cinco segundos por modo: em estúdio, 450 → 300 chamadas de desenho da fonte para 150 quadros; zero quadros perdidos em ambas as execuções. Isso mede redução de trabalho, não prova ausência de lag com hardware/rede reais.
+
+Option + arrasto usa coordenadas fixas do canvas para recorte e movimento. Testes cobrem recorte superior/inferior, enquadramento vertical, geometria espelhada/rotacionada e publicação do crop. Máscaras em grade compacta adaptativa. Reuso exclui a própria cena e ancestrais que formariam ciclo; motor também rejeita esses casos. Encerramento tem confirmação específica.
+
+Permissões de captura são consultadas/solicitadas pela API apropriada; ScreenCaptureKit verifica o acesso pelo próprio serviço. Recusa oferece o painel correto e instruções de recuperação. Notarização não concede acesso automático; não alteramos o banco TCC nem reiniciamos o app durante live.
+
+Validação: suíte Swift/Python, testes nativos de isolamento e dois Chrome com mídia sintética/WebRTC real (medidores, tela tardia, retorno em pixels, mix-minus, controles, organização e revogação). O problema de áudio/tela com o dispositivo remoto do usuário não foi reproduzido com os dispositivos sintéticos; depende de reteste no cenário real. Safari/Firefox, Intel físico, macOS 14 real e sessões prolongadas permanecem pendentes.
+
 ## Versão 0.1.13 — conexão direta de convidados
 
 Negociação WebRTC incremental (trickle ICE): o navegador e o Mac enviam SDP sem aguardar todos os candidatos de rede. Candidatos tardios são trocados por HTTPS autenticado, vinculados à tentativa de conexão e limitados em quantidade/tamanho. Elimina o cancelamento obrigatório após 15 segundos de descoberta de rede, que podia descartar um caminho direto já disponível. Mensagens não presumem necessidade de TURN nem culpam antivírus.
@@ -20,7 +34,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.13 (14)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.14 (15)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
@@ -55,7 +69,7 @@ Essas evidências são limitadas ao cenário executado: os testes sintéticos de
 - HDR, sincronização audiovisual de capturas reais, VoiceOver e navegação completa por teclado.
 - Instalação em máquina limpa e cadeia completa de fontes/licenças dos binários distribuídos.
 
-Há relato de lag no preview/modo estúdio ainda sem correção medida. Não anunciamos redução percentual de consumo nem latência zero.
+A 0.1.14 reduz redesenho redundante do programa com medição sintética. A eliminação do lag relatado em câmera/rede reais ainda depende de reteste. Não anunciamos latência zero.
 
 ## Incremento 0.1.4
 

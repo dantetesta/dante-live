@@ -22,7 +22,8 @@ struct AddSourceView: View {
     private var selection: SourceChoice? { choices.first { $0.id == type } }
     private var filtered: [SourceChoice] { choices.filter { (category == "Todas" || $0.category == category) && $0.matches(query.trimmingCharacters(in: .whitespacesAndNewlines)) } }
     private var existingNames: [String] { Array(Set(model.scenes.flatMap { $0.array("items").map { $0.string("name") } } + model.scenes.map { $0.string("name") })).sorted() }
-    private var canAdd: Bool { reuse ? !existing.isEmpty : selection != nil && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var reusableNames: [String] { model.reusableSourceNames }
+    private var canAdd: Bool { reuse ? reusableNames.contains(existing) : selection != nil && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var sheetSize: CGSize {
         let available = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1200, height: 900)
         return CGSize(width: min(1020, available.width - 80), height: min(720, available.height - 100))
@@ -104,7 +105,7 @@ struct AddSourceView: View {
     }
 
     private var existingLibrary: some View {
-        let names = existingNames.filter { query.isEmpty || $0.localizedStandardContains(query) }
+        let names = reusableNames.filter { query.isEmpty || $0.localizedStandardContains(query) }
         return VStack(spacing: 8) {
             if names.isEmpty {
                 ContentUnavailableView("Nenhuma fonte encontrada", systemImage: "square.on.square", description: Text("Adicione uma nova fonte ou tente outro nome."))
@@ -169,6 +170,7 @@ struct AddSourceView: View {
 
     private func add() {
         if reuse {
+            guard reusableNames.contains(existing) else { existing = ""; return }
             if model.command("source.reuse", ["scene": model.sceneName, "name": existing]) { dismiss() }
             return
         }
@@ -180,8 +182,7 @@ struct AddSourceView: View {
                 dismiss()
             }
         }
-        if isCameraSource(type) { add() }
-        else { model.requestPermission(for: type, completion: add) }
+        model.requestPermission(for: type, completion: add)
     }
 }
 

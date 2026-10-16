@@ -38,7 +38,7 @@ struct SourceListView: NSViewRepresentable {
         init(model: StudioModel) { self.model = model }
         func update(_ model: StudioModel) {
             self.model = model
-            let next = Array(model.items.reversed())
+            let next = Array(model.listedSources.reversed())
             let nextSignature = jsonString(next.map { ["id":$0.sceneItemID,"name":$0.string("name"),"type":$0.string("type"),"visible":$0.flag("visible",true),"locked":$0.flag("locked")] as [String:Any] })
             synchronizing = true
             defer { synchronizing = false }
@@ -80,7 +80,7 @@ struct SourceListView: NSViewRepresentable {
         func valid(source: Any?, pasteboard: NSPasteboard) -> Bool {
             guard let drag, let origin = source as? NSTableView,
                   origin === table, drag.scene == model.sceneName,
-                  drag.ids == model.items.reversed().map(\.sceneItemID) else { return false }
+                  drag.ids == model.listedSources.reversed().map(\.sceneItemID) else { return false }
             return pasteboard.string(forType:Self.dragType) == drag.token
         }
         func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int, proposedDropOperation operation: NSTableView.DropOperation) -> NSDragOperation {

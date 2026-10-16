@@ -39,7 +39,7 @@ struct StudioView: View {
                             if model.studioMode { CanvasView(model: model, program: true) }
                         }
                         HStack {
-                            Text(model.selectedName.isEmpty ? "Selecione uma fonte para editar" : model.selectedName).font(.caption).foregroundStyle(.secondary)
+                            Text(model.selectedName.isEmpty ? "Selecione uma fonte para editar" : model.guests.displayName(for:model.selectedName)).font(.caption).foregroundStyle(.secondary)
                             Spacer()
                             if model.studioMode {
                                 Button("Corte") { _ = model.command("scene.take", ["scene": model.sceneName, "transition": "cut"], undo: false) }
@@ -96,7 +96,7 @@ struct StudioView: View {
             Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
 
             Button {
-                if model.streaming { model.confirm("Encerrar transmissão?") { model.endLive() } }
+                if model.streaming { model.confirmEndLive() }
                 else { model.beginLive() }
             } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive || model.updateInstalling)
         }.padding(.horizontal, 16).padding(.vertical, 12)
@@ -108,6 +108,7 @@ struct StudioView: View {
     var sceneSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack { Text("CENAS").font(.caption.weight(.bold)); Spacer(); Button { showScenes = false } label: { Image(systemName: "sidebar.left") }.help("Recolher cenas").accessibilityLabel("Recolher cenas"); Button { model.askName(title: "Nova cena") { _ = model.command("scene.create", ["name": $0]) } } label: { Image(systemName: "plus") }.help("Criar cena") }.padding(12)
+            SceneParticipantSplit(guests: model.guests, studio: model) {
             List {
                 ForEach(Array(model.scenes.enumerated()), id: \.offset) { index, scene in
                     Button { model.selectScene(scene.string("name")) } label: {
@@ -128,6 +129,7 @@ struct StudioView: View {
                         }
                 }
             }.listStyle(.sidebar)
+            }
             Divider()
             VStack(alignment: .leading, spacing: 10) {
                 Label("Coleção de cenas", systemImage: "square.stack.3d.up").font(.caption.weight(.semibold))
@@ -143,7 +145,7 @@ struct StudioView: View {
                 Button { model.showingAdd = true } label: { Image(systemName: "plus") }.help("Adicionar fonte")
                 Button { model.removeSelected() } label: { Image(systemName: "minus") }.disabled(model.selected == nil).help("Remover fonte")
             }.padding(12)
-            if model.items.isEmpty { ContentUnavailableView("Sua cena começa aqui", systemImage: "rectangle.stack.badge.plus", description: Text("Adicione uma imagem, câmera, tela ou outra fonte.")) }
+            if model.listedSources.isEmpty { ContentUnavailableView("Sua cena começa aqui", systemImage: "rectangle.stack.badge.plus", description: Text(model.items.isEmpty ? "Adicione uma imagem, câmera, tela ou outra fonte." : "Os convidados estão no painel Participantes, abaixo das cenas.")) }
             else { SourceListView(model: model) }
         }
     }

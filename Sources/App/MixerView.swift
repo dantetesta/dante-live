@@ -62,7 +62,7 @@ private struct AudioChannelStrip: View {
                     Image(systemName: model.watchesMicrophone(channel) ? "bell.badge.fill" : "bell.slash")
                 }.toggleStyle(.button).buttonStyle(.plain).help("Alertar se esta fonte ficar sem sinal por 30 segundos durante a live").accessibilityLabel("Alerta de silêncio para \(name)")
             }
-            Text(name).font(.callout.weight(.semibold)).lineLimit(2).frame(height: 32).frame(maxWidth: .infinity, alignment: .leading).help(name)
+            Text(model.guests.displayName(for: name)).font(.callout.weight(.semibold)).lineLimit(2).frame(height: 32).frame(maxWidth: .infinity, alignment: .leading).help(name)
             Text(channel.number("volume",1) <= 0 ? "−∞ dB" : String(format:"%.1f dB",gain)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             HStack(spacing: 10) {
                 VerticalGainSlider(value: Binding(get: { max(-60,min(6,gain)) }, set: { value in
@@ -74,7 +74,8 @@ private struct AudioChannelStrip: View {
                 _ = model.command("audio.set", ["name": name, "muted": !muted], undo: false)
             } label: { Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill").font(.title3).foregroundStyle(muted ? Color.red : .primary).frame(maxWidth: .infinity).padding(.vertical, 4) }
                 .buttonStyle(.plain).help(muted ? "Ativar áudio" : "Silenciar").accessibilityLabel("\(muted ? "Ativar" : "Silenciar") \(name)")
-        }.padding(12).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+        }.padding(12).background(model.guests.participantSlot(for:name).map { participantColor($0).opacity(0.10) } ?? Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment:.top) { if let slot=model.guests.participantSlot(for:name) { Capsule().fill(participantColor(slot)).frame(height:3).padding(.horizontal,12) } }
     }
 }
 

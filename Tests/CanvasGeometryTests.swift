@@ -32,6 +32,15 @@ import CoreGraphics
         }
         precondition(degenerate.resize(corner: 0, translation: .zero, position: .zero) == nil)
         let noCrop = CanvasGeometry.Crop(left:0,top:0,right:0,bottom:0)
+        // Portrait framing must reduce height independently of width, then allow
+        // content to move vertically inside the fixed cropped frame.
+        let top = box.crop(handle:1,translation:CGSize(width:0,height:12),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!
+        precondition(top.crop == .init(left:0,top:12,right:0,bottom:0) && top.position == CGPoint(x:10,y:32))
+        let bottom = box.crop(handle:5,translation:CGSize(width:0,height:-14),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!
+        precondition(bottom.crop == .init(left:0,top:0,right:0,bottom:14) && bottom.position == CGPoint(x:10,y:20))
+        let verticalFrame = CanvasGeometry(corners:[[10,32],[110,32],[110,58],[10,58]])!
+        let verticalPan = verticalFrame.panCrop(translation:CGSize(width:0,height:-8),sourceSize:CGSize(width:100,height:50),initial:.init(left:0,top:12,right:0,bottom:12))!
+        precondition(verticalPan == .init(left:0,top:20,right:0,bottom:4))
         let crop = box.crop(handle:0,translation:CGSize(width:20,height:10),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!
         precondition(crop.crop == .init(left:20,top:10,right:0,bottom:0) && crop.position == CGPoint(x:30,y:30))
         let rotatedCrop = rotated.crop(handle:0,translation:CGSize(width:-10,height:20),sourceSize:CGSize(width:100,height:50),initial:noCrop,position:CGPoint(x:10,y:20),alignment:5)!

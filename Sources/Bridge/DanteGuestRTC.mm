@@ -11,9 +11,9 @@
 static void *guestCreate(obs_data_t *,obs_source_t *s){return s;}
 static void guestDestroy(void *){}
 void dante_register_guest_sources(void){
-    obs_source_info v={};v.id="dante_guest_video";v.type=OBS_SOURCE_TYPE_INPUT;v.output_flags=OBS_SOURCE_ASYNC_VIDEO;
+    obs_source_info v={};v.id="dante_guest_video";v.type=OBS_SOURCE_TYPE_INPUT;v.output_flags=OBS_SOURCE_ASYNC_VIDEO | OBS_SOURCE_DO_NOT_DUPLICATE;
     v.get_name=[](void*){return "Vídeo do convidado";};v.create=guestCreate;v.destroy=guestDestroy;obs_register_source(&v);
-    obs_source_info a={};a.id="dante_guest_audio";a.type=OBS_SOURCE_TYPE_INPUT;a.output_flags=OBS_SOURCE_AUDIO;
+    obs_source_info a={};a.id="dante_guest_audio";a.type=OBS_SOURCE_TYPE_INPUT;a.output_flags=OBS_SOURCE_AUDIO | OBS_SOURCE_DO_NOT_DUPLICATE;
     a.get_name=[](void*){return "Microfone do convidado";};a.create=guestCreate;a.destroy=guestDestroy;obs_register_source(&a);
 }
 // One producer (OBS audio thread), one consumer (dedicated 10ms WebRTC pump).
@@ -88,15 +88,17 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 }
 @end
 
-@interface DanteGuestVideoSink:NSObject<LKRTCVideoRenderer>{obs_source_t *_source;std::atomic<bool> _enabled;}
+@interface DanteGuestVideoSink:NSObject<LKRTCVideoRenderer>{obs_source_t *_source;std::atomic<bool> _enabled;std::atomic<uint64_t> _frames;}
 - (instancetype)initWithSource:(obs_source_t*)source;
 - (void)setEnabled:(BOOL)enabled;
+- (uint64_t)frames;
 @end
 @implementation DanteGuestVideoSink
-- (instancetype)initWithSource:(obs_source_t*)source{if((self=[super init])){_source=obs_source_get_ref(source);_enabled=true;}return self;}
+- (instancetype)initWithSource:(obs_source_t*)source{if((self=[super init])){_source=obs_source_get_ref(source);_enabled=true;_frames=0;}return self;}
 - (void)setEnabled:(BOOL)enabled{_enabled=enabled;if(!enabled)obs_source_output_video(_source,nullptr);}
 - (void)dealloc{obs_source_release(_source);}
 - (void)setSize:(CGSize)size{}
+- (uint64_t)frames{return _frames.load(std::memory_order_relaxed);}
 - (void)renderFrame:(LKRTCVideoFrame*)frame {
     if(!_enabled.load())return;
     if(!frame){obs_source_output_video(_source,nullptr);return;}
@@ -107,6 +109,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
     f.linesize[0]=b.strideY;f.linesize[1]=b.strideU;f.linesize[2]=b.strideV;f.timestamp=os_gettime_ns();f.full_range=false;
     video_format_get_parameters(VIDEO_CS_709,VIDEO_RANGE_PARTIAL,f.color_matrix,f.color_range_min,f.color_range_max);
     obs_source_output_video(_source,&f); // libobs copies the borrowed planes before returning.
+    _frames.fetch_add(1,std::memory_order_relaxed);
 }
 @end
 @interface DanteGuestAudioSink:NSObject<LKRTCAudioRenderer>{obs_source_t *_source;}
@@ -127,10 +130,52 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 }
 @end
 
+// Independent, bounded program return. libobs performs one downscale into I420;
+// each copied frame is owned by WebRTC after this callback returns. No frame queue.
+@interface DanteGuestProgram:NSObject {
+    LKRTCVideoSource *_source; LKRTCVideoCapturer *_capturer;
+    video_t *_video; uint32_t _width,_height; std::atomic<uint64_t> _frames;
+}
+- (instancetype)initWithSource:(LKRTCVideoSource*)source;
+- (BOOL)start;
+- (void)stop;
+- (void)frame:(video_data*)frame;
+- (uint64_t)frames;
+@end
+static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgram*)raw frame:frame];}
+@implementation DanteGuestProgram
+- (instancetype)initWithSource:(LKRTCVideoSource*)source {if((self=[super init])){_source=source;_capturer=[[LKRTCVideoCapturer alloc]initWithDelegate:source];}return self;}
+- (BOOL)start {
+    if(_video)return YES;obs_video_info info={};if(!obs_get_video_info(&info))return NO;
+    double scale=std::min(1.0,std::min(960.0/info.output_width,540.0/info.output_height));
+    _width=std::max(2u,(uint32_t)(info.output_width*scale)&~1u);_height=std::max(2u,(uint32_t)(info.output_height*scale)&~1u);
+    video_scale_info conversion={};conversion.format=VIDEO_FORMAT_I420;conversion.width=_width;conversion.height=_height;
+    conversion.range=VIDEO_RANGE_PARTIAL;conversion.colorspace=VIDEO_CS_709;
+    video_t *video=obs_get_video();uint32_t divisor=std::max(1u,(uint32_t)std::ceil(double(info.fps_num)/info.fps_den/15.0));
+    if(!video)return NO;
+    obs_add_raw_video_callback2(&conversion,divisor,programFrame,(__bridge void*)self);
+    _video=video;return YES;
+}
+- (void)frame:(video_data*)frame {@autoreleasepool {
+    LKRTCMutableI420Buffer *buffer=[[LKRTCMutableI420Buffer alloc]initWithWidth:_width height:_height];
+    for(uint32_t y=0;y<_height;y++)memcpy(buffer.mutableDataY+y*buffer.strideY,frame->data[0]+y*frame->linesize[0],_width);
+    for(uint32_t y=0;y<_height/2;y++){
+        memcpy(buffer.mutableDataU+y*buffer.strideU,frame->data[1]+y*frame->linesize[1],_width/2);
+        memcpy(buffer.mutableDataV+y*buffer.strideV,frame->data[2]+y*frame->linesize[2],_width/2);
+    }
+    [_source capturer:_capturer didCaptureVideoFrame:[[LKRTCVideoFrame alloc]initWithBuffer:buffer rotation:LKRTCVideoRotation_0 timeStampNs:frame->timestamp]];
+    _frames.fetch_add(1,std::memory_order_relaxed);
+}}
+- (uint64_t)frames{return _frames.load(std::memory_order_relaxed);}
+- (void)stop{if(_video){obs_remove_raw_video_callback(programFrame,(__bridge void*)self);_video=nullptr;}}
+- (void)dealloc{NSAssert(!_video,@"Stop program return before releasing it");}
+@end
+
 @interface DanteGuestPeer()<LKRTCPeerConnectionDelegate> {
     LKRTCPeerConnectionFactory *_factory;LKRTCPeerConnection *_peer;DanteGuestAudioDevice *_device;
     DanteGuestVideoSink *_cameraSink,*_screenSink;DanteGuestAudioSink *_audioSink;
     LKRTCVideoTrack *_cameraTrack,*_screenTrack;LKRTCAudioTrack *_audioTrack;
+    LKRTCVideoSource *_programSource;DanteGuestProgram *_program;
     obs_source_t *_camera,*_screen,*_microphone;bool _closed,_answerReady;
     void (^_completion)(NSString*,NSString*);NSString *_connectionStatus;
     NSMutableArray<NSDictionary*> *_localCandidates;
@@ -173,6 +218,8 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (NSDictionary*)mediaDiagnostics {
     NSMutableDictionary *result=[([_device diagnostics]?:@{}) mutableCopy];
     result[@"localCandidateCount"]=@(_localCandidates.count);result[@"remoteCandidateCount"]=@(_remoteCandidates.count);
+    result[@"programFrames"]=@([_program frames]);
+    result[@"cameraFrames"]=@([_cameraSink frames]);result[@"screenFrames"]=@([_screenSink frames]);
     result[@"candidateErrors"]=@(_candidateErrors);result[@"iceGatheringState"]=@(_peer.iceGatheringState);
     return result;
 }
@@ -182,10 +229,17 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
     __weak DanteGuestPeer *weak=self;
     [_peer setRemoteDescription:[[LKRTCSessionDescription alloc]initWithType:LKRTCSdpTypeOffer sdp:sdp] completionHandler:^(NSError *error){dispatch_async(dispatch_get_main_queue(),^{
         DanteGuestPeer *s=weak;if(!s||s->_closed)return;if(error){[s finish:nil error:@"Oferta WebRTC inválida."];return;}
+        for(LKRTCRtpTransceiver *t in s->_peer.transceivers)[s attachReceiver:t];
         if(!s->_peer.senders.count||!s->_peer.senders.firstObject.track){
             LKRTCAudioTrack *returnTrack=[s->_factory audioTrackWithTrackId:@"dante-return"];
             [returnTrack setAudioProcessingOptions:[LKRTCAudioProcessingOptions rawOptions]];
             [s->_peer addTrack:returnTrack streamIds:@[@"dante-return"]];
+        }
+        if(!s->_programSource){
+            s->_programSource=[s->_factory videoSource];
+            LKRTCVideoTrack *track=[s->_factory videoTrackWithSource:s->_programSource trackId:@"dante-program"];
+            [s->_peer addTrack:track streamIds:@[@"dante-program"]];
+            s->_program=[[DanteGuestProgram alloc]initWithSource:s->_programSource];
         }
         [s->_peer answerForConstraints:[[LKRTCMediaConstraints alloc]initWithMandatoryConstraints:nil optionalConstraints:nil] completionHandler:^(LKRTCSessionDescription *answer,NSError *err){dispatch_async(dispatch_get_main_queue(),^{
             DanteGuestPeer *p=weak;if(!p||p->_closed)return;if(err||!answer){[p finish:nil error:@"Não foi possível negociar a mídia."];return;}
@@ -198,6 +252,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (void)close {
     if(_closed)return;_closed=true;[self finish:nil error:@"Convite encerrado."];
     [_cameraTrack removeRenderer:_cameraSink];[_screenTrack removeRenderer:_screenSink];[_audioTrack removeRenderer:_audioSink];
+    [_program stop];_program=nil;_programSource=nil;
     _peer.delegate=nil;[_device disconnect];[_peer close];_peer=nil;_factory=nil;
     _cameraTrack=nil;_screenTrack=nil;_audioTrack=nil;_cameraSink=nil;_screenSink=nil;_audioSink=nil;
     if(_camera)obs_source_output_video(_camera,nullptr);if(_screen)obs_source_output_video(_screen,nullptr);
@@ -223,14 +278,17 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (void)peerConnection:(LKRTCPeerConnection*)pc didChangeConnectionState:(LKRTCPeerConnectionState)state {
     dispatch_async(dispatch_get_main_queue(),^{if(self->_closed)return;
         self->_connectionStatus=state==LKRTCPeerConnectionStateConnected?@"Conectado":state==LKRTCPeerConnectionStateConnecting?@"Procurando caminho de conexão":state==LKRTCPeerConnectionStateFailed?@"Não foi possível conectar pela rede atual":@"Desconectado";
+        if(state==LKRTCPeerConnectionStateConnected)[self->_program start];
         if(state==LKRTCPeerConnectionStateDisconnected||state==LKRTCPeerConnectionStateFailed){obs_source_output_video(self->_camera,nullptr);obs_source_output_video(self->_screen,nullptr);}
     });
 }
 - (void)peerConnection:(LKRTCPeerConnection*)pc didStartReceivingOnTransceiver:(LKRTCRtpTransceiver*)transceiver {
-    dispatch_async(dispatch_get_main_queue(),^{if(self->_closed)return;LKRTCMediaStreamTrack *track=transceiver.receiver.track;
+    dispatch_async(dispatch_get_main_queue(),^{[self attachReceiver:transceiver];});
+}
+- (void)attachReceiver:(LKRTCRtpTransceiver*)transceiver {
+    if(_closed)return;LKRTCMediaStreamTrack *track=transceiver.receiver.track;
         if([track isKindOfClass:LKRTCAudioTrack.class]){[self->_audioTrack removeRenderer:self->_audioSink];self->_audioTrack=(LKRTCAudioTrack*)track;[self->_audioTrack addRenderer:self->_audioSink];}
         else if([track isKindOfClass:LKRTCVideoTrack.class]){if([transceiver.mid isEqual:@"0"]){[self->_cameraTrack removeRenderer:self->_cameraSink];self->_cameraTrack=(LKRTCVideoTrack*)track;[self->_cameraTrack addRenderer:self->_cameraSink];}
             else if([transceiver.mid isEqual:@"2"]){[self->_screenTrack removeRenderer:self->_screenSink];self->_screenTrack=(LKRTCVideoTrack*)track;[self->_screenTrack addRenderer:self->_screenSink];}}
-    });
 }
 @end

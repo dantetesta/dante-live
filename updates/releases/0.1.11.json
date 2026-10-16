@@ -1,0 +1,16 @@
+{
+  "version": "0.1.11",
+  "build": 12,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.11/Dante-Live-0.1.11-macOS-universal.dmg",
+  "length": 95774154,
+  "sha256": "4b472b107b629e1e43c869ead77d6f371ec87a34222153da97baa4416be0e6dd",
+  "signature": "7LS+8JkTxRMAJqgyesUbcJbImqpOQN3L6+IV8lVZNM4Vjx/G/d//LP39PeH5wbVB489s8bD5Vt5ZhE0xAVxbAA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T13:20:26.979542+00:00",
+  "changelog": "Dante Live 0.1.11 — YouTube mais fácil de configurar e organizar\n\n- Manual de integração com YouTube dentro do app, ao lado da importação do JSON. Inclui o vídeo de Dante Testa e atalhos para cada etapa.\n- Guia revisado a partir do tutorial atualizado, com orientação específica sobre a permissão usada pelo Dante Live.\n- Correção do empacotamento do manual: o HTML é incluído e exigido na distribuição. Erros distinguem arquivo ausente de falha ao abrir o navegador, com acesso alternativo ao vídeo.\n- Ocultar neste Mac: limpe a lista de lives criadas/agendadas sem excluir, cancelar ou modificar nada no YouTube.\n- Mostrar ocultas permite restaurar os cartões. A organização fica salva por canal, inclusive após atualizar a lista e reabrir o app.\n- README com vídeo e novas capturas reais do modo escuro e das preferências Claro/Escuro/Automático.\n\nmacOS 14+ • Universal 2 (Apple Silicon e Intel). Distribuição experimental, assinada com Developer ID e notarizada pela Apple. Credenciais permanecem no Keychain local.\n\nTestes offline cobrem ocultação/restauração sem chamadas à API, persistência, isolamento de canais, seleção e falha de gravação. A publicação exige build, suíte e validações de assinatura/tickets. Testes em Intel físico, macOS 14 real e sessões de duas horas seguem pendentes. Convidados WebRTC continuam experimentais, sem TURN provisionado; nenhuma nova promessa de conectividade ou desempenho nesta versão.\n",
+  "notarized": true
+}

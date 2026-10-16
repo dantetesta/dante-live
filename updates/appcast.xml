@@ -6,6 +6,28 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.11</title>
+      <pubDate>Fri, 16 Oct 2026 13:20:26 +0000</pubDate>
+      <sparkle:version>12</sparkle:version>
+      <sparkle:shortVersionString>0.1.11</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.11 — YouTube mais fácil de configurar e organizar
+
+- Manual de integração com YouTube dentro do app, ao lado da importação do JSON. Inclui o vídeo de Dante Testa e atalhos para cada etapa.
+- Guia revisado a partir do tutorial atualizado, com orientação específica sobre a permissão usada pelo Dante Live.
+- Correção do empacotamento do manual: o HTML é incluído e exigido na distribuição. Erros distinguem arquivo ausente de falha ao abrir o navegador, com acesso alternativo ao vídeo.
+- Ocultar neste Mac: limpe a lista de lives criadas/agendadas sem excluir, cancelar ou modificar nada no YouTube.
+- Mostrar ocultas permite restaurar os cartões. A organização fica salva por canal, inclusive após atualizar a lista e reabrir o app.
+- README com vídeo e novas capturas reais do modo escuro e das preferências Claro/Escuro/Automático.
+
+macOS 14+ • Universal 2 (Apple Silicon e Intel). Distribuição experimental, assinada com Developer ID e notarizada pela Apple. Credenciais permanecem no Keychain local.
+
+Testes offline cobrem ocultação/restauração sem chamadas à API, persistência, isolamento de canais, seleção e falha de gravação. A publicação exige build, suíte e validações de assinatura/tickets. Testes em Intel físico, macOS 14 real e sessões de duas horas seguem pendentes. Convidados WebRTC continuam experimentais, sem TURN provisionado; nenhuma nova promessa de conectividade ou desempenho nesta versão.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.11/Dante-Live-0.1.11-macOS-universal.dmg" length="95774154" type="application/octet-stream" sparkle:edSignature="7LS+8JkTxRMAJqgyesUbcJbImqpOQN3L6+IV8lVZNM4Vjx/G/d//LP39PeH5wbVB489s8bD5Vt5ZhE0xAVxbAA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.10</title>
       <pubDate>Fri, 16 Oct 2026 11:06:19 +0000</pubDate>
       <sparkle:version>11</sparkle:version>
@@ -109,6 +131,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: c6V7tSl1QVrAwsyftpbu0/EI/Xc55sn2BykmtQEjSJKONREUKGRr/UBBSFNA5yu6VN6jKhG0x2LZZ9BQWdySDg==
-length: 9265
+edSignature: ANBh5dUBrCYafUj01h2Z9+aY3i8wgImJx3euku1LayKHy396rLvj2GOoZKl3hzevA2ncAjn+RR8hBgYFUrb2DQ==
+length: 11528
 -->

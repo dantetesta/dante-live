@@ -6,6 +6,30 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.16</title>
+      <pubDate>Fri, 16 Oct 2026 22:42:12 +0000</pubDate>
+      <sparkle:version>17</sparkle:version>
+      <sparkle:shortVersionString>0.1.16</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.16
+
+## Prepare e organize suas lives
+
+- Nova guia Preparar live, separada da conexão com a conta YouTube.
+- Formulário de título, descrição, capa com prévia e visibilidade; categoria, palavras-chave e latência em opções adicionais.
+- Salve várias preparações por canal para transmitir sem horário marcado, com autosave.
+- Agende com calendário nativo, horário e indicação do fuso do Mac. O agendamento cria o vídeo/link no YouTube, sem iniciar a transmissão.
+- Transmitir reúne preparações locais e lives criadas/agendadas antes da confirmação e da contagem 3, 2, 1.
+- Migração preserva configurações anteriores. Cada preparação mantém seu próprio registro de criação para evitar duplicações em retries. Mudanças após confirmar exigem nova confirmação.
+
+## Distribuição e validação
+
+macOS 14+, Universal 2 para Apple Silicon e Intel. Versão experimental assinada e notarizada pela Apple. Testes de persistência, múltiplos rascunhos, canais, recuperação de falha e contagem regressiva; API YouTube exercitada por transporte offline, sem criar uma live real. Intel físico, macOS 14 real, redes de convidados e sessões prolongadas continuam com as limitações documentadas. Atualize fora de uma transmissão ativa.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.16/Dante-Live-0.1.16-macOS-universal.dmg" length="95982249" type="application/octet-stream" sparkle:edSignature="deU9bd37LH1lWuqaeS8wPQVTyVSJFSjHD83B40J/9+Q5f65laR/OkzcXCAgipSFGIM4Gvd90Rk2EuQioSGtWAg=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.15</title>
       <pubDate>Fri, 16 Oct 2026 22:07:41 +0000</pubDate>
       <sparkle:version>16</sparkle:version>
@@ -215,6 +239,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: OTj1yYl22C9VifygUb/3s6e95Zg9d9fXpxQWGus3Uoarhx1Cf/x8EEWgwM1m+FzxoNH5IDWZz6eEReCx2DV5Dg==
-length: 18937
+edSignature: GRs8S/f5wN6iy0r+f73S8ybVuMew5kVE49k/Wr7t2sQX4uVGrnxWYWXxDyBqe3GExJu6eeByRYDhY6E8dkESAg==
+length: 21002
 -->

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.16",
+  "build": 17,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.16/Dante-Live-0.1.16-macOS-universal.dmg",
+  "length": 95982249,
+  "sha256": "bae87431e5cf6c416ad94e258e373ce5dd025741d82c3670788720862a3c0b76",
+  "signature": "deU9bd37LH1lWuqaeS8wPQVTyVSJFSjHD83B40J/9+Q5f65laR/OkzcXCAgipSFGIM4Gvd90Rk2EuQioSGtWAg==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T22:42:12.615938+00:00",
+  "changelog": "# Dante Live 0.1.16\n\n## Prepare e organize suas lives\n\n- Nova guia Preparar live, separada da conexão com a conta YouTube.\n- Formulário de título, descrição, capa com prévia e visibilidade; categoria, palavras-chave e latência em opções adicionais.\n- Salve várias preparações por canal para transmitir sem horário marcado, com autosave.\n- Agende com calendário nativo, horário e indicação do fuso do Mac. O agendamento cria o vídeo/link no YouTube, sem iniciar a transmissão.\n- Transmitir reúne preparações locais e lives criadas/agendadas antes da confirmação e da contagem 3, 2, 1.\n- Migração preserva configurações anteriores. Cada preparação mantém seu próprio registro de criação para evitar duplicações em retries. Mudanças após confirmar exigem nova confirmação.\n\n## Distribuição e validação\n\nmacOS 14+, Universal 2 para Apple Silicon e Intel. Versão experimental assinada e notarizada pela Apple. Testes de persistência, múltiplos rascunhos, canais, recuperação de falha e contagem regressiva; API YouTube exercitada por transporte offline, sem criar uma live real. Intel físico, macOS 14 real, redes de convidados e sessões prolongadas continuam com as limitações documentadas. Atualize fora de uma transmissão ativa.\n",
+  "notarized": true
+}

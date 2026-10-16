@@ -27,6 +27,20 @@ int main(int argc,char**argv){@autoreleasepool{
   auto rgba=pixels(s);auto w=obs_source_get_width(s),h=obs_source_get_height(s);check(w>0&&h>0&&!rgba.empty(),"mask dimensions and GPU readback");
   if(rgba.empty())continue;printf("shape %d size %u x %u alpha %d\n",shape,w,h,rgba[3]);auto center=(h/2*w+w/2)*4;check(rgba[center+3]>240,"center stays opaque");check((shape==1||shape==5)?rgba[3]>240:rgba[3]<10,"shape corner transparency");
  }
+ // Exercise the actual rendered output for both orientations, not only the UI labels.
+ for(int shape : {2,5,6}) for(bool portrait : {false,true}) {
+  double aspect=shape==2?(portrait?3.0/4:4.0/3):(portrait?9.0/16:16.0/9);
+  check(command(e,"source.cameraMask",@{@"name":@"Mask QA",@"settings":@{@"shape":@(shape),@"aspect":@(aspect),@"roundness":@.5,@"zoom":@1,@"panX":@0,@"panY":@0}}),"oriented mask applied");pump(.1);
+  auto rgba=pixels(s);auto w=obs_source_get_width(s),h=obs_source_get_height(s);
+  printf("oriented shape %d %s: %u x %u\n",shape,portrait?"portrait":"landscape",w,h);
+  check(portrait?w<h:w>h,"rendered dimensions follow orientation");
+  check(!rgba.empty()&&rgba[(h/2*w+w/2)*4+3]>240,"oriented mask center stays opaque");
+  check(!rgba.empty()&&(shape==5?rgba[3]>240:rgba[3]<10),"oriented mask preserves corner transparency");
+ }
+ // The last choice is a portrait rounded rectangle; it must survive reopening.
+ std::string portraitSaved=dante_engine_save(e);obs_source_release(s);
+ check(dante_engine_load(e,portraitSaved.c_str()),"portrait mask project restore");pump(.1);s=obs_get_source_by_name("Mask QA");
+ check(obs_source_get_width(s)==56&&obs_source_get_height(s)==100&&pixels(s)[3]<10,"restored portrait retains dimensions and rounded corners");
  command(e,"source.cameraMask",@{@"name":@"Mask QA",@"settings":@{@"shape":@3,@"zoom":@2,@"panX":@-1}});pump(.1);auto left=pixels(s);auto w=obs_source_get_width(s),h=obs_source_get_height(s);auto center=(h/2*w+w/2)*4;
  command(e,"source.cameraMask",@{@"name":@"Mask QA",@"settings":@{@"shape":@3,@"zoom":@2,@"panX":@1}});pump(.1);auto right=pixels(s);
  check(left[center]>200&&left[center+2]<10&&right[center]<10&&right[center+2]>200,"zoom and framing select different source pixels");

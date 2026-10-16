@@ -1,3 +1,9 @@
+## Versão 0.1.12 — dispositivos do convidado e orientação de câmera
+
+Corrige a primeira ativação do convidado: o placeholder não é mais enviado como deviceId. Seletores listam dispositivos válidos, a permissão negada permite nova tentativa e falha do medidor não bloqueia câmera/microfone. Prévia e controles reorganizados. Máscaras de câmera com opções horizontais e verticais para oval, retângulo e retângulo arredondado.
+
+Regressão reproduzida na página anterior. Chrome isolado passou com mídia sintética e com getUserMedia nativo usando dispositivos de teste do navegador: quadros de vídeo, nível de áudio, enumeração, recusa e recuperação. Layout em sete viewports. Máscaras verificadas em GPU e persistência; typecheck arm64/x86_64 macOS14. Câmeras/microfones físicos e Safari/Firefox não foram testados neste incremento.
+
 ## Versão 0.1.11 — manual YouTube e organização local
 
 Inclui guia HTML offline revisado com o tutorial do autor, vídeo e links por etapa; recurso exigido no pacote. A biblioteca permite ocultar/restaurar lives somente neste Mac, por canal, sem chamadas de alteração à API. README com novas capturas reais em modo escuro e preferências. Claro, Escuro e Automático continuam disponíveis.
@@ -6,7 +12,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.10 (11)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental atual: **0.1.12 (13)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|
@@ -112,3 +118,7 @@ Aceitação: dois peers Chrome com mídia sintética real, fontes e medidores li
 Divisória abaixo do canvas com alça de 12 pontos, ajuste por arrasto, proporção persistente, dois cliques para restaurar e alternativa por teclado/acessibilidade. O enquadramento da cena não muda: somente o espaço disponível para prévia, fontes e mixer.
 
 CUA confirmou arrasto, setas, ação acessível, restauração por dois cliques, reabertura com a proporção salva e ampliação/redução da janela. Não houve nova validação em Intel físico, macOS 14 real ou transmissão pública neste incremento.
+
+## Convite compacto e primeira ativação — alteração local de 2026-10-16
+
+Correção de placeholder enviado como deviceId de câmera/microfone, com regressão reproduzida antes e aprovada depois. Página compacta na altura do desktop e adaptada ao celular, preparação explícita, mensagens de permissão e limpeza de streams. Sete viewports e fluxos locais passaram em Chrome com dispositivos sintéticos; detalhes em docs/GUESTS.md. Mudanças ainda não incluídas no app instalado ou em nova distribuição; OBS e salas em execução preservados.

@@ -6,7 +6,37 @@ struct CameraMaskView: View {
     @LegacyState private var undoSnapshot: String?
     private var values: [String: Any] { item.object("cameraMask") }
     private var shape: Int { Int(values.number("shape")) }
-    private let formats: [(Int,String,String)] = [(1,"Quadrado","square"),(2,"Oval","oval"),(3,"Redondo","circle"),(4,"Quadrado arredondado","square.on.square"),(5,"Retângulo","rectangle"),(6,"Retângulo arredondado","rectangle.roundedtop")]
+    private struct Format: Identifiable {
+        let id: String
+        let shape: Int
+        let title: String
+        let aspect: Double
+        var oriented: Bool { [2,5,6].contains(shape) }
+    }
+    // Keep the existing shape IDs and store orientation in the existing aspect field.
+    // Older projects retain their custom proportions and framing without migration.
+    private let formats: [Format] = [
+        .init(id:"square",shape:1,title:"Quadrado",aspect:1),
+        .init(id:"circle",shape:3,title:"Redondo",aspect:1),
+        .init(id:"oval-landscape",shape:2,title:"Oval horizontal",aspect:4/3.0),
+        .init(id:"oval-portrait",shape:2,title:"Oval vertical",aspect:3/4.0),
+        .init(id:"rectangle-landscape",shape:5,title:"Retângulo horizontal",aspect:16/9.0),
+        .init(id:"rectangle-portrait",shape:5,title:"Retângulo vertical",aspect:9/16.0),
+        .init(id:"rounded-landscape",shape:6,title:"Retângulo arredondado\nHorizontal",aspect:16/9.0),
+        .init(id:"rounded-portrait",shape:6,title:"Retângulo arredondado\nVertical",aspect:9/16.0),
+        .init(id:"rounded-square",shape:4,title:"Quadrado arredondado",aspect:1)
+    ]
+    private func isSelected(_ format: Format) -> Bool {
+        shape == format.shape && (!format.oriented || (values.number("aspect",16/9.0) < 1) == (format.aspect < 1))
+    }
+    private func symbol(_ format: Format) -> some View {
+        let width: CGFloat = format.aspect < 1 ? 20 : 32
+        let height: CGFloat = format.aspect > 1 ? 20 : 32
+        return Group {
+            if [2,3].contains(format.shape) { Ellipse().strokeBorder(lineWidth:2).frame(width:width,height:height) }
+            else { RoundedRectangle(cornerRadius:[4,6].contains(format.shape) ? 7 : 2).strokeBorder(lineWidth:2).frame(width:width,height:height) }
+        }.frame(height:34).accessibilityHidden(true)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Formato da câmera").font(.headline)
@@ -19,15 +49,16 @@ struct CameraMaskView: View {
             } label: { Label("Nativo • ajustar à cena", systemImage:"arrow.up.left.and.arrow.down.right").frame(maxWidth:.infinity) }
                 .buttonStyle(.bordered).tint(shape==0 ? .teal : .secondary)
             LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:8) {
-                ForEach(formats,id:\.0) { format in
-                    Button { select(format.0) } label: {
+                ForEach(formats) { format in
+                    Button { update(["shape":format.shape,"aspect":format.aspect]) } label: {
                         VStack(spacing:6) {
-                            Image(systemName:format.2).font(.title2)
-                            Text(format.1).font(.caption).lineLimit(2).multilineTextAlignment(.center)
-                        }.frame(maxWidth:.infinity).frame(height:64)
-                            .background(shape==format.0 ? Color.teal.opacity(0.14) : Color.primary.opacity(0.04),in:RoundedRectangle(cornerRadius:8))
-                            .overlay(RoundedRectangle(cornerRadius:8).strokeBorder(shape==format.0 ? Color.teal : .clear))
-                    }.buttonStyle(.plain).accessibilityAddTraits(shape==format.0 ? .isSelected : [])
+                            symbol(format)
+                            Text(format.title).font(.caption).lineLimit(3).multilineTextAlignment(.center)
+                        }.padding(.horizontal,4).frame(maxWidth:.infinity).frame(height:94)
+                            .background(isSelected(format) ? Color.teal.opacity(0.14) : Color.primary.opacity(0.04),in:RoundedRectangle(cornerRadius:8))
+                            .overlay(RoundedRectangle(cornerRadius:8).strokeBorder(isSelected(format) ? Color.teal : .clear))
+                    }.buttonStyle(.plain).accessibilityLabel(format.title.replacingOccurrences(of:"\n",with:" "))
+                        .accessibilityAddTraits(isSelected(format) ? .isSelected : [])
                 }
             }
             if shape != 0 {
@@ -45,7 +76,6 @@ struct CameraMaskView: View {
     private func settings() -> [String:Any] {
         ["shape":shape,"aspect":values.number("aspect",16/9.0),"roundness":values.number("roundness",0.2),"zoom":values.number("zoom",1),"panX":values.number("panX"),"panY":values.number("panY")]
     }
-    private func select(_ shape:Int) { update(["shape":shape,"aspect":shape==2 ? 0.75 : 16/9.0]) }
     private func update(_ changes:[String:Any],undo:Bool=true) {
         let candidate=settings().merging(changes,uniquingKeysWith:{_,new in new})
         _ = model.command("source.cameraMask",["name":item.string("name"),"settings":candidate],undo:undo)

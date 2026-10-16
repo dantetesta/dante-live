@@ -1,37 +1,63 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const token=location.hash.slice(1)||sessionStorage.getItem('dante-invite')||'';
-if(/^[a-f0-9]{64}$/.test(token)){sessionStorage.setItem('dante-invite',token);history.replaceState(null,'',location.pathname);}
-let client=sessionStorage.getItem('dante-client');if(!client){client=crypto.randomUUID();sessionStorage.setItem('dante-client',client);}
-let media=null,screen=null,peer=null,cameraSender=null,micSender=null,screenSender=null,heartbeat=null,context=null,animation=null,joining=false;
+const storage={get:key=>{try{return sessionStorage.getItem(key);}catch{return null;}},set:(key,value)=>{try{sessionStorage.setItem(key,value);}catch{}}};
+const token=location.hash.slice(1)||storage.get('dante-invite')||'';
+if(/^[a-f0-9]{64}$/.test(token)){storage.set('dante-invite',token);history.replaceState(null,'',location.pathname);}
+let client=storage.get('dante-client');if(!client){client=crypto.randomUUID();storage.set('dante-client',client);}
+let media=null,screen=null,peer=null,cameraSender=null,micSender=null,screenSender=null,heartbeat=null,context=null,animation=null,joining=false,preparing=false,mediaGeneration=0;
 function status(text){$('status').textContent=text;}
 async function api(path,body={}){
  const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({client,...body}),signal:AbortSignal.timeout(22000)});
  let data={};try{data=await response.json();}catch{}
  if(!response.ok){const error=new Error(data.error||'Não foi possível falar com o estúdio. Confira a conexão.');error.status=response.status;throw error;}return data;
 }
-function failure(error){status(error.name==='NotAllowedError'?'Permissão negada. Autorize câmera e microfone nas configurações do navegador.':error.name==='NotFoundError'?'Dispositivo não encontrado. Conecte uma câmera e um microfone.':error.message||'Não foi possível concluir. Tente novamente.');}
+function failure(error){
+ const messages={NotAllowedError:'Acesso não autorizado. Use o ícone ao lado do endereço para permitir câmera e microfone e clique em Ativar novamente.',NotFoundError:'Conecte uma câmera e um microfone e tente novamente.',NotReadableError:'A câmera ou o microfone está ocupado. Feche o aplicativo que está usando o dispositivo e tente novamente.',OverconstrainedError:'O dispositivo escolhido não está disponível. Selecione a opção padrão ou conecte-o novamente.',SecurityError:'O navegador bloqueou os dispositivos. Abra o convite em uma conexão HTTPS.'};
+ status(messages[error.name]||error.message||'Não foi possível concluir. Tente novamente.');
+}
 async function listDevices(){
  const devices=await navigator.mediaDevices.enumerateDevices();
  for(const [id,kind,track] of [['camera','videoinput',media?.getVideoTracks()[0]],['microphone','audioinput',media?.getAudioTracks()[0]]]){
-  const select=$(id);select.replaceChildren();devices.filter(d=>d.kind===kind).forEach((d,i)=>{const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||`${id==='camera'?'Câmera':'Microfone'} ${i+1}`;select.append(option);});
-  if(track)select.value=track.getSettings().deviceId||'';select.disabled=false;
+  const select=$(id),selected=track?.getSettings().deviceId||select.value;
+  select.replaceChildren();const fallback=document.createElement('option');fallback.value='';fallback.textContent=id==='camera'?'Câmera padrão':'Microfone padrão';select.append(fallback);
+  devices.filter(d=>d.kind===kind&&d.deviceId).forEach((d,i)=>{const option=document.createElement('option');option.value=d.deviceId;option.dataset.device='true';option.textContent=d.label||`${id==='camera'?'Câmera':'Microfone'} ${i+1}`;select.append(option);});
+  select.value=[...select.options].some(option=>option.value===selected)?selected:'';select.disabled=preparing;
  }
 }
+function selectedDevice(id){const option=$(id).selectedOptions[0];return option?.dataset.device==='true'&&option.value?{exact:option.value}:undefined;}
 async function prepare(){
- if($('devices').disabled)return;
+ if(preparing)return;
+ preparing=true;const generation=++mediaGeneration;let next=null;let previousCamera=null,previousMic=null;
  $('devices').disabled=true;$('camera').disabled=true;$('microphone').disabled=true;
+ status('Permita câmera e microfone no aviso do navegador. A prévia será exibida aqui.');
  try{
-  const next=await navigator.mediaDevices.getUserMedia({video:{deviceId:$('camera').value?{exact:$('camera').value}:undefined,width:{ideal:1280,max:1920},height:{ideal:720,max:1080},frameRate:{ideal:30,max:30}},audio:{deviceId:$('microphone').value?{exact:$('microphone').value}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  if(peer){await cameraSender.replaceTrack(next.getVideoTracks()[0]);await micSender.replaceTrack(next.getAudioTracks()[0]);}
-  media?.getTracks().forEach(t=>t.stop());media=next;$('preview').srcObject=media;
+  next=await navigator.mediaDevices.getUserMedia({video:{deviceId:selectedDevice('camera'),width:{ideal:1280,max:1920},height:{ideal:720,max:1080},frameRate:{ideal:30,max:30}},audio:{deviceId:selectedDevice('microphone'),echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  if(generation!==mediaGeneration){next.getTracks().forEach(t=>t.stop());return;}
+  if(peer){previousCamera=cameraSender.track;previousMic=micSender.track;await cameraSender.replaceTrack(next.getVideoTracks()[0]);await micSender.replaceTrack(next.getAudioTracks()[0]);}
+  if(generation!==mediaGeneration){next.getTracks().forEach(t=>t.stop());return;}
+  media?.getTracks().forEach(t=>t.stop());media=next;next=null;$('preview').srcObject=media;$('previewEmpty').hidden=true;
+  $('preview').play().catch(()=>{});
   $('join').disabled=false;$('toggleCamera').disabled=false;$('toggleMic').disabled=false;$('toggleCamera').textContent='Desligar câmera';$('toggleMic').textContent='Silenciar microfone';
-  await listDevices();await meter();if(!peer)status('Tudo preparado. Confira seu nome e entre no estúdio.');
- }catch(e){failure(e);}finally{$('devices').disabled=false;$('camera').disabled=false;$('microphone').disabled=false;}
+  $('devices').textContent='Atualizar dispositivos';$('devices').classList.add('secondary');
+  for(const track of media.getTracks())track.onended=()=>{if(media?.getTracks().includes(track)){status('Um dispositivo foi desconectado. Conecte-o novamente e clique em Atualizar dispositivos.');$('join').disabled=true;}};
+  // Device labels and a level meter enhance the preview; their failure must not
+  // discard an otherwise working camera/microphone stream.
+  await listDevices().catch(()=>{});
+  // Some browsers leave AudioContext.resume pending until another user gesture.
+  // This optional meter must not lock device selection or prevent retrying capture.
+  void meter(generation).catch(()=>{});
+  if(generation===mediaGeneration)status(peer?'Dispositivos atualizados.':'Tudo pronto. Informe seu nome e entre no estúdio.');
+ }catch(e){
+  if(next){if(peer){if(previousCamera)await cameraSender?.replaceTrack(previousCamera).catch(()=>{});if(previousMic)await micSender?.replaceTrack(previousMic).catch(()=>{});}next.getTracks().forEach(t=>t.stop());}
+  if(generation===mediaGeneration)failure(e);
+ }finally{if(generation===mediaGeneration){preparing=false;$('devices').disabled=false;$('camera').disabled=false;$('microphone').disabled=false;}}
 }
-async function meter(){
- if(animation)cancelAnimationFrame(animation);if(context)await context.close();context=new AudioContext();await context.resume();
- const analyser=context.createAnalyser();analyser.fftSize=512;context.createMediaStreamSource(media).connect(analyser);const samples=new Float32Array(512);
+async function meter(generation){
+ if(animation)cancelAnimationFrame(animation);animation=null;const previous=context;context=null;if(previous)await previous.close();
+ if(generation!==mediaGeneration||!media?.getAudioTracks().length)return;
+ const nextContext=new AudioContext();context=nextContext;await nextContext.resume();
+ if(generation!==mediaGeneration){if(context===nextContext)context=null;await nextContext.close();return;}
+ const analyser=nextContext.createAnalyser();analyser.fftSize=512;nextContext.createMediaStreamSource(media).connect(analyser);const samples=new Float32Array(512);
  const draw=()=>{analyser.getFloatTimeDomainData(samples);let sum=0;for(const x of samples)sum+=x*x;$('level').value=Math.min(1,Math.sqrt(sum/samples.length)*4);animation=requestAnimationFrame(draw);};draw();
 }
 async function shareScreen(){
@@ -70,10 +96,11 @@ async function join(){
  finally{joining=false;}
 }
 async function leave(){
+ ++mediaGeneration;preparing=false;$('devices').disabled=false;$('devices').textContent='Ativar câmera e microfone';$('devices').classList.remove('secondary');$('previewEmpty').hidden=false;
  if(heartbeat)clearInterval(heartbeat);heartbeat=null;peer?.close();peer=null;cameraSender=micSender=screenSender=null;
  media?.getTracks().forEach(t=>t.stop());screen?.getTracks().forEach(t=>t.stop());media=screen=null;
  if(animation)cancelAnimationFrame(animation);if(context){await context.close();context=null;}$('level').value=0;
- $('preview').srcObject=null;$('screenPreview').hidden=true;$('returnAudio').srcObject=null;$('listen').hidden=true;
+ $('preview').srcObject=null;$('screenPreview').srcObject=null;$('screenPreview').hidden=true;$('screen').textContent='Compartilhar tela';$('returnAudio').srcObject=null;$('listen').hidden=true;
  $('join').hidden=false;$('join').disabled=true;$('join').textContent='Entrar no estúdio';$('leave').hidden=true;$('toggleCamera').disabled=true;$('toggleMic').disabled=true;
  api('/leave').catch(()=>{});status('Você saiu. Câmera e microfone foram desligados.');
 }
@@ -82,4 +109,9 @@ $('toggleCamera').onclick=()=>{const track=media?.getVideoTracks()[0];if(track){
 $('toggleMic').onclick=()=>{const track=media?.getAudioTracks()[0];if(track){track.enabled=!track.enabled;$('toggleMic').textContent=track.enabled?'Silenciar microfone':'Ligar microfone';}};
 $('listen').onclick=()=>{$('returnAudio').play().then(()=>{$('listen').hidden=true;}).catch(failure);};
 if(!/^[a-f0-9]{64}$/.test(token)){status('Convite inválido. Abra o link completo recebido do apresentador.');$('devices').disabled=true;$('screen').disabled=true;}
-else if(!navigator.mediaDevices||!window.RTCPeerConnection){status('Use uma versão atual do Chrome, Edge, Safari ou Firefox em uma conexão HTTPS.');$('devices').disabled=true;}
+else if(!navigator.mediaDevices?.getUserMedia||!window.RTCPeerConnection){status('Use uma versão atual do Chrome, Edge, Safari ou Firefox em uma conexão HTTPS.');$('devices').disabled=true;}
+
+// Listing devices never requests access. Capture starts only after an explicit click.
+if(/^[a-f0-9]{64}$/.test(token)&&navigator.mediaDevices?.getUserMedia&&window.RTCPeerConnection){void listDevices().catch(()=>{});navigator.mediaDevices.addEventListener?.('devicechange',()=>{if(!preparing)void listDevices().catch(()=>{});});}
+window.addEventListener('pagehide',()=>{++mediaGeneration;media?.getTracks().forEach(t=>t.stop());screen?.getTracks().forEach(t=>t.stop());peer?.close();if(heartbeat)clearInterval(heartbeat);if(animation)cancelAnimationFrame(animation);void context?.close();});
+if(!navigator.mediaDevices?.getDisplayMedia)$('screen').hidden=true;

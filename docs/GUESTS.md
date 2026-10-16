@@ -4,7 +4,7 @@
 
 1. No topo do estúdio, clique no ícone de convidar participantes e em Convidar.
 2. Copie o link e envie apenas à pessoa convidada. São dois convidados simultâneos, além do apresentador.
-3. No navegador, a pessoa informa o nome, prepara câmera/microfone, escolhe os dispositivos e, se quiser, compartilha uma tela. Depois clica em Entrar no estúdio.
+3. No navegador, a pessoa informa o nome, clica em Ativar câmera e microfone, permite o acesso no navegador e escolhe os dispositivos e, se quiser, compartilha uma tela. Depois clica em Entrar no estúdio.
 4. No Dante, use Colocar na cena e Inserir tela. Câmera, tela e microfone são fontes separadas. Volume/mute ficam no mixer; visibilidade e enquadramento, nas fontes.
 5. Use fones. O retorno contém o áudio do estúdio e do outro convidado, excluindo a própria voz. As trilhas internas 5/6 são reservadas ao retorno de convidados; fontes do apresentador precisam participar dessas trilhas para serem ouvidas.
 6. Revogar desconecta um convite. Encerrar sala invalida todos os links. Reabrir o aplicativo exige novos convites; as fontes antigas permanecem vazias no projeto.
@@ -28,3 +28,13 @@ Teste automatizado: dois navegadores Chrome isolados, câmeras/telas e tons sint
 Dependências fixadas em packaging/guests-lock.json: LiveKitWebRTC 150.7871.03 e cloudflared 2026.10.1 recompilado para macOS 14, arm64 e x86_64. Licenças e fontes correspondentes acompanham a distribuição.
 
 O mesmo teste passou também pelo endereço público HTTPS do Quick Tunnel. Os dois navegadores estavam neste Mac: isso verifica o caminho público de sinalização, mas não comprova NAT/redes externas distintas nem TURN.
+
+## Correção local do convite — 2026-10-16
+
+A primeira preparação enviava o texto do placeholder como `deviceId.exact`, causando OverconstrainedError antes de exibir os dispositivos. Agora placeholders usam valor vazio e somente opções provenientes de enumerateDevices podem fornecer um identificador exato. A página lista opções sem abrir captura; acesso continua dependendo do clique e da permissão do navegador. Troca de dispositivo encerra a mídia anterior só depois de obter a substituta, e falha de autorização mantém a prévia existente. Mensagens distinguem recusa, dispositivo ausente/ocupado e seleção indisponível.
+
+Convite reorganizado em prévia + controles compactos, com ativação em destaque, medidor e toggles junto ao vídeo. Desktop usa a altura útil em uma tela; celular empilha cartões, mantém seletores lado a lado e alvos de toque. Informações adicionais ficam em Privacidade do convite.
+
+Teste `Tests/guest-onboarding.cjs` reproduziu o problema nos arquivos anteriores do HEAD e passou na nova página com dispositivos sintéticos. Sete viewports (desktop, celular e paisagem), primeira ativação, troca de câmera, toggles, recusa preservando mídia e desligamento ao sair. Capturas em `build/guest-onboarding-qa`; reprodução anterior em `build/guest-onboarding-baseline-result`. Não é validação de hardware físico, Safari/Firefox ou redes externas. Não altera a instância OBS, a sala ativa nem o aplicativo instalado; nova publicação ainda não realizada.
+
+Validação adicional: `node Tests/guest-onboarding.cjs build/guest-onboarding-native-qa` passou com as políticas CSP/Permissions-Policy do servidor. Além das fixtures, usa getUserMedia/enumerateDevices nativos do Chrome com dispositivos de teste do próprio navegador, sem abrir hardware físico. Recusa, nova permissão, quadros de vídeo, áudio no medidor e desligamento foram verificados. Suspensão do AudioContext não mantém os controles bloqueados. Baseline em `build/guest-placeholder-baseline-result/baseline.json` confirma placeholder enviado como identificador exato. Incluído na preparação da 0.1.12.

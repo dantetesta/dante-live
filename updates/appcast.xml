@@ -6,6 +6,27 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.14</title>
+      <pubDate>Fri, 16 Oct 2026 21:25:04 +0000</pubDate>
+      <sparkle:version>15</sparkle:version>
+      <sparkle:shortVersionString>0.1.14</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.14 — participantes e estúdio
+
+• Painel Participantes: nome, cores e câmera/tela/microfone agrupados, escolha da cena, volume, mute e visibilidade.
+• Retorno direto do programa para convidados, com áudio sem a própria voz e controle de escuta independente.
+• Câmera/microfone verdes quando ativos e vermelhos quando desligados; compartilhamento verde ou neutro.
+• Prévia independente para texto, posição, crop e visibilidade: publicar somente com Corte/Transição.
+• Programa reutiliza o quadro composto, reduzindo renderizações repetidas; máscaras menores e recorte em coordenadas fixas.
+• Reuso não oferece a própria cena nem referências circulares; confirmação específica para encerrar live.
+• Fluxo de permissões revisado, com orientação para recuperar autorizações do macOS.
+
+Experimental. Capturas/dispositivos, filtros de captura e mixer continuam compartilhados em tempo real no modo estúdio. Retorno até 960×540/15 FPS; qualidade principal preservada. Testes com dois Chrome e mídia sintética passaram, mas a webcam/rede reais do usuário, Intel físico, macOS 14 real e sessões prolongadas ainda precisam de validação. Não promete ausência total de lag ou latência zero. TURN não foi provisionado.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.14/Dante-Live-0.1.14-macOS-universal.dmg" length="94838159" type="application/octet-stream" sparkle:edSignature="yGtYWs7h+vo56ftKtre6CvrbAn+ci0uXN67xFe1UOwvAngbbCLxNElAJbQiorLlq2YeGfluY3Nj5+PjJhGltCg=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.13</title>
       <pubDate>Fri, 16 Oct 2026 16:05:18 +0000</pubDate>
       <sparkle:version>14</sparkle:version>
@@ -171,6 +192,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: Hr4uOcy7y3zJTfoTcJTH/qNKl080y7kNqtkCvGAxY9yKTGndobs8jZyuu2JdFqjWYiQnU2KXTK3fuIocg7wbAA==
-length: 15057
+edSignature: khws8qnk9Ee/52CN4tyGh5bQCBFH14TI8RfYUjIoX469YVD/J46HLJMLnnLkx3PCkWWWd/e3nGCEofrjAKClBA==
+length: 17114
 -->

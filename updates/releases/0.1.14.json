@@ -1,0 +1,16 @@
+{
+  "version": "0.1.14",
+  "build": 15,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.14/Dante-Live-0.1.14-macOS-universal.dmg",
+  "length": 94838159,
+  "sha256": "e092981fab824a1aa337d75a9026f034aa2cff47eeb4aa3c9da473e875a40e93",
+  "signature": "yGtYWs7h+vo56ftKtre6CvrbAn+ci0uXN67xFe1UOwvAngbbCLxNElAJbQiorLlq2YeGfluY3Nj5+PjJhGltCg==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T21:25:04.414714+00:00",
+  "changelog": "Dante Live 0.1.14 — participantes e estúdio\n\n• Painel Participantes: nome, cores e câmera/tela/microfone agrupados, escolha da cena, volume, mute e visibilidade.\n• Retorno direto do programa para convidados, com áudio sem a própria voz e controle de escuta independente.\n• Câmera/microfone verdes quando ativos e vermelhos quando desligados; compartilhamento verde ou neutro.\n• Prévia independente para texto, posição, crop e visibilidade: publicar somente com Corte/Transição.\n• Programa reutiliza o quadro composto, reduzindo renderizações repetidas; máscaras menores e recorte em coordenadas fixas.\n• Reuso não oferece a própria cena nem referências circulares; confirmação específica para encerrar live.\n• Fluxo de permissões revisado, com orientação para recuperar autorizações do macOS.\n\nExperimental. Capturas/dispositivos, filtros de captura e mixer continuam compartilhados em tempo real no modo estúdio. Retorno até 960×540/15 FPS; qualidade principal preservada. Testes com dois Chrome e mídia sintética passaram, mas a webcam/rede reais do usuário, Intel físico, macOS 14 real e sessões prolongadas ainda precisam de validação. Não promete ausência total de lag ou latência zero. TURN não foi provisionado.\n",
+  "notarized": true
+}

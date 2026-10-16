@@ -1,0 +1,16 @@
+{
+  "version": "0.1.13",
+  "build": 14,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.13/Dante-Live-0.1.13-macOS-universal.dmg",
+  "length": 94779293,
+  "sha256": "7d2f6de61beb3e39beed0cfe414d03dcf014fb8f4d83438292a7f5ae1fe6bcb7",
+  "signature": "7gIj384jQM4E68h4qTv8UxnBCeAG2W+Tx/7w3vHAHRZuoYzLWtfLjWXFVgSDSjmF2HQGzR5SHoH2YV2BgivMAg==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-16T16:05:18.976008+00:00",
+  "changelog": "Dante Live 0.1.13 — conexão direta dos convidados\n\n- A conexão começa pelos caminhos disponíveis, sem esperar toda a descoberta de rede terminar.\n- Candidatos de conexão são trocados automaticamente pelo convite HTTPS, com proteção por convite e tentativa.\n- Falhas de conexão não exibem mais uma conclusão genérica de que é preciso configurar TURN.\n- Cancelamento, reconexão e revogação preservam o isolamento entre convidados.\n\nTestado com dois Chrome e mídia sintética, sem TURN e com servidor STUN inacessível, em loopback e pelo link público do Quick Tunnel no mesmo Mac. Câmera, tela, áudio e retorno funcionaram. Redes externas/NAT distintos, dispositivos físicos do convidado e sessões longas continuam sem comprovação. A atualização melhora a conexão direta; não adiciona um relay nem garante funcionamento em redes que bloqueiam todos os caminhos diretos.\n\nmacOS 14+, Universal 2. Atualize fora de uma live, reabra o Dante e gere um novo convite.\n",
+  "notarized": true
+}

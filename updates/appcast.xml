@@ -6,6 +6,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.13</title>
+      <pubDate>Fri, 16 Oct 2026 16:05:18 +0000</pubDate>
+      <sparkle:version>14</sparkle:version>
+      <sparkle:shortVersionString>0.1.13</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.13 — conexão direta dos convidados
+
+- A conexão começa pelos caminhos disponíveis, sem esperar toda a descoberta de rede terminar.
+- Candidatos de conexão são trocados automaticamente pelo convite HTTPS, com proteção por convite e tentativa.
+- Falhas de conexão não exibem mais uma conclusão genérica de que é preciso configurar TURN.
+- Cancelamento, reconexão e revogação preservam o isolamento entre convidados.
+
+Testado com dois Chrome e mídia sintética, sem TURN e com servidor STUN inacessível, em loopback e pelo link público do Quick Tunnel no mesmo Mac. Câmera, tela, áudio e retorno funcionaram. Redes externas/NAT distintos, dispositivos físicos do convidado e sessões longas continuam sem comprovação. A atualização melhora a conexão direta; não adiciona um relay nem garante funcionamento em redes que bloqueiam todos os caminhos diretos.
+
+macOS 14+, Universal 2. Atualize fora de uma live, reabra o Dante e gere um novo convite.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.13/Dante-Live-0.1.13-macOS-universal.dmg" length="94779293" type="application/octet-stream" sparkle:edSignature="7gIj384jQM4E68h4qTv8UxnBCeAG2W+Tx/7w3vHAHRZuoYzLWtfLjWXFVgSDSjmF2HQGzR5SHoH2YV2BgivMAg=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.12</title>
       <pubDate>Fri, 16 Oct 2026 13:44:12 +0000</pubDate>
       <sparkle:version>13</sparkle:version>
@@ -151,6 +171,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: fwQU61Fg0im2pzojCd3BAG353T1Q1CQphgq8tiEjKETyeG4sGqScSLrIm1J//SKq+T05hLbL060Sf+r1gfhXAg==
-length: 13284
+edSignature: Hr4uOcy7y3zJTfoTcJTH/qNKl080y7kNqtkCvGAxY9yKTGndobs8jZyuu2JdFqjWYiQnU2KXTK3fuIocg7wbAA==
+length: 15057
 -->

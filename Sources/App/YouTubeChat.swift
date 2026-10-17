@@ -62,8 +62,9 @@ struct ChatMessage: Identifiable, Equatable {
     var featureText: String { featured.map { $0.pages[min(page, $0.pages.count - 1)] } ?? "" }
     func show(_ message: ChatMessage) { featured = message; page = 0; revision += 1 }
     func hide() { featured = nil; page = 0; revision += 1 }
-    func advance(_ direction: Int) {
-        guard let featured else { return }; page = min(featured.pages.count - 1, max(0, page + direction)); revision += 1
+    func advance(_ direction: Int, pageCount: Int? = nil) {
+        guard let featured else { return }; let count = max(1, pageCount ?? featured.pages.count)
+        page = min(count - 1, max(0, min(page, count - 1) + direction)); revision += 1
     }
     func dismiss(_ id: String) { donations.removeAll { $0.id == id }; if featured?.id == id { hide() } }
     func reset() {

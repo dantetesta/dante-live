@@ -1,52 +1,88 @@
 import SwiftUI
 import AppKit
 
+@MainActor private enum ChatStylePreviews {
+    static let images: [Int: NSImage] = Dictionary(uniqueKeysWithValues: ChatStyle.all.compactMap { style in
+        let message=ChatMessage(["id":"preview","authorDetails":["displayName":"Marina"],"snippet":["type":"textMessageEvent","textMessageDetails":["messageText":"Boa noite, pessoal!"]]])!
+        guard let bitmap=ChatRaster.render(messages:[message],featured:nil,page:0,lower:false,settings:["style":style.id,"layoutWidth":360,"layoutHeight":140,"fontSize":24,"nameSize":20]) else{return nil}
+        let image=NSImage(size:NSSize(width:bitmap.pixelsWide,height:bitmap.pixelsHigh));image.addRepresentation(bitmap)
+        return (style.id,image)
+    })
+}
+
 struct ChatStylePicker: View {
     @Binding var settings: [String: Any]
+    var lower = false
     var changed: () -> Void
     private var selected: ChatStyle { ChatStyle.selected(settings) }
     private func color(_ key: String, fallback: UInt32) -> Binding<Color> {
         Binding(get: {
-            Color(nsColor: chatColor(UInt32(min(0xFFFFFF, max(0, settings.number(key, Double(fallback)))))))
+            let value=settings.number(key,Double(fallback))
+            return Color(nsColor:chatColor(value.isFinite ? UInt32(min(0xFFFFFF,max(0,value))) : fallback))
         }, set: { value in
-            let c = NSColor(value).usingColorSpace(.deviceRGB) ?? .white
-            settings[key] = (Int(c.redComponent * 255) << 16) | (Int(c.greenComponent * 255) << 8) | Int(c.blueComponent * 255)
-            changed()
+            let c=NSColor(value).usingColorSpace(.deviceRGB) ?? .white
+            settings[key]=(Int(c.redComponent*255)<<16)|(Int(c.greenComponent*255)<<8)|Int(c.blueComponent*255);changed()
         })
     }
+    private func number(_ key:String,_ fallback:Double) -> Binding<Double> {
+        Binding(get:{settings.number(key,fallback)},set:{settings[key]=$0.rounded();changed()})
+    }
+    private func slider(_ title:String,key:String,fallback:Double,range:ClosedRange<Double>,unit:String="px") -> some View {
+        VStack(alignment:.leading,spacing:5) {
+            HStack { Text(title);Spacer();Text("\(Int(settings.number(key,fallback))) \(unit)").monospacedDigit().foregroundStyle(.secondary) }
+            Slider(value:number(key,fallback),in:range).accessibilityLabel(title)
+        }
+    }
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Aparência do comentário").font(.headline)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 95), spacing: 8)], spacing: 8) {
+        VStack(alignment:.leading,spacing:16) {
+            Text(lower ? "Estilo do destaque" : "Estilo do chat").font(.headline)
+            Label("Fora da live, o canvas mostra exemplos para você configurar. Esses exemplos não entram na transmissão.",systemImage:"eye").font(.caption).foregroundStyle(.secondary)
+            LazyVGrid(columns:[GridItem(.adaptive(minimum:138),spacing:8)],spacing:8) {
                 ForEach(ChatStyle.all) { style in
                     Button {
-                        settings["style"] = style.id; settings["accent"] = nil; settings["background"] = nil; settings["ink"] = nil
-                        changed()
+                        settings["style"]=style.id
+                        for key in ["accent","background","ink","font","cardOpacity"] { settings[key]=nil };changed()
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 4) {
-                                RoundedRectangle(cornerRadius: 2).fill(Color(nsColor: chatColor(style.accent))).frame(width: style.layout == 0 ? 4 : 20, height: 15)
-                                Text("Seu canal").font(.system(size: 10, weight: .bold))
+                        VStack(alignment:.leading,spacing:0) {
+                            if let image=ChatStylePreviews.images[style.id] {
+                                Image(nsImage:image).resizable().scaledToFit().padding(.horizontal,5).padding(.top,7)
                             }
-                            Rectangle().fill(Color(nsColor: chatColor(style.ink)).opacity(0.45)).frame(height: 3)
-                            Text(style.name).font(.system(size: 11, weight: .medium))
-                        }.foregroundStyle(Color(nsColor: chatColor(style.ink))).padding(10).frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
-                            .background(Color(nsColor: chatColor(style.background)), in: RoundedRectangle(cornerRadius: min(14, style.radius)))
-                            .overlay(RoundedRectangle(cornerRadius: min(14, style.radius)).strokeBorder(selected.id == style.id ? Color.teal : Color.secondary.opacity(0.25), lineWidth: selected.id == style.id ? 3 : 1))
+                            HStack { Text(style.name).font(.system(size:11,weight:.semibold));Spacer(minLength:0)
+                                if selected.id == style.id { Image(systemName:"checkmark.circle.fill").foregroundStyle(.cyan) }
+                            }.padding(.horizontal,10).padding(.bottom,10)
+                        }.foregroundStyle(.white).background(Color(red:0.12,green:0.15,blue:0.19),in:RoundedRectangle(cornerRadius:10))
+                            .overlay(RoundedRectangle(cornerRadius:10).strokeBorder(selected.id == style.id ? Color.cyan : Color.secondary.opacity(0.2),lineWidth:selected.id == style.id ? 2:1))
                     }.buttonStyle(.plain).accessibilityLabel("Estilo \(style.name)").accessibilityAddTraits(selected.id == style.id ? .isSelected : [])
                 }
             }
-            ColorPicker("Cor de destaque", selection: color("accent", fallback: selected.accent), supportsOpacity: false)
-            ColorPicker("Cor de fundo", selection: color("background", fallback: selected.background), supportsOpacity: false)
-            ColorPicker("Cor do texto", selection: color("ink", fallback: selected.ink), supportsOpacity: false)
-            Picker("Fonte", selection: Binding(get: { settings.string("font", "Helvetica Neue") }, set: { settings["font"] = $0; changed() })) {
-                ForEach(["Helvetica Neue", "Avenir Next", "Georgia", "Menlo", "Trebuchet MS", "Verdana"], id: \.self) { Text($0).tag($0) }
+            Divider()
+            Text("Texto e espaçamento").font(.subheadline.bold())
+            Picker("Fonte",selection:Binding(get:{settings.string("font",selected.layout == 5 ? "Menlo" : "Helvetica Neue")},set:{settings["font"]=$0;changed()})) {
+                ForEach(["Helvetica Neue","Avenir Next","Georgia","Menlo","Trebuchet MS","Verdana"],id:\.self) { Text($0).tag($0) }
             }
+            slider("Nome da pessoa",key:"nameSize",fallback:20,range:12...48)
+            slider("Mensagem",key:"fontSize",fallback:24,range:14...64)
+            if !lower { slider("Entre os comentários",key:"messageGap",fallback:10,range:0...48) }
+            Divider()
+            Text("Cores dos cartões").font(.subheadline.bold())
+            ColorPicker("Destaque / Super Chat",selection:color("accent",fallback:selected.accent),supportsOpacity:false)
+            ColorPicker("Fundo",selection:color("background",fallback:selected.background),supportsOpacity:false)
+            ColorPicker("Texto",selection:color("ink",fallback:selected.ink),supportsOpacity:false)
+            VStack(alignment:.leading,spacing:5) {
+                Text("Opacidade do cartão")
+                Slider(value:Binding(get:{settings.number("cardOpacity",selected.layout == 1 ? 0.65 : 0.96)},set:{settings["cardOpacity"]=$0;changed()}),in:0.15...1).accessibilityLabel("Opacidade do cartão")
+            }
+            Divider()
+            Text("Área do componente").font(.subheadline.bold())
+            let layout=ChatLayout(lower:lower,settings:settings)
             HStack {
-                Text("Tamanho do texto")
-                Slider(value: Binding(get: { settings.number("fontSize", 30) }, set: { settings["fontSize"] = $0; changed() }), in: 20...36, step: 1)
+                Text("Largura")
+                TextField("Largura",value:number("layoutWidth",Double(layout.width)),format:.number).textFieldStyle(.roundedBorder)
+                Text("Altura")
+                TextField("Altura",value:number("layoutHeight",Double(layout.height)),format:.number).textFieldStyle(.roundedBorder)
             }
-            Text("Textos longos são divididos em páginas no destaque. A aparência desta fonte acompanha todas as cenas em que ela é reutilizada.").font(.caption).foregroundStyle(.secondary)
+            Text("Arraste as laterais no canvas para mudar largura ou altura. O texto quebra em novas linhas, sem esticar. A altura mínima preserva uma linha de leitura.").font(.caption).foregroundStyle(.secondary)
+            Text("Os nomes usam cores consistentes por pessoa. O destaque usa este mesmo desenho; mensagens longas ficam em páginas na fila. A aparência acompanha esta fonte nas cenas em que é reutilizada.").font(.caption).foregroundStyle(.secondary)
         }
     }
 }
@@ -57,6 +93,12 @@ struct ChatControlView: View {
     @Environment(\.dismiss) private var dismiss
     @LegacyState private var donationsOnly = true
     private var entries: [ChatMessage] { donationsOnly ? chat.donations : chat.messages.reversed() }
+    private var featuredPages: [String] {
+        guard let featured=chat.featured else{return []}
+        let source = studio.selected.flatMap { $0.string("type") == "dante_superchat" ? $0 : nil }
+            ?? studio.scenes.flatMap { $0.array("items") }.first { $0.string("type") == "dante_superchat" }
+        return ChatRaster.pages(for:featured,settings:source.map{studio.properties(name:$0.string("name")).object("settings")} ?? [:])
+    }
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top) {
@@ -93,12 +135,12 @@ struct ChatControlView: View {
                     if let featured = chat.featured {
                         Text(featured.author).font(.title3.bold())
                         if featured.paid { Text(featured.amount).font(.headline).foregroundStyle(.teal) }
-                        ScrollView { Text(chat.featureText).font(.system(size: 17)).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled) }.frame(maxHeight: 200)
-                        if featured.pages.count > 1 {
+                        ScrollView { Text(featuredPages.isEmpty ? chat.featureText : featuredPages[min(chat.page,featuredPages.count-1)]).font(.system(size: 17)).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled) }.frame(maxHeight: 200)
+                        if featuredPages.count > 1 {
                             HStack {
-                                Button { chat.advance(-1); studio.refresh() } label: { Image(systemName: "chevron.left") }.disabled(chat.page == 0).help("Página anterior")
-                                Text("\(chat.page + 1) de \(featured.pages.count)").monospacedDigit()
-                                Button { chat.advance(1); studio.refresh() } label: { Image(systemName: "chevron.right") }.disabled(chat.page == featured.pages.count - 1).help("Próxima página")
+                                Button { chat.advance(-1,pageCount:featuredPages.count); studio.refresh() } label: { Image(systemName: "chevron.left") }.disabled(chat.page == 0).help("Página anterior")
+                                Text("\(min(chat.page + 1,featuredPages.count)) de \(featuredPages.count)").monospacedDigit()
+                                Button { chat.advance(1,pageCount:featuredPages.count); studio.refresh() } label: { Image(systemName: "chevron.right") }.disabled(chat.page >= featuredPages.count - 1).help("Próxima página")
                             }
                         }
                         Button("Ocultar destaque", systemImage: "eye.slash") { chat.hide(); studio.refresh() }

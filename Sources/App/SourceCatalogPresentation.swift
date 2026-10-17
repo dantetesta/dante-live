@@ -19,6 +19,8 @@ struct SourceChoice: Identifiable {
             data = ("Faixa de texto rolante", "Avisos, links e cupons no rodapé da live.", "Uma faixa de ponta a ponta, com altura, velocidade, cores, fonte, negrito e itálico ajustáveis. Texto salvo com a cena.", "text.line.first.and.arrowtriangle.forward", "Elementos", 13)
         case "dante_qrcode":
             data = ("QR Code", "Links, texto ou Pix para sua audiência.", "Escolha o tipo nas Propriedades e gere o código localmente. Personalize cores, estilo e logo, depois posicione na cena.", "qrcode", "Elementos", 14)
+        case "dante_youtube_alert":
+            data = ("Likes e novos inscritos", "Contador de likes e alertas de inscrições públicas.", "Conecte o YouTube e inicie a live. Ative os tipos de alerta nas Propriedades. Inscritos entram em fila de 5 segundos; likes mostram o total atualizado, sem identificar pessoas.", "hand.thumbsup.fill", "Elementos", 15)
         case "dante_youtube_chat":
             data = ("Chat do YouTube", "Uma janela com a conversa da sua live.", "Mostra as mensagens recentes da live conectada. Super Chats ficam na fila de revisão. Personalize estilo, cor e fonte nas Propriedades.", "bubble.left.and.bubble.right.fill", "Elementos", 11)
         case "dante_superchat":

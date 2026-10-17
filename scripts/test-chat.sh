@@ -18,7 +18,7 @@ for file in Sources/App/*.swift; do
 done
 xcrun swiftc -parse-as-library -target "$ARCH-apple-macos14.0" \
   -import-objc-header Sources/Bridge/DanteEngine.h "${FILES[@]}" \
-  Tests/YouTubeTests.swift Tests/YouTubeChatTests.swift Tests/ChatOverlayHarness.swift "$BUILD/DanteEngine-$ARCH.o" \
+  Tests/YouTubeTests.swift Tests/YouTubeChatTests.swift Tests/YouTubeActivityTests.swift Tests/ChatOverlayHarness.swift "$BUILD/DanteEngine-$ARCH.o" \
   -F "$APP/Contents/Frameworks" -F vendor/sparkle-2.10.0 -framework Sparkle \
   -framework LiveKitWebRTC -framework libobs -framework AppKit -framework SwiftUI \
   -framework Metal -framework MetalKit -framework AVFoundation -framework ScreenCaptureKit \

@@ -1,3 +1,9 @@
+## Versão 0.1.20 — chat responsivo e alertas
+
+Cartões por mensagem com seis estilos principais e seis variações; nome/texto/espaçamento separados, iniciais e cores por autor, opacidade e destaque Super Chat com o mesmo desenho. Dimensões de fonte editáveis pelas alças, reflow sem escala não uniforme. Paginação de destaque adaptada ao espaço. Exemplos somente na camada SwiftUI do editor, estruturalmente fora da textura do programa; ocultos durante preparação/contagem/saída ativa.
+
+Fonte de alertas: total de likes (15 s), inscrições públicas recentes (30 s), fila de cinco segundos, referência inicial sem replay e IDs únicos por sessão. Sem identificação de quem curtiu, sem inscritos privados ou garantia de tempo real. Consultas somente quando habilitado, limites de fila/memória, tratamento de quota e reset. [Operação e limites](YOUTUBE-OVERLAYS.md). Testes locais de transporte, filas, rasterização, geometria e programa nativo aprovados. Incluído na versão 0.1.20; conta real/inscrições reais e Intel físico não testados.
+
 ## Versão 0.1.19 — faixa rolante e QR Code
 
 Novas fontes nativas para faixa de texto no rodapé (altura, velocidade, cores, fonte, negrito/itálico) e QR Code (link, texto ou Pix estático, três estilos, cores e logo). Gerador local Core Image, confirmação de leitura Vision antes de aplicar. Pix valida formato/CRC e dígitos de CPF/CNPJ; não verifica cadastro bancário ou titularidade. [Uso, referências e limites](SCENE-GRAPHICS.md).
@@ -184,3 +190,7 @@ CUA confirmou arrasto, setas, ação acessível, restauração por dois cliques,
 ## Convite compacto e primeira ativação — alteração local de 2026-10-16
 
 Correção de placeholder enviado como deviceId de câmera/microfone, com regressão reproduzida antes e aprovada depois. Página compacta na altura do desktop e adaptada ao celular, preparação explícita, mensagens de permissão e limpeza de streams. Sete viewports e fluxos locais passaram em Chrome com dispositivos sintéticos; detalhes em docs/GUESTS.md. Mudanças ainda não incluídas no app instalado ou em nova distribuição; OBS e salas em execução preservados.
+
+## Correção local — salvar preparação sem abrir a biblioteca
+
+O botão de preparação foi simplificado para **Salvar**. Após `saveDraftForLater()` confirmar persistência, habilita o modo YouTube e fecha as configurações, retornando ao estúdio. Falha de validação/persistência mantém o formulário aberto com a mensagem existente. Não abre a biblioteca nem inicia transmissão. O botão **Transmitir** do estúdio mantém seleção, confirmação e contagem regressiva. Alteração local, ainda não distribuída; sem teste em live pública.

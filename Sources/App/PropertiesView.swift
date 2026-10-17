@@ -159,8 +159,10 @@ struct InspectorView: View {
                         }
                         Divider()
                         if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
-                            ChatStylePicker(settings: $settings) { applyChange(immediate: true) }
+                            ChatStylePicker(settings: $settings, lower: item.string("type") == "dante_superchat") { applyChange(immediate: true) }
                             Button("Abrir chat e fila de Super Chats") { model.showingChat = true }
+                        } else if item.string("type") == "dante_youtube_alert" {
+                            YouTubeActivitySettings(settings:$settings,activity:model.youtube.activity) { applyChange(immediate:true) }
                         } else if item.string("type") == "dante_marquee" {
                             MarqueeSettingsView(settings: $settings, onEdit: applyChange)
                         } else if item.string("type") == "dante_qrcode" {

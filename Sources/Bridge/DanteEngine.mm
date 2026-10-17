@@ -696,6 +696,7 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
                 },&context);
             }
             auto *data=settings(a[@"settings"]);obs_source_update(source,data);obs_data_release(data);
+            dante_chat_sync_layout(source);
         }
         else if([op isEqual:@"source.rename"]) {if(!uniqueName(a[@"newName"]))result=fail(e,"Escolha um nome exclusivo.");else obs_source_set_name(source,[a[@"newName"] UTF8String]);}
         else if([op isEqual:@"audio.set"]) {

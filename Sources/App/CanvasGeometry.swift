@@ -59,6 +59,30 @@ struct CanvasGeometry {
         return Resize(multiplier: ratio, position: CGPoint(x: fixed.x+(position.x-fixed.x)*ratio,y: fixed.y+(position.y-fixed.y)*ratio))
     }
 
+    struct ContentResize { let size: CGSize; let position: CGPoint }
+    /// Reflow a text-based source instead of scaling its pixels. Opposite edge
+    /// stays fixed, including rotated/mirrored/center-aligned and cropped items.
+    func resizeContent(handle: Int, translation: CGSize, sourceSize: CGSize, crop: Crop,
+                       position: CGPoint, alignment: Int, minimum: CGSize, maximum: CGSize) -> ContentResize? {
+        let width=sourceSize.width-crop.left-crop.right, height=sourceSize.height-crop.top-crop.bottom
+        guard (0..<8).contains(handle),width>0,height>0 else{return nil}
+        let x=CGPoint(x:(corners[1].x-corners[0].x)/width,y:(corners[1].y-corners[0].y)/width)
+        let y=CGPoint(x:(corners[3].x-corners[0].x)/height,y:(corners[3].y-corners[0].y)/height)
+        let determinant=x.x*y.y-x.y*y.x
+        guard abs(determinant)>0.000001 else{return nil}
+        let dx=(translation.width*y.y-translation.height*y.x)/determinant
+        let dy=(x.x*translation.height-x.y*translation.width)/determinant
+        let left=[0,6,7].contains(handle),right=[2,3,4].contains(handle)
+        let top=[0,1,2].contains(handle),bottom=[4,5,6].contains(handle)
+        let w=min(maximum.width,max(max(minimum.width,crop.left+crop.right+1),(sourceSize.width+(left ? -dx : right ? dx : 0)).rounded()))
+        let h=min(maximum.height,max(max(minimum.height,crop.top+crop.bottom+1),(sourceSize.height+(top ? -dy : bottom ? dy : 0)).rounded()))
+        let deltaW=w-sourceSize.width,deltaH=h-sourceSize.height
+        let anchorX=alignment & 1 != 0 ? 0.0 : alignment & 2 != 0 ? 1.0 : 0.5
+        let anchorY=alignment & 4 != 0 ? 0.0 : alignment & 8 != 0 ? 1.0 : 0.5
+        let shiftX=(left ? -deltaW : 0)+anchorX*deltaW,shiftY=(top ? -deltaH : 0)+anchorY*deltaH
+        return ContentResize(size:CGSize(width:w,height:h),position:CGPoint(x:position.x+x.x*shiftX+y.x*shiftY,y:position.y+x.y*shiftX+y.y*shiftY))
+    }
+
     struct Crop: Equatable {
         var left: Double; var top: Double; var right: Double; var bottom: Double
     }

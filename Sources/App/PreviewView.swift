@@ -50,6 +50,8 @@ struct CanvasView: View {
             ZStack(alignment: .topLeading) {
                 EnginePreview(model: model, program: program)
                 if !program {
+                    ChatCanvasExamples(studio:model,countdown:model.countdown,factor:factor)
+                        .frame(width:size.width,height:size.height).allowsHitTesting(false)
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { point in select(at: point, factor: factor) }
                     if let item = model.selected, item.number("width") > 0, item.number("height") > 0, let box = geometryFor(item) {
@@ -120,7 +122,7 @@ struct CanvasView: View {
             "cropLeft": crop.left, "cropTop": crop.top, "cropRight": crop.right, "cropBottom": crop.bottom], undo: false)
     }
     func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo(); cropping = cropModifier() } }
-    func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil; cropping = false }
+    func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil; cropping = false; model.inspectorRevision += 1 }
     func moveGesture(item: [String: Any], factor: Double) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .named(canvasSpace)).onChanged { value in
             guard !item.flag("locked") else { return }; begin(item)
@@ -143,6 +145,20 @@ struct CanvasView: View {
             if cropping {
                 if let edit = box.crop(handle: handle, translation: translation, sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), initial: cropFor(origin), position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment", 5))) {
                     applyCrop(edit.crop, item: origin, position: edit.position)
+                }
+                return
+            }
+            if ["dante_youtube_chat", "dante_superchat"].contains(origin.string("type")) {
+                let settings = model.properties(name: origin.string("name")).object("settings")
+                var minimumSettings = settings; minimumSettings["layoutHeight"] = 0
+                let minimumLayout = ChatLayout(lower: origin.string("type") == "dante_superchat", settings: minimumSettings)
+                if let edit = box.resizeContent(handle: handle, translation: translation,
+                    sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), crop: cropFor(origin),
+                    position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment",5)),
+                    minimum: CGSize(width:240,height:minimumLayout.height), maximum:CGSize(width:1920,height:2160)) {
+                    if model.command("source.update", ["name":origin.string("name"),"settings":["layoutWidth":edit.size.width,"layoutHeight":edit.size.height]],undo:false) {
+                        _ = model.command("item.transform",["scene":model.sceneName,"id":origin.sceneItemID,"x":edit.position.x,"y":edit.position.y],undo:false)
+                    }
                 }
                 return
             }

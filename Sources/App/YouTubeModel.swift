@@ -45,6 +45,7 @@ struct LiveShareInfo: Equatable {
     @Published private(set) var liveShare: LiveShareInfo?
     @Published private(set) var draftSaveStatus = "Alterações salvas neste Mac"
     let chat = YouTubeChat()
+    let activity = YouTubeActivity()
     private let api: YouTubeAPI
     private let vault: LiveKeyVault
     private let directory: URL
@@ -194,7 +195,7 @@ struct LiveShareInfo: Equatable {
     func cancel() { oauth.cancel(); operation?.cancel() }
     var canCancel: Bool { operation != nil }
     var trackingLive: Bool { activeEvent != nil }
-    func shutdown() { chat.reset(); cancel(); livePoll?.cancel(); edits.flush() }
+    func shutdown() { activity.reset(); chat.reset(); cancel(); livePoll?.cancel(); edits.flush() }
     private func run(_ work: @escaping @MainActor () async throws -> Void) {
         guard !busy, writable else { return }; busy = true; message = nil
         operation = Task { [weak self] in
@@ -425,6 +426,9 @@ struct LiveShareInfo: Equatable {
         chat.start(broadcast: id, api: api, access: { [weak self] in
             guard let self else { throw CancellationError() }; return try await self.accessToken(account)
         }, isSending: isSending)
+        activity.start(broadcast: id, api: api, access: { [weak self] in
+            guard let self else { throw CancellationError() }; return try await self.accessToken(account)
+        }, isSending: isSending)
         activeEvent = (account,id); message = nil; remoteLive = false; livePoll?.cancel()
         livePoll = Task { [weak self] in
             for _ in 0..<60 {
@@ -450,7 +454,7 @@ struct LiveShareInfo: Equatable {
         }, isSending: isSending, preserveQueue: true)
     }
     func endActive() {
-        chat.reset()
+        activity.reset(); chat.reset()
         liveShare = nil
         livePoll?.cancel(); remoteLive = false
         guard let event = activeEvent else { return }; activeEvent = nil

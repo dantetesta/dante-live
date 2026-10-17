@@ -1,3 +1,9 @@
+## Versão 0.1.19 — faixa rolante e QR Code
+
+Novas fontes nativas para faixa de texto no rodapé (altura, velocidade, cores, fonte, negrito/itálico) e QR Code (link, texto ou Pix estático, três estilos, cores e logo). Gerador local Core Image, confirmação de leitura Vision antes de aplicar. Pix valida formato/CRC e dígitos de CPF/CNPJ; não verifica cadastro bancário ou titularidade. [Uso, referências e limites](SCENE-GRAPHICS.md).
+
+Testes com o vetor oficial BCB, 18 combinações de QR, quadros reais de programa, persistência e isolamento de estúdio; nenhum pagamento real executado.
+
 ## Versão 0.1.18 — chat e Super Chats (experimental)
 
 Duas fontes nativas: janela de chat (últimas quatro mensagens comuns) e destaque animado, com 12 estilos, cores de destaque/fundo/texto, seis famílias de fonte e tamanho. Painel Chat na barra superior separa conversa e fila de Super Chats/Super Stickers; aprovar, ocultar, marcar como exibido e navegar páginas. Mensagens pagas não entram no feed automático; texto completo no painel e no destaque paginado. Super Stickers usam descrição textual porque a API não fornece sua imagem. No modo estúdio, o conteúdo é uma entrada ao vivo compartilhada; posição/visibilidade da cena continuam sujeitas a Corte/Transição.

@@ -161,8 +161,12 @@ struct InspectorView: View {
                         if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
                             ChatStylePicker(settings: $settings) { applyChange(immediate: true) }
                             Button("Abrir chat e fila de Super Chats") { model.showingChat = true }
+                        } else if item.string("type") == "dante_marquee" {
+                            MarqueeSettingsView(settings: $settings, onEdit: applyChange)
+                        } else if item.string("type") == "dante_qrcode" {
+                            QRCodeSettingsView(settings: $settings) { applyChange(immediate: true) }
                         } else { PropertyFields(properties: properties, settings: $settings, onEdit: applyChange) }
-                        Text("Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary)
+                        if item.string("type") != "dante_qrcode" { Text("Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary) }
                         DisclosureGroup("JSON avançado") {
                             VStack {
                                 TextEditor(text: $advanced).font(.system(.caption, design: .monospaced)).frame(height: 150)

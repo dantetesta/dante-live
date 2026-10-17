@@ -58,6 +58,10 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 </details>
 
+## Novidades da versão 0.1.19
+
+Adicione uma **faixa de texto rolante** para avisos e cupons, com altura, velocidade, cores, fonte, negrito e itálico. O novo **QR Code** cria links, textos e Pix estático, com três estilos e logo opcional. A geração acontece no Mac e verifica a leitura antes de aplicar à cena. O banco confirma o titular da chave Pix; o aplicativo não consulta o cadastro bancário. [Como usar](docs/SCENE-GRAPHICS.md).
+
 ## Novidades da versão 0.1.18
 
 - Chat do YouTube como uma fonte na cena, com as últimas mensagens comuns.

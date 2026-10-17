@@ -19,6 +19,7 @@
 #include <vector>
 #include "DanteCameraMask.hpp"
 #include "DanteChatOverlay.hpp"
+#include "DanteSceneGraphics.hpp"
 
 static std::string creationError;
 static NSString *S(const char *s) { return s ? [NSString stringWithUTF8String:s] ?: @"" : @""; }
@@ -334,6 +335,7 @@ dante_engine_t *dante_engine_create_with_config(const char *bundlePath,uint32_t 
     obs_post_load_modules();
     dante_register_guest_sources();
     dante_register_chat_sources();
+    DanteGraphics::registerSources();
     DanteMask::registerFilter();
     e->transition=obs_source_create_private("fade_transition","Dante fade",nullptr);
     if (!e->transition) { creationError="Módulo de transição ausente."; obs_shutdown(); delete e; return nullptr; }
@@ -638,7 +640,11 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
         if(!source)return fail(e,"Não foi possível criar ou localizar a fonte.");
         auto *item=obs_scene_add(scene,source);obs_source_release(source);
         if(!item)return fail(e,"Fonte incompatível ou cena com referência circular.");
-        obs_sceneitem_set_alignment(item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);requestPlacement(e,item,false);return true;
+        obs_sceneitem_set_alignment(item,OBS_ALIGN_TOP|OBS_ALIGN_LEFT);requestPlacement(e,item,false);
+        if(!strcmp(obs_source_get_unversioned_id(obs_sceneitem_get_source(item)),"dante_marquee")) {
+            vec2 pos={0,float(e->height)};obs_sceneitem_set_alignment(item,OBS_ALIGN_BOTTOM|OBS_ALIGN_LEFT);obs_sceneitem_set_pos(item,&pos);
+        }
+        return true;
     }
     if([op hasPrefix:@"item."] || [op isEqual:@"source.remove"]) {
         if(!scene)return fail(e,"Cena não encontrada.");

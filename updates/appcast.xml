@@ -6,6 +6,29 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.19</title>
+      <pubDate>Sat, 17 Oct 2026 03:20:32 +0000</pubDate>
+      <sparkle:version>20</sparkle:version>
+      <sparkle:shortVersionString>0.1.19</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.19 — faixa rolante e QR Code
+
+- Faixa de texto rolante em Elementos: rodapé com largura da cena, altura e velocidade ajustáveis, texto de até 250 caracteres, seis fontes, cores, negrito e itálico. Velocidade zero mantém o texto parado.
+- QR Code como fonte nativa para links, texto e Pix estático. Três estilos: Clássico, Arredondado e Pontos; cores e logo opcional.
+- Pix com chave cadastrada, nome/cidade e valor opcional; validação local de formato, CPF/CNPJ numérico ou alfanumérico e CRC16. Sem valor, quem paga escolhe a quantia no banco.
+- Leitura automática do QR antes de aplicar; baixo contraste é recusado. Logo, margem clara e correção de erros preservam a legibilidade.
+- Conteúdo e aparência persistem no projeto; em modo estúdio, edições aguardam Corte/Transição.
+
+Geração local, sem serviços pagos. O aplicativo não consulta o cadastro bancário, não garante titularidade e não confirma pagamentos. Confira o recebedor no app do banco antes de divulgar. Tamanho na cena, compressão e leitor do espectador podem afetar a leitura.
+
+Validação: vetor oficial BCB, 18 combinações de QR com leitura local, pixels reais no programa, movimento/altura da faixa, OCR, persistência e isolamento de estúdio. Nenhum pagamento real ou teste em Intel físico executado. Mantém o chat e os 12 estilos da 0.1.18; o eco acústico anterior continua em investigação.
+
+macOS 14+, Apple Silicon e Intel, Universal 2. Versão experimental assinada e notarizada pela Apple; credenciais privadas ficam somente no Mac do mantenedor.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.19/Dante-Live-0.1.19-macOS-universal.dmg" length="94892465" type="application/octet-stream" sparkle:edSignature="1LVIF01bWhaFX6ohmEzzvmh3NTSdUQgZNj74ivKcI5avKQyDnDXgVXY0vZ0s8JLHMcgwv7kH0oleyjak4KvoBA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.18</title>
       <pubDate>Sat, 17 Oct 2026 02:55:37 +0000</pubDate>
       <sparkle:version>19</sparkle:version>
@@ -293,6 +316,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: mymfpgxsU5aa72d2yxO9yi0KHCpplSy369t8PyMSjuApSsOxjcCsT/sH1XmIv+R3uZLffZLExCHV9JDfbtO2BA==
-length: 26097
+edSignature: 99z6L6tnc96qKe2uWslcGaU4g+9VllRJX7KUwpOiphqEYDlGGrQEhBjczsbZ8nazOzELJmO5Fp6rG+ctIVkhAQ==
+length: 28462
 -->

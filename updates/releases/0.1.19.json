@@ -1,0 +1,16 @@
+{
+  "version": "0.1.19",
+  "build": 20,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.19/Dante-Live-0.1.19-macOS-universal.dmg",
+  "length": 94892465,
+  "sha256": "a4fa9f6c493137a8123914dfb8666acd82493f87813edfe99b16415efb3c4b32",
+  "signature": "1LVIF01bWhaFX6ohmEzzvmh3NTSdUQgZNj74ivKcI5avKQyDnDXgVXY0vZ0s8JLHMcgwv7kH0oleyjak4KvoBA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-17T03:20:32.371170+00:00",
+  "changelog": "# Dante Live 0.1.19 — faixa rolante e QR Code\n\n- Faixa de texto rolante em Elementos: rodapé com largura da cena, altura e velocidade ajustáveis, texto de até 250 caracteres, seis fontes, cores, negrito e itálico. Velocidade zero mantém o texto parado.\n- QR Code como fonte nativa para links, texto e Pix estático. Três estilos: Clássico, Arredondado e Pontos; cores e logo opcional.\n- Pix com chave cadastrada, nome/cidade e valor opcional; validação local de formato, CPF/CNPJ numérico ou alfanumérico e CRC16. Sem valor, quem paga escolhe a quantia no banco.\n- Leitura automática do QR antes de aplicar; baixo contraste é recusado. Logo, margem clara e correção de erros preservam a legibilidade.\n- Conteúdo e aparência persistem no projeto; em modo estúdio, edições aguardam Corte/Transição.\n\nGeração local, sem serviços pagos. O aplicativo não consulta o cadastro bancário, não garante titularidade e não confirma pagamentos. Confira o recebedor no app do banco antes de divulgar. Tamanho na cena, compressão e leitor do espectador podem afetar a leitura.\n\nValidação: vetor oficial BCB, 18 combinações de QR com leitura local, pixels reais no programa, movimento/altura da faixa, OCR, persistência e isolamento de estúdio. Nenhum pagamento real ou teste em Intel físico executado. Mantém o chat e os 12 estilos da 0.1.18; o eco acústico anterior continua em investigação.\n\nmacOS 14+, Apple Silicon e Intel, Universal 2. Versão experimental assinada e notarizada pela Apple; credenciais privadas ficam somente no Mac do mantenedor.\n",
+  "notarized": true
+}

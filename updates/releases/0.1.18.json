@@ -1,0 +1,16 @@
+{
+  "version": "0.1.18",
+  "build": 19,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.18/Dante-Live-0.1.18-macOS-universal.dmg",
+  "length": 96493084,
+  "sha256": "f304d533a9ad25aa422856ec3bb9c53a0a083d29ad0a5dbbe51dc36223536117",
+  "signature": "wYvVsnEEdO+Zni5E6Wxx8yxrYFnLUqdx0mWIxX4+ArVvHDUknwKKoYHEdLNpVlf0OMSD1EUAQRTM8lSOCR+0AA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-17T02:55:37.410862+00:00",
+  "changelog": "# Dante Live 0.1.18 — chat na cena e novos estilos\n\n## Novidades\n- Fonte Chat do YouTube: acompanhe as últimas quatro mensagens comuns diretamente na cena.\n- Fila de Super Chats e Super Stickers: revise o conteúdo antes de mostrar. Controle Mostrar, Ocultar e Já exibido, sem publicação automática de mensagens pagas.\n- Destaque animado com 12 estilos, três cores personalizáveis, seis fontes e controle de tamanho.\n- Mensagens longas preservadas em páginas, com navegação manual; o painel mantém o texto completo.\n- Preparação da live reorganizada em Conteúdo e Público e interação, campos maiores, capa clicável e ações fixas.\n- Limite do canvas mais visível nos temas claro e escuro, inclusive no modo estúdio.\n\n## Operação e validação\nO chat usa o canal autorizado e a live iniciada pelo aplicativo. A consulta respeita a cadência da API, com intervalo mínimo de cinco segundos, reconexão e avisos de quota/permissão. Mensagens, fila e texturas permanecem somente na sessão; estilos e fontes da cena são preservados. Super Stickers aparecem como descrição textual.\n\nTestes locais cobrem leitura simulada, aprovação, deduplicação, moderação, paginação, limites de memória, limpeza da sessão e pixels reais no programa. Chat e pagamentos em conta real, sessões prolongadas, Intel físico e macOS 14 físico ainda não foram validados. O problema de eco acústico relatado anteriormente permanece em investigação.\n\nmacOS 14 ou superior. Universal 2: Apple Silicon e Intel. Distribuição experimental assinada e notarizada pela Apple. Certificados privados e credenciais não fazem parte do repositório nem do instalador.\n",
+  "notarized": true
+}

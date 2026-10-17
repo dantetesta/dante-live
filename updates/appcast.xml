@@ -6,6 +6,32 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.18</title>
+      <pubDate>Sat, 17 Oct 2026 02:55:37 +0000</pubDate>
+      <sparkle:version>19</sparkle:version>
+      <sparkle:shortVersionString>0.1.18</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.18 — chat na cena e novos estilos
+
+## Novidades
+- Fonte Chat do YouTube: acompanhe as últimas quatro mensagens comuns diretamente na cena.
+- Fila de Super Chats e Super Stickers: revise o conteúdo antes de mostrar. Controle Mostrar, Ocultar e Já exibido, sem publicação automática de mensagens pagas.
+- Destaque animado com 12 estilos, três cores personalizáveis, seis fontes e controle de tamanho.
+- Mensagens longas preservadas em páginas, com navegação manual; o painel mantém o texto completo.
+- Preparação da live reorganizada em Conteúdo e Público e interação, campos maiores, capa clicável e ações fixas.
+- Limite do canvas mais visível nos temas claro e escuro, inclusive no modo estúdio.
+
+## Operação e validação
+O chat usa o canal autorizado e a live iniciada pelo aplicativo. A consulta respeita a cadência da API, com intervalo mínimo de cinco segundos, reconexão e avisos de quota/permissão. Mensagens, fila e texturas permanecem somente na sessão; estilos e fontes da cena são preservados. Super Stickers aparecem como descrição textual.
+
+Testes locais cobrem leitura simulada, aprovação, deduplicação, moderação, paginação, limites de memória, limpeza da sessão e pixels reais no programa. Chat e pagamentos em conta real, sessões prolongadas, Intel físico e macOS 14 físico ainda não foram validados. O problema de eco acústico relatado anteriormente permanece em investigação.
+
+macOS 14 ou superior. Universal 2: Apple Silicon e Intel. Distribuição experimental assinada e notarizada pela Apple. Certificados privados e credenciais não fazem parte do repositório nem do instalador.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.18/Dante-Live-0.1.18-macOS-universal.dmg" length="96493084" type="application/octet-stream" sparkle:edSignature="wYvVsnEEdO+Zni5E6Wxx8yxrYFnLUqdx0mWIxX4+ArVvHDUknwKKoYHEdLNpVlf0OMSD1EUAQRTM8lSOCR+0AA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.17</title>
       <pubDate>Sat, 17 Oct 2026 00:42:37 +0000</pubDate>
       <sparkle:version>18</sparkle:version>
@@ -267,6 +293,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: zv+eQOon/PcV7gqetSFG9BAl4/8lIBV66GAi9S996wa3DGzir2ih6m9zMoSFqovcgGVcGw8Ft4ml0pdJqduGBg==
-length: 23639
+edSignature: mymfpgxsU5aa72d2yxO9yi0KHCpplSy369t8PyMSjuApSsOxjcCsT/sH1XmIv+R3uZLffZLExCHV9JDfbtO2BA==
+length: 26097
 -->

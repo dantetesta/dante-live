@@ -15,8 +15,9 @@ import SwiftUI
     window.contentView=host;window.orderBack(nil)
     defer { window.orderOut(nil);window.contentView=nil;window.close();_ = model.command("source.remove",["scene":scene,"id":id]) }
     try await Task.sleep(for:.milliseconds(350));host.layoutSubtreeIfNeeded()
+    var modifiers: NSEvent.ModifierFlags = .option
     func send(_ type:NSEvent.EventType,_ point:CGPoint) {
-        let event=NSEvent.mouseEvent(with:type,location:CGPoint(x:point.x,y:360-point.y),modifierFlags:.option,timestamp:ProcessInfo.processInfo.systemUptime,windowNumber:window.windowNumber,context:nil,eventNumber:1,clickCount:1,pressure:1)!
+        let event=NSEvent.mouseEvent(with:type,location:CGPoint(x:point.x,y:360-point.y),modifierFlags:modifiers,timestamp:ProcessInfo.processInfo.systemUptime,windowNumber:window.windowNumber,context:nil,eventNumber:1,clickCount:1,pressure:1)!
         window.sendEvent(event)
     }
     func drag(from:CGPoint,to:CGPoint) async throws {
@@ -33,5 +34,18 @@ import SwiftUI
     precondition(abs(item.number("y")-90)<=1 && item.number("scaleY")==0.5)
     try await drag(from:CGPoint(x:260,y:240),to:CGPoint(x:260,y:215))
     precondition(abs(model.selected!.number("cropBottom")-50)<=2)
+    host.rootView=CanvasView(model:model,cropModifier:{false})
+    modifiers=[]
+    model.framingItem=id
+    try await Task.sleep(for:.milliseconds(150))
+    let previous=model.selected!,oldBox=previous["boxCorners"] as! [[Double]],undoCount=model.undoCount
+    try await drag(from:CGPoint(x:260,y:150),to:CGPoint(x:260,y:160))
+    let framed=model.selected!
+    precondition(abs(framed.number("cropTop")-(previous.number("cropTop")-20))<=2)
+    precondition(framed["boxCorners"] as! [[Double]] == oldBox,"Framing must pan content, not move the box")
+    precondition(model.undoCount==undoCount+1,"One framing drag must produce one undo step")
+    model.selectedItem=nil
+    precondition(model.framingItem==nil,"Changing selection exits framing")
+    print("PASS: explicit framing pans without Alt, keeps the visible box fixed, one undo and selection cleanup")
     print("PASS: actual SwiftUI top/bottom handle drag crops vertically in fixed canvas coordinates; no global input injection")
 }

@@ -1,0 +1,46 @@
+--- a/mac-sck-video-capture.m
++++ b/mac-sck-video-capture.m
+@@ -526,7 +526,9 @@
+ 
+     sc->show_empty_names = obs_data_get_bool(settings, "show_empty_names");
+     sc->show_hidden_windows = obs_data_get_bool(settings, "show_hidden_windows");
+-    sc->hide_obs = obs_data_get_bool(settings, "hide_obs");
++    // Property callbacks describe candidate settings, not the running stream.
++    // Only create/update may commit hide_obs; otherwise update can skip rebuilding
++    // the content filter because it mistakes a pending edit for applied state.
+ 
+     screen_capture_build_content_list(sc, capture_type_id == ScreenCaptureDisplayStream);
+     build_display_list(sc, props);
+--- a/data/locale/en-US.ini
++++ b/data/locale/en-US.ini
+@@ -14,7 +14,7 @@
+ DisplayCapture="Display Capture"
+ DisplayCapture.Display="Display"
+ DisplayCapture.ShowCursor="Show cursor"
+-DisplayCapture.HideOBS="Hide OBS from capture"
++DisplayCapture.HideOBS="Hide Dante Live from capture"
+ WindowCapture="Window Capture"
+ WindowCapture.ShowShadow="Show window shadow"
+ Application="Application"
+--- a/data/locale/pt-BR.ini
++++ b/data/locale/pt-BR.ini
+@@ -14,7 +14,7 @@
+ DisplayCapture="Captura de monitor"
+ DisplayCapture.Display="Monitor"
+ DisplayCapture.ShowCursor="Mostrar cursor"
+-DisplayCapture.HideOBS="Ocultar OBS da captura"
++DisplayCapture.HideOBS="Ocultar Dante Live da captura"
+ WindowCapture="Captura de janela"
+ WindowCapture.ShowShadow="Mostrar sombra da janela"
+ Application="Aplicativo"
+--- a/data/locale/pt-PT.ini
++++ b/data/locale/pt-PT.ini
+@@ -14,7 +14,7 @@
+ DisplayCapture="Captura de monitor"
+ DisplayCapture.Display="Monitor"
+ DisplayCapture.ShowCursor="Mostrar cursor"
+-DisplayCapture.HideOBS="Ocultar OBS da captura"
++DisplayCapture.HideOBS="Ocultar Dante Live da captura"
+ WindowCapture="Captura de janela"
+ WindowCapture.ShowShadow="Mostrar sombra da janela"
+ Application="Aplicação"

@@ -57,6 +57,16 @@ import CoreGraphics
         precondition(pan == .init(left:0,top:20,right:40,bottom:0))
         precondition(degenerate.crop(handle:0,translation:.zero,sourceSize:CGSize(width:100,height:50),initial:noCrop,position:.zero,alignment:5) == nil)
         print("PASS: crop edges/corners with rotation, mirror and centered anchor; nonempty clamp, uncrop and content pan preserving frame")
+        for geometry in [box,rotated,flipped] {
+            let transform=geometry.sourceTransform(sourceSize:CGSize(width:140,height:80),crop:.init(left:20,top:10,right:20,bottom:20))!
+            let visible=[CGPoint(x:20,y:10),CGPoint(x:120,y:10),CGPoint(x:120,y:60),CGPoint(x:20,y:60)]
+            for (p,expected) in zip(visible,geometry.corners) {
+                let actual=p.applying(transform)
+                precondition(abs(actual.x-expected.x)<0.000001 && abs(actual.y-expected.y)<0.000001)
+            }
+        }
+        precondition(degenerate.sourceTransform(sourceSize:CGSize(width:100,height:50),crop:noCrop)==nil)
+        print("PASS: uncropped editor guide matches actual crop corners, rotation and mirror")
         let reflow = CanvasGeometry(corners:[[0,0],[480,0],[480,720],[0,720]])!
         let emptyCrop=CanvasGeometry.Crop(left:0,top:0,right:0,bottom:0)
         let right=reflow.resizeContent(handle:3,translation:CGSize(width:-180,height:100),sourceSize:CGSize(width:480,height:720),crop:emptyCrop,position:.zero,alignment:5,minimum:CGSize(width:240,height:140),maximum:CGSize(width:1920,height:2160))!

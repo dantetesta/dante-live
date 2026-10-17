@@ -87,6 +87,17 @@ struct CanvasGeometry {
         var left: Double; var top: Double; var right: Double; var bottom: Double
     }
     struct CropEdit { let crop: Crop; let position: CGPoint }
+    /// Full source pixels -> scene coordinates, including the area outside the
+    /// crop. Derived from the engine box, so rotation, mirrors and anchors agree.
+    func sourceTransform(sourceSize: CGSize, crop: Crop) -> CGAffineTransform? {
+        let w = sourceSize.width-crop.left-crop.right, h = sourceSize.height-crop.top-crop.bottom
+        guard w > 0, h > 0 else { return nil }
+        let a = (corners[1].x-corners[0].x)/w, b = (corners[1].y-corners[0].y)/w
+        let c = (corners[3].x-corners[0].x)/h, d = (corners[3].y-corners[0].y)/h
+        guard abs(a*d-b*c) > 0.000001 else { return nil }
+        return CGAffineTransform(a:a,b:b,c:c,d:d,
+            tx:corners[0].x-a*crop.left-c*crop.top,ty:corners[0].y-b*crop.left-d*crop.top)
+    }
     /// Handles run clockwise: top-left, top, top-right, right, bottom-right,
     /// bottom, bottom-left, left. Work in source pixels even when rotated/mirrored.
     func crop(handle: Int, translation: CGSize, sourceSize: CGSize, initial: Crop, position: CGPoint, alignment: Int) -> CropEdit? {

@@ -67,6 +67,7 @@ SERVICES=()
 for ARCH in $ARCHS; do SERVICES+=("$BUILD/objects/rtmp-services-$ARCH"); done
 xcrun lipo -create "${SERVICES[@]}" -output "$APP/Contents/PlugIns/rtmp-services.plugin/Contents/MacOS/rtmp-services"
 DANTE_INSTALL_OUTPUTS=1 scripts/build-outputs.sh
+DANTE_INSTALL_CAPTURE=1 bash scripts/build-capture.sh
 python3 packaging/runtime.py audit
 python3 packaging/sign.py
 codesign --verify --deep --strict --verbose=2 "$APP"

@@ -79,6 +79,26 @@ function keepDiscoveryPending(){
   for(let i=0;i<2;i++)for(const key of ['cameraFrames','screenFrames','programFrames'])assert(restarted.guests[i].media[key]>state.guests[i].media[key]+15,'native video keeps advancing: '+i+' '+key);
   console.log('PASS: device control colors, microphone/camera toggles and screen stop/restart');
 
+  // The host can expire a silent peer while the invitation remains valid. A
+  // stale ICE negotiation must rebuild the browser peer without a new link or
+  // another click, then resume the existing camera and microphone tracks.
+  const original=await pages[0].evaluate(()=>{window.__peerBeforeReconnect=peer;return {token,client,camera:media.getVideoTracks()[0].id,microphone:media.getAudioTracks()[0].id};});
+  let injected=false;
+  await pages[0].route('**/ice',async route=>{
+   if(!injected){injected=true;await route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'negotiation ended'})});}
+   else await route.continue();
+  });
+  const injectionDeadline=Date.now()+10000;
+  while(!injected&&Date.now()<injectionDeadline)await new Promise(r=>setTimeout(r,100));
+  assert(injected,'test injected one stale ICE response');
+  await pages[0].waitForFunction(()=>peer!==window.__peerBeforeReconnect&&peer?.connectionState==='connected',null,{timeout:45000});
+  const recovered=await pages[0].evaluate(()=>({token,client,camera:media.getVideoTracks()[0].id,microphone:media.getAudioTracks()[0].id,screen:screen?.getVideoTracks()[0].readyState}));
+  assert.deepEqual({...recovered,screen:undefined},{...original,screen:undefined});
+  assert.equal(recovered.screen,'live');
+  await pages[0].waitForFunction(()=>document.querySelector('#programVideo').videoWidth>0,null,{timeout:10000});
+  await pages[0].unroute('**/ice');
+  console.log('PASS: stale peer automatically reconnects with the same invite, media tracks, screen and program return');
+
   assert(state.guests.every(g=>g.media.candidateErrors===0&&g.media.remoteCandidateCount>0),'native peer accepted trickled candidates');
   const stale=await pages[0].evaluate(async()=>{try{await api('/ice',{negotiation:crypto.randomUUID(),candidates:[]});return 200;}catch(e){return e.status;}});
   assert.equal(stale,409);console.log('PASS: previous negotiation cannot inject ICE into current peer');

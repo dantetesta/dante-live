@@ -21,6 +21,14 @@ Versão experimental **0.1.21**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Convidados e enquadramento — 0.1.22
+
+- Se a mídia do convidado cair ou a negociação expirar, o navegador tenta reconectar com o mesmo convite e os dispositivos já autorizados. O botão **Reconectar agora** permanece disponível. Uma sala encerrada ainda exige novo link.
+- **Ocultar Dante Live da captura** corrige o controle de exclusão da própria janela na captura de tela. A aplicação visual em uma captura física ainda precisa de confirmação no Mac do operador.
+- Option/Alt destaca o recorte em laranja. **Ajustar enquadramento** permite recortar e deslocar o conteúdo de imagens, vídeos e câmeras com uma guia translúcida no editor.
+
+[Convidados e limites de conexão](docs/GUESTS.md) · [Estado de validação](docs/STATUS.md)
+
 ## Painéis e organização do chat — 0.1.21
 
 - Painéis flutuantes, móveis pela barra de título, podem coexistir enquanto você opera o estúdio.

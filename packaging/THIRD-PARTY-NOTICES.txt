@@ -19,6 +19,8 @@ The obs-outputs plugin is rebuilt from the pinned OBS source with the Dante Live
 connection-thread ownership patch. Jansson 2.14.1 and libcaption (MIT) are linked
 into this plugin; their copyright/license notices are included. The custom-only
 rtmp-services plugin is also rebuilt without background service update code.
+The mac-capture plugin is rebuilt with Dante Live's hide-host property-state fix
+and localized control label; its upstream GPL license and authors are preserved.
 
 SIMDe 0.8.2 (header-only integration dependency), MIT license.
 Source: https://github.com/simd-everywhere/simde

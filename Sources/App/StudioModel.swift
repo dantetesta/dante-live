@@ -8,7 +8,11 @@ import ScreenCaptureKit
 final class StudioModel: ObservableObject {
     @Published var state: [String: Any] = [:]
     @Published var catalog: [String: Any] = [:]
-    @Published var selectedItem: Int64?
+    @Published var selectedItem: Int64? {
+        didSet { if selectedItem != oldValue { framingItem = nil } }
+    }
+    // Editor state only, never persisted or sent to the program renderer.
+    @Published var framingItem: Int64?
     @Published var error: String?
     @Published var notice = "Pronto para criar"
     @Published var studioMode = false

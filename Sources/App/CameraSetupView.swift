@@ -276,7 +276,7 @@ struct CameraSetupView: View {
 }
 
 @MainActor
-private final class CameraSourcePreviewNSView: NSView, EngineDisplayOwner {
+final class CameraSourcePreviewNSView: NSView, EngineDisplayOwner {
     private var preview: UnsafeMutableRawPointer?
     private var owner: OpaquePointer?
     private var sourceName = ""
@@ -303,7 +303,7 @@ private final class CameraSourcePreviewNSView: NSView, EngineDisplayOwner {
 }
 
 @MainActor
-private struct CameraSourcePreview: NSViewRepresentable {
+struct CameraSourcePreview: NSViewRepresentable {
     @ObservedObject var model: StudioModel
     let sourceName: String
     func makeNSView(context: Context) -> CameraSourcePreviewNSView { CameraSourcePreviewNSView() }

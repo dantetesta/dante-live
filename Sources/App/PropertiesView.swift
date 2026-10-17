@@ -151,7 +151,8 @@ struct InspectorView: View {
                                 Button("Ajustar ao canvas") { _ = model.command("item.fit", ["scene": model.sceneName, "id": item.sceneItemID]) }.disabled(item.flag("locked"))
                             }.padding(.top, 8)
                         }
-                        Text("⌘F ajusta à cena. ⌥ + arrasto das bordas recorta; por dentro, ajusta o enquadramento recortado.").font(.caption2).foregroundStyle(.secondary)
+                        CanvasFramingControls(model:model,item:item)
+                        Text("⌘F ajusta à cena. ⌥ deixa as alças laranja para recortar; por dentro, ajusta o enquadramento.").font(.caption2).foregroundStyle(.secondary)
                         if allowsSecondarySheets { Button("Filtros (\(item.array("filters").count))") { model.showingFilters = true } }
                         if item.flag("audio") { AudioAdvancedView(model: model, item: item) }
                         if item.number("mediaDuration") > 0 || item.string("type").contains("ffmpeg") {

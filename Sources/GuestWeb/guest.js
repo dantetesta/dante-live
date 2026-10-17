@@ -4,7 +4,7 @@ const storage={get:key=>{try{return sessionStorage.getItem(key);}catch{return nu
 const token=location.hash.slice(1)||storage.get('dante-invite')||'';
 if(/^[a-f0-9]{64}$/.test(token)){storage.set('dante-invite',token);history.replaceState(null,'',location.pathname);}
 let client=storage.get('dante-client');if(!client){client=crypto.randomUUID();storage.set('dante-client',client);}
-let media=null,screen=null,peer=null,cameraSender=null,micSender=null,screenSender=null,heartbeat=null,context=null,animation=null,joining=false,preparing=false,mediaGeneration=0,screenGeneration=0,sharingBusy=false,connectionGeneration=0,connectionDeadline=null;
+let media=null,screen=null,peer=null,cameraSender=null,micSender=null,screenSender=null,heartbeat=null,context=null,animation=null,joining=false,preparing=false,mediaGeneration=0,screenGeneration=0,sharingBusy=false,connectionGeneration=0,connectionDeadline=null,reconnectTimer=null,reconnectAttempts=0;
 // Bounds, not forced minimums: congestion control must still be able to recover
 // on a slower link. Prefer retaining pixels and reducing FPS for legible screens.
 const sendQuality={camera:{maxBitrate:3000000,maxFramerate:30,priority:'medium'},screen:{maxBitrate:5000000,maxFramerate:15,priority:'medium'},audio:{maxBitrate:128000,priority:'high'}};
@@ -114,15 +114,24 @@ function closeConnection(){
  const previous=peer;peer=null;
  if(heartbeat)clearInterval(heartbeat);heartbeat=null;
  if(connectionDeadline)clearTimeout(connectionDeadline);connectionDeadline=null;
+ if(reconnectTimer)clearTimeout(reconnectTimer);reconnectTimer=null;
  $('returnAudio').pause();$('returnAudio').srcObject=null;$('listen').hidden=true;
  $('programVideo').srcObject=null;$('programReturn').hidden=true;
  previous?.close();cameraSender=micSender=screenSender=null;
+}
+function scheduleReconnect(message,grace=1000){
+ if(reconnectTimer||joining||!media||media.getTracks().some(track=>track.readyState!=='live'))return;
+ const delay=Math.min(15000,grace*2**Math.min(reconnectAttempts++,4));
+ status(message+' Tentaremos reconectar automaticamente.');
+ $('join').textContent='Reconectar agora';$('join').hidden=false;$('join').disabled=false;
+ reconnectTimer=setTimeout(()=>{reconnectTimer=null;void join();},delay);
 }
 async function join(){
  if(joining)return;
  if(!$('name').value.trim()){status('Informe seu nome para entrar.');$('name').focus();return;}
  if(!media||media.getTracks().some(track=>track.readyState!=='live')){status('Ative câmera e microfone antes de entrar.');return;}
  const generation=++connectionGeneration;joining=true;closeConnection();
+ let retryableFailure=false;
  $('join').disabled=true;$('leave').hidden=false;status('Conectando ao estúdio…');
  try{
   const info=await api('/join',{name:$('name').value.trim()});
@@ -138,9 +147,9 @@ async function join(){
   preferH264(screenTransceiver);screenSender=screenTransceiver.sender;
   pc.ontrack=event=>{if(pc!==peer)return;if(event.track.kind==='video'){$('programVideo').srcObject=new MediaStream([event.track]);$('programReturn').hidden=false;$('programVideo').play().catch(()=>{});}if(event.track.kind==='audio'){$('returnAudio').srcObject=new MediaStream([event.track]);$('returnAudio').play().catch(()=>{$('listen').hidden=false;});}};
   pc.onconnectionstatechange=()=>{if(pc!==peer)return;const state=pc.connectionState;
-   if(state==='connected'){clearTimeout(connectionDeadline);connectionDeadline=null;status('Conectado. Aguarde o apresentador inserir você na cena.');$('join').hidden=true;}
-   if(state==='disconnected'){status('A conexão oscilou. Tentando recuperar…');}
-   if(state==='failed'){status('Não foi possível estabelecer áudio e vídeo nesta rede. Clique em Reconectar. O link do convite, sozinho, não confirma a conexão da mídia.');$('join').textContent='Reconectar';$('join').hidden=false;$('join').disabled=false;}
+   if(state==='connected'){clearTimeout(connectionDeadline);connectionDeadline=null;if(reconnectTimer)clearTimeout(reconnectTimer);reconnectTimer=null;reconnectAttempts=0;status('Conectado. Aguarde o apresentador inserir você na cena.');$('join').hidden=true;}
+   if(state==='disconnected')scheduleReconnect('A conexão oscilou.',5000);
+   if(state==='failed')scheduleReconnect('A conexão de áudio e vídeo caiu.');
   };
   // Send SDP immediately. Local/direct candidates remain usable while STUN is
   // slow or blocked; later candidates travel over the authenticated HTTPS API.
@@ -163,7 +172,7 @@ async function join(){
    }catch(error){
     if(pc!==peer)return;
     if([403,410].includes(error.status)){await leave();failure(error);return;}
-    if(error.status===409){closeConnection();failure(error);$('join').hidden=false;$('join').disabled=false;$('join').textContent='Reconectar';return;}
+    if(error.status===409){closeConnection();scheduleReconnect('A tentativa anterior terminou.');return;}
     if(++failures>=3)status('A comunicação com o estúdio está instável. Tentando novamente…');
    }finally{polling=false;}
   };
@@ -171,10 +180,15 @@ async function join(){
   if(pc.connectionState!=='connected')connectionDeadline=setTimeout(()=>{
    if(pc!==peer||pc.connectionState==='connected')return;closeConnection();
    status('Não encontramos um caminho de áudio e vídeo nesta rede. O convite abriu, mas a mídia não conectou. Tente Reconectar ou outra conexão de internet.');
-   $('join').hidden=false;$('join').disabled=false;$('join').textContent='Reconectar';
+   scheduleReconnect('Não encontramos um caminho de áudio e vídeo nesta rede.');
   },45000);
- }catch(error){if(generation===connectionGeneration){closeConnection();failure(error);$('join').disabled=false;$('join').hidden=false;$('join').textContent='Tentar novamente';}}
- finally{if(generation===connectionGeneration)joining=false;}
+ }catch(error){if(generation===connectionGeneration){retryableFailure=![403,409,410].includes(error.status);closeConnection();failure(error);$('join').disabled=false;$('join').hidden=false;$('join').textContent='Tentar novamente';}}
+ finally{if(generation===connectionGeneration){
+  joining=false;
+  if(retryableFailure)scheduleReconnect('A comunicação com o estúdio falhou.');
+  else if(peer?.connectionState==='failed')scheduleReconnect('A conexão de áudio e vídeo caiu.');
+  else if(peer?.connectionState==='disconnected')scheduleReconnect('A conexão oscilou.',5000);
+ }}
 }
 async function leave(){
  ++screenGeneration;++connectionGeneration;joining=false;closeConnection();

@@ -28,6 +28,9 @@ application and Objective-C++ bridge for both macOS architectures, the custom-on
 RTMP services module, and the patched obs-outputs plugin. build-outputs.sh applies
 packaging/patches/obs-outputs-connect-lifecycle.patch to an isolated OBS source copy.
 Jansson and all its sources are included; libcaption is compiled from OBS sources.
+The mac-capture plugin is rebuilt by scripts/build-capture.sh from an isolated
+source copy with packaging/patches/mac-capture-hide-host.patch. The patch preserves
+the running hide-host state until capture update and labels the control Dante Live.
 The generated obsconfig.h definitions are embedded in scripts/build.sh.
 
 For the unmodified upstream runtime, all source build controls are included in

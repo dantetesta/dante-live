@@ -90,9 +90,11 @@ struct ChatStylePicker: View {
 struct ChatControlView: View {
     @ObservedObject var studio: StudioModel
     @ObservedObject var chat: YouTubeChat
-    @Environment(\.dismiss) private var dismiss
-    @LegacyState private var donationsOnly = true
-    private var entries: [ChatMessage] { donationsOnly ? chat.donations : chat.messages.reversed() }
+    @StudioDismiss private var dismiss
+    @LegacyState private var section = "donations"
+    @LegacyState private var query = ""
+    @LegacyState private var newestFirst = true
+    private var entries: [ChatMessage] { chat.entries(in: section, query: query, newestFirst: newestFirst) }
     private var featuredPages: [String] {
         guard let featured=chat.featured else{return []}
         let source = studio.selected.flatMap { $0.string("type") == "dante_superchat" ? $0 : nil }
@@ -113,17 +115,28 @@ struct ChatControlView: View {
             Divider()
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("Mensagens", selection: $donationsOnly) {
-                        Text("Super Chats (\(chat.donations.count))").tag(true)
-                        Text("Conversa (\(chat.messages.count))").tag(false)
+                    Picker("Mensagens", selection: $section) {
+                        Text("Super Chats (\(chat.pendingDonations.count))").tag("donations")
+                        Text("Conversa (\(chat.pendingMessages.count))").tag("conversation")
+                        Text("Já exibidos (\(chat.displayed.count))").tag("displayed")
                     }.pickerStyle(.segmented).labelsHidden()
+                    HStack {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("Buscar por nome ou mensagem", text: $query).textFieldStyle(.roundedBorder)
+                        if !query.isEmpty { Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).accessibilityLabel("Limpar busca") }
+                        Picker("Ordem", selection: $newestFirst) {
+                            Text("Mais recentes").tag(true)
+                            Text("Mais antigos").tag(false)
+                        }.labelsHidden().frame(width: 145)
+                    }
+                    Text("Após sair do destaque da live, a mensagem vai para Já exibidos em 30 segundos.").font(.caption).foregroundStyle(.secondary)
                     if chat.overflow > 0 {
                         Label("Fila cheia. \(chat.overflow) novos apoios não foram guardados. Consulte o YouTube Studio.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             if entries.isEmpty {
-                                ContentUnavailableView(donationsOnly ? "Aguardando os primeiros apoios" : "A conversa começa com sua live", systemImage: donationsOnly ? "heart.text.square" : "bubble.left.and.bubble.right", description: Text("Conecte o canal e inicie uma live do YouTube. As mensagens desta sessão aparecem aqui."))
+                                ContentUnavailableView(!query.isEmpty ? "Nenhuma mensagem encontrada" : section == "displayed" ? "Nenhum destaque arquivado" : section == "donations" ? "Nenhum Super Chat pendente" : "Nenhum comentário pendente", systemImage: section == "displayed" ? "checkmark.bubble" : "bubble.left.and.bubble.right", description: Text(!query.isEmpty ? "Busque outro nome ou trecho da mensagem." : chat.sessionActive ? "As mensagens desta live aparecem aqui. Destaques exibidos ficam na outra aba." : "Conecte o canal e inicie uma live do YouTube."))
                             }
                             ForEach(entries) { message in row(message) }
                         }.padding(2)
@@ -168,16 +181,27 @@ struct ChatControlView: View {
                 Spacer()
                 if message.paid { Text(message.amount).font(.headline).foregroundStyle(.teal) }
             }
+            if chat.onAirID == message.id {
+                badge("Em exibição", icon: "dot.radiowaves.left.and.right", color: .green)
+            } else if chat.retiringIDs.contains(message.id) {
+                badge("Exibido • aguardando arquivamento", icon: "clock", color: .orange)
+            } else if chat.wasDisplayed(message.id) {
+                badge("Já exibido", icon: "checkmark.circle.fill", color: .purple)
+            }
             Text(message.text.isEmpty ? "Apoio sem mensagem" : message.text).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             HStack {
                 Button(chat.featured?.id == message.id ? "Selecionado" : "Mostrar", systemImage: "eye") {
                     if !studio.items.contains(where: { $0.string("type") == "dante_superchat" }) { add("dante_superchat", base: "Destaque do YouTube") }
                     chat.show(message); studio.refresh()
                 }.buttonStyle(.borderedProminent)
-                if message.paid { Button("Já exibido / remover", systemImage: "checkmark") { chat.dismiss(message.id); studio.refresh() }.help("Remove apenas desta fila. Não altera a doação no YouTube.") }
+                if message.paid || section == "displayed" { Button("Remover da fila", systemImage: "trash") { chat.dismiss(message.id); studio.refresh() }.help("Remove apenas desta fila. Não altera a doação no YouTube.") }
             }
         }.padding(16).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(chat.featured?.id == message.id ? Color.teal : Color.secondary.opacity(0.15)))
+    }
+    private func badge(_ title: String, icon: String, color: Color) -> some View {
+        Label(title, systemImage: icon).font(.caption.weight(.semibold)).foregroundStyle(color)
+            .padding(.horizontal, 9).padding(.vertical, 4).background(color.opacity(0.12), in: Capsule())
     }
     private func add(_ type: String, base: String) {
         let names = Set(studio.scenes.flatMap { $0.array("items").map { $0.string("name") } })

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GuestsView: View {
-    @Environment(\.dismiss) private var dismiss
+    @StudioDismiss private var dismiss
     @ObservedObject var guests: GuestModel
     @ObservedObject var studio: StudioModel
     @LegacyState private var showNetwork = false

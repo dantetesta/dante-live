@@ -1,3 +1,9 @@
+## Versão 0.1.21 — painéis e histórico do chat
+
+Painéis SwiftUI convertidos para NSPanel independentes, móveis pela barra de título, coexistentes e sem sessão modal. Dismiss/bindings/onDismiss mantidos, reabertura e encerramento antes da engine cobertos. Chat com três abas, busca nome/texto, ordenação cronológica e tags coloridas. A classificação só observa destaque ativo no programa enquanto streaming; saída do ar agenda arquivamento após30s, reexibição cancela o prazo. Histórico limitado a500 itens, moderação/reset limpam estado. Feed automático preservado.
+
+Testes locais: dois painéis reais coexistentes, movimento, fechamento independente, reabertura; relógio determinístico para30s, filtros/ordem/reset; teste libobs confirma sourceActive acompanha programa/Cut e ignora alterações somente na prévia. Capturas claro/escuro em build/chat-qa/panel-*.png. Logs panels-history-tests.log e program-history-tests.log. Incluído na versão 0.1.21. Sem live pública ou manipulação de aplicativos instalados.
+
 ## Versão 0.1.20 — chat responsivo e alertas
 
 Biblioteca em duas abas, ações Transmitir/Editar por cartão e remoção de preparações locais com confirmação. Agendamentos saem da lista local e podem ser restaurados; nenhuma exclusão remota. Exclusão persistente inclusive da última preparação, isolamento por conta e rollback em erro de disco. Atalho nas configurações fecha as folhas antes de abrir a confirmação existente.

@@ -14,6 +14,16 @@ O chat conectado recebe as mensagens comuns automaticamente. Mostra os cartões 
 
 Super Chats aguardam aprovação no painel Chat. **Mostrar** publica o destaque; **Ocultar** retira. Texto longo é paginado conforme largura, altura e fonte, sem descartar seu restante. O painel usa a fonte de destaque selecionada, ou a primeira encontrada, como referência para as páginas. Em várias fontes com tamanhos diferentes, o mesmo índice pode corresponder a trechos diferentes; prefira uma fonte de destaque reutilizada.
 
+## Painel flutuante e organização da fila
+
+O painel Chat pode ser movido pela barra de título e coexistir com configurações, convidados, biblioteca, propriedades e outros painéis do estúdio. Fechar um painel não fecha os demais. Diálogos do sistema, como escolha de arquivos e alertas, mantêm seu comportamento nativo.
+
+Use **Buscar por nome ou mensagem** e **Mais recentes / Mais antigos** em qualquer uma das três abas. **Super Chats** e **Conversa** mostram os itens pendentes; **Já exibidos** guarda até 500 destaques desta sessão, com tag colorida.
+
+Uma mensagem só conta como exibida quando o destaque está ativo no programa durante a transmissão. Apenas selecionar, ou mostrar somente na prévia, não conta. Ao ocultar o destaque, trocar a mensagem ou tirar sua fonte do programa, começa um prazo de 30 segundos; depois a mensagem passa para Já exibidos. Se voltar ao ar antes, o prazo é cancelado. É possível mostrar novamente um item do histórico. O fluxo automático da janela de chat não é alterado pela classificação da fila de destaques.
+
+Mensagens removidas/moderadas não reaparecem no histórico. Tudo é limpo ao encerrar a live. Nenhuma classificação é enviada ao YouTube.
+
 ## Contador e alertas
 
 Adicione **Likes e novos inscritos** em Elementos. Nas Propriedades, habilite contador e/ou inscritos públicos. Posicione e redimensione no canvas.

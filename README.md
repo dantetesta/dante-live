@@ -21,6 +21,15 @@ Versão experimental **0.1.20**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Painéis e organização do chat — 0.1.21
+
+- Painéis flutuantes, móveis pela barra de título, podem coexistir enquanto você opera o estúdio.
+- Busca por nome ou mensagem e ordenação por mais recentes/mais antigos.
+- Aba **Já exibidos** e tags coloridas. O destaque vai para o histórico 30 segundos após sair do programa; voltar ao ar cancela o prazo.
+- Selecionar uma mensagem ou mostrá-la só na prévia não conta como exibição. Histórico limitado à sessão, sem alterar o YouTube.
+
+[Como usar chat e destaques](docs/YOUTUBE-OVERLAYS.md).
+
 ## Chat e alertas — 0.1.20
 
 A biblioteca separa **Salvas para transmitir agora** de **Criadas e agendadas**, com atalho **Transmitir** nos cartões. Remova preparações deste Mac ou oculte agendamentos localmente, preservando o canal. O atalho mantém a confirmação e a contagem regressiva.

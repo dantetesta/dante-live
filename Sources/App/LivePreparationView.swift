@@ -56,14 +56,14 @@ struct LivePreparationView: View {
         }
         .font(.system(size: 14))
         .onDisappear { youtube.flush() }
-        .sheet(isPresented: $showingLibrary, onDismiss: {
+        .studioPanel(isPresented: $showingLibrary, title: "Minhas lives", onDismiss: {
             if transmitAfterLibrary { transmitAfterLibrary = false; model.transmitSelectedFromSettings() }
         }) {
             YouTubeLibraryView(youtube: youtube, forTransmission: false, onTransmit: {
                 transmitAfterLibrary = true; showingLibrary = false
             }) { showingLibrary = false }
         }
-        .sheet(isPresented: $showingSchedule) {
+        .studioPanel(isPresented: $showingSchedule, title: "Agendar live") {
             LiveScheduleView(youtube: youtube) {
                 settings.edit({ $0.youtubeMode = true }, immediate: true)
                 showingSchedule = false
@@ -311,7 +311,7 @@ struct LivePreparationView: View {
 struct LiveScheduleView: View {
     @ObservedObject var youtube: YouTubeModel
     var onSchedule: () -> Void
-    @Environment(\.dismiss) private var dismiss
+    @StudioDismiss private var dismiss
     @LegacyState private var date = Date().addingTimeInterval(3600)
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {

@@ -4,6 +4,7 @@ let appVersion = "Chat QA"
 @main struct ChatQA {
     @MainActor static func main() async throws {
         NSApplication.shared.setActivationPolicy(.accessory)
+        try await runStudioPanelTests()
         try await runYouTubeChatTests()
         try await runYouTubeActivityTests()
         let directory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("build/chat-qa")

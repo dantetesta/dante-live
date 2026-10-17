@@ -23,9 +23,16 @@ int main(int argc,char **argv){@autoreleasepool{
     fprintf(stderr,"pixels: frames=%d red=%d\n",frames.load(),red.load());assert(frames>0&&red>200);puts("PASS: actual program frames contain overlay RGBA pixels after animated entrance");
     auto *sceneSource=obs_get_source_by_name("Cena 1");auto *scene=obs_scene_from_source(sceneSource);auto *item=obs_scene_find_source(scene,"Overlay native QA");assert(item);
     auto id=obs_sceneitem_get_id(item);std::string hide="{\"id\":"+std::to_string(id)+",\"value\":false}";
-    command(e,"item.visible",hide.c_str());pump();assert(red<10);
+    auto *tracked=obs_get_source_by_name("Overlay native QA");assert(obs_source_active(tracked));
+    command(e,"item.visible",hide.c_str());pump();assert(red<10);assert(!obs_source_active(tracked));
     std::string show="{\"id\":"+std::to_string(id)+",\"value\":true}";command(e,"item.visible",show.c_str());pump();assert(red>200);
     command(e,"scene.select",R"({"scene":"Cena 1","studio":true})");pump();assert(red>200);
+    command(e,"item.visible",hide.c_str());pump();assert(obs_source_active(tracked)); // Hidden only in preview.
+    command(e,"scene.take",R"({"scene":"Cena 1","transition":"cut","duration":0})");pump();assert(!obs_source_active(tracked));
+    command(e,"item.visible",show.c_str());pump();assert(!obs_source_active(tracked)); // Shown only in preview.
+    command(e,"scene.take",R"({"scene":"Cena 1","transition":"cut","duration":0})");pump();assert(obs_source_active(tracked));
+    obs_source_release(tracked);
+    puts("PASS: program-active highlight detection follows eye and Cut, ignoring preview-only changes");
     assert(dante_chat_frame("Overlay native QA",nullptr,0,0,0,false));pump();assert(red<10);
     puts("PASS: eye visibility and session reset clear real program frames, including studio snapshot");
     command(e,"source.update",R"({"name":"Overlay native QA","settings":{"layoutWidth":640,"layoutHeight":300}})");

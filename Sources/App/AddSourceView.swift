@@ -3,7 +3,7 @@ import AppKit
 
 struct AddSourceView: View {
     @ObservedObject var model: StudioModel
-    @Environment(\.dismiss) private var dismiss
+    @StudioDismiss private var dismiss
     @LegacyState private var type = ""
     @LegacyState private var name = ""
     @LegacyState private var settings: [String: Any] = [:]

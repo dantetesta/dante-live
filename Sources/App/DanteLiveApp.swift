@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             alert.informativeText = "Pare a transmissão, encerre a sala de convidados e aguarde a finalização antes de sair."
             alert.addButton(withTitle: "Voltar ao estúdio"); alert.runModal(); return .terminateCancel
         }
+        StudioPanelController.closeAll()
         // Destroy native displays while the engine remains alive.
         for sheet in window?.sheets ?? [] { detachPreviews(sheet.contentView) }
         for projector in projectorWindows {
@@ -75,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let projector = notification.object as? NSWindow else { return }
         if projector === window {
+            StudioPanelController.closeAll()
             for secondary in projectorWindows { secondary.close() }
             preferencesWindow?.close()
             return

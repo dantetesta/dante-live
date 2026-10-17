@@ -246,6 +246,7 @@ struct ChatLayout {
             guard let bitmap = ChatRaster.render(messages: chat.messages, featured: chat.featured, page: chat.page, lower: lower, settings: settings), let bytes = bitmap.bitmapData else { continue }
             if !dante_chat_frame(name, bytes, UInt32(bitmap.pixelsWide), UInt32(bitmap.pixelsHigh), UInt32(bitmap.bytesPerRow), lower) { signatures[name] = nil }
         }
+        chat.updatePresentation(visible: studio.streaming && sources.contains { $0.string("type") == "dante_superchat" && $0.flag("sourceActive") })
         _ = engine // All bridge operations above are main-actor serialized.
     }
 }

@@ -63,27 +63,27 @@ struct StudioView: View {
         .frame(minWidth: 1030, minHeight: 650)
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(.teal)
-        .sheet(isPresented: $model.showingAdd, onDismiss: {
+        .studioPanel(isPresented: $model.showingAdd, title: "Adicionar à cena", onDismiss: {
             if !model.cameraSourceName.isEmpty { model.showingCamera = true }
         }) { AddSourceView(model: model) }
-        .sheet(isPresented: $model.showingCamera, onDismiss: {
+        .studioPanel(isPresented: $model.showingCamera, title: "Configurar câmera", onDismiss: {
             model.cameraSourceName = ""; model.inspectorRevision += 1
         }) { CameraSetupView(model: model, sourceName: model.cameraSourceName) }
-        .sheet(item: $model.pendingLive) { launch in LiveConfirmationView(model: model, launch: launch) }
-        .sheet(isPresented: $model.showingLiveLibrary, onDismiss: { model.liveLibraryDismissed() }) {
+        .studioPanel(item: $model.pendingLive, title: "Confirmar transmissão") { launch in LiveConfirmationView(model: model, launch: launch) }
+        .studioPanel(isPresented: $model.showingLiveLibrary, title: "Minhas lives", onDismiss: { model.liveLibraryDismissed() }) {
             YouTubeLibraryView(youtube: model.youtube, forTransmission: true) { model.continueFromLiveLibrary() }
         }
-        .sheet(isPresented: $model.showingChat) { ChatControlView(studio: model, chat: model.youtube.chat) }
-        .sheet(isPresented: $model.showingGuests) { GuestsView(guests: model.guests, studio: model) }
-        .sheet(isPresented: $model.showingOutput, onDismiss: { model.liveLibraryDismissed() }) { OutputSettingsView(model: model) }
-        .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
+        .studioPanel(isPresented: $model.showingChat, title: "Chat e destaques") { ChatControlView(studio: model, chat: model.youtube.chat) }
+        .studioPanel(isPresented: $model.showingGuests, title: "Participantes") { GuestsView(guests: model.guests, studio: model) }
+        .studioPanel(isPresented: $model.showingOutput, title: "Configurações da live", onDismiss: { model.liveLibraryDismissed() }) { OutputSettingsView(model: model) }
+        .studioPanel(isPresented: $model.showingProperties, title: "Propriedades", onDismiss: { model.inspectorRevision += 1 }) {
             VStack(spacing: 0) {
-                InspectorView(model: model, allowsSecondarySheets: false)
+                InspectorView(model: model)
                 Divider()
                 HStack { Spacer(); Button("Fechar") { model.showingProperties = false }.keyboardShortcut(.cancelAction) }.padding(14)
             }.frame(width: 480, height: 650)
         }
-        .sheet(isPresented: $model.showingFilters) { FilterView(model: model) }
+        .studioPanel(isPresented: $model.showingFilters, title: "Filtros") { FilterView(model: model) }
         .alert("Dante Live", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) { Button("Entendi") { model.error = nil } } message: { Text(model.error ?? "") }
     }
     var topBar: some View {

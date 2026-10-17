@@ -39,6 +39,34 @@ import AppKit
     }
     print("PASS: paid approval, dedup, dismissal, complete pagination, moderation, bounds, reset and 12 RGBA styles")
 
+    // Selecting alone does not count. Only a program-visible highlight starts the lifecycle.
+    chat.reset(); chat.ingest([fixture("one",text:"Olá, Marina"),fixture("two",paid:true,text:"Outro apoio")])
+    let first = chat.messages[0], second = chat.donations[0]
+    chat.show(first); chat.updatePresentation(visible:false,now:0); chat.hide(); chat.updatePresentation(visible:false,now:40)
+    precondition(chat.displayed.isEmpty && chat.pendingMessages.count == 1)
+    chat.show(first); chat.updatePresentation(visible:true,now:50)
+    precondition(chat.onAirID == "one")
+    chat.hide(); chat.updatePresentation(visible:false,now:60)
+    chat.updatePresentation(visible:false,now:89.99)
+    precondition(chat.displayed.isEmpty && chat.retiringIDs.contains("one"))
+    chat.updatePresentation(visible:false,now:90)
+    precondition(chat.displayed == [first] && chat.pendingMessages.isEmpty)
+    precondition(chat.messages.count == 1) // Automatic chat feed is independent of operator queue.
+    chat.show(second); chat.updatePresentation(visible:true,now:100)
+    chat.updatePresentation(visible:false,now:110) // Eye/source hidden while still selected.
+    chat.updatePresentation(visible:true,now:120) // Re-show cancels the old deadline.
+    chat.updatePresentation(visible:true,now:145)
+    precondition(chat.displayed == [first] && chat.retiringIDs.isEmpty)
+    chat.hide(); chat.updatePresentation(visible:false,now:150); chat.updatePresentation(visible:false,now:180)
+    precondition(chat.displayed.count == 2 && chat.donations.isEmpty)
+    precondition(chat.entries(in:"displayed",query:"MARINA",newestFirst:true) == [first])
+    precondition(chat.entries(in:"displayed",query:"canal",newestFirst:false) == [first,second])
+    precondition(chat.entries(in:"displayed",query:"",newestFirst:true) == [second,first])
+    chat.ingest([["id":"delete-history","snippet":["type":"messageDeletedEvent","messageDeletedDetails":["deletedMessageId":"one"]]]])
+    precondition(chat.displayed == [second])
+    chat.reset(); precondition(chat.displayed.isEmpty && chat.retiringIDs.isEmpty && chat.onAirID == nil)
+    print("PASS: program-visible history, exact 30-second retirement, hidden source, re-show cancellation, search/order, moderation and session reset")
+
     // Fake transport verifies auth/query, late responses after reset, and server pacing.
     var calls = 0
     let api = YouTubeAPI { request in

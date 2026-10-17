@@ -4,7 +4,7 @@ import AppKit
 struct OutputSettingsView: View {
     @ObservedObject var model: StudioModel
     @ObservedObject var settings: LiveSettingsModel
-    @Environment(\.dismiss) var dismiss
+    @StudioDismiss var dismiss
     @LegacyState private var channelName = ""
     init(model: StudioModel) { self.model = model; settings = model.liveSettings }
 
@@ -169,7 +169,7 @@ struct OutputSettingsView: View {
 
 struct FilterView: View {
     @ObservedObject var model: StudioModel
-    @Environment(\.dismiss) var dismiss
+    @StudioDismiss var dismiss
     @LegacyState private var type = ""
     @LegacyState private var name = ""
     @LegacyState private var selected = ""

@@ -6,7 +6,7 @@ import SwiftUI
 struct CameraSetupView: View {
     @ObservedObject var model: StudioModel
     let sourceName: String
-    @Environment(\.dismiss) private var dismiss
+    @StudioDismiss private var dismiss
     @StateObject private var edits = PropertyEditQueue()
     @LegacyState private var devices: [CameraDeviceChoice] = []
     @LegacyState private var settings: [String: Any] = [:]

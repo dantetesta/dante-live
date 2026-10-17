@@ -33,7 +33,7 @@ struct YouTubeLibraryView: View {
     let forTransmission: Bool
     var onTransmit: (() -> Void)? = nil
     var onChoose: () -> Void
-    @Environment(\.dismiss) private var dismiss
+    @StudioDismiss private var dismiss
     @LegacyState private var selection = ""
     @LegacyState private var query = ""
     @LegacyState private var showHidden = false

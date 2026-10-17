@@ -24,6 +24,7 @@ static void pump(double seconds) {
 static NSDictionary *state(dante_engine_t *e) {return parse(dante_engine_state(e));}
 static bool configuredOutput(dante_engine_t *e,NSString *kind,int audioBitrate) {
     NSDictionary *settings=state(e)[@"outputs"][kind][@"settings"];
+    if([kind isEqual:@"stream"] && ([settings[@"bframes"] boolValue] || !([settings[@"tune"] isEqual:@""] || [settings[@"tune"] isEqual:@"zerolatency"])))return false;
     return [settings[@"bitrate"] intValue]==1200 && [settings[@"audioBitrate"] intValue]==audioBitrate &&
         [settings[@"keyframeSeconds"] intValue]==2 && [settings[@"rateControl"] isEqual:@"CBR"];
 }

@@ -7,7 +7,13 @@ async function synthetic({frequency}) {
   if(!navigator.mediaDevices)return;
   const resources=[];
   const video=(color)=>{const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');let frame=0;const tick=()=>{ctx.fillStyle=color;ctx.fillRect(0,0,640,360);ctx.fillStyle='#ffffff';ctx.fillRect((frame++*3)%600,100,40,60);};tick();resources.push(setInterval(tick,33));return canvas.captureStream(30).getVideoTracks()[0];};
-  const audio=()=>{const ac=new AudioContext({sampleRate:48000}),osc=ac.createOscillator(),gain=ac.createGain(),dest=ac.createMediaStreamDestination();dest.channelCount=frequency===440?1:2;osc.frequency.value=frequency;gain.gain.value=.12;osc.connect(gain).connect(dest);osc.start();ac.resume();resources.push(ac);return dest.stream.getAudioTracks()[0];};
+  const audio=()=>{const ac=new AudioContext({sampleRate:48000}),osc=ac.createOscillator(),gain=ac.createGain(),dest=ac.createMediaStreamDestination();dest.channelCount=frequency===440?1:2;osc.frequency.value=frequency;gain.gain.value=.12;osc.connect(gain).connect(dest);osc.start();
+   // Broadband excitation gives AEC a detectable delay, unlike a pure periodic
+   // sine whose cycles are indistinguishable. Keep the tone for spectral checks.
+   if(frequency===440){const buffer=ac.createBuffer(1,48000*3,48000),samples=buffer.getChannelData(0);let seed=123;
+    for(let i=0;i<samples.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;samples[i]=(seed/2147483648-1)*.15;}
+    const noise=ac.createBufferSource();noise.buffer=buffer;noise.loop=true;noise.connect(dest);noise.start();}
+   ac.resume();resources.push(ac);return dest.stream.getAudioTracks()[0];};
   Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>new MediaStream([video('#18a6be'),audio()])});
   Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{value:async()=>new MediaStream([video('#e0a822')])});
   Object.defineProperty(navigator.mediaDevices,'enumerateDevices',{value:async()=>[{kind:'videoinput',deviceId:'synthetic-camera',label:'Câmera sintética QA'},{kind:'audioinput',deviceId:'synthetic-microphone',label:'Microfone sintético QA'}]});
@@ -38,6 +44,20 @@ function keepDiscoveryPending(){
   assert.equal(videos.length,4);assert.ok(videos.every(i=>i.width>0&&i.height>0),'camera and screen dimensions');
   const levels=Object.values(state.levels);assert.equal(levels.length,2);assert.ok(levels.every(l=>l.peak.some(p=>p>-40)),'both microphones arrive in OBS meters');
   console.log('PASS: four video sources and two real incoming audio meters');
+  for(const page of pages){
+   const quality=await page.evaluate(async()=>{
+    const stats=await peer.getStats();
+    return {camera:cameraSender.getParameters(),screen:screenSender.getParameters(),audio:micSender.getParameters(),
+     codecs:Array.from(stats.values()).filter(s=>s.type==='outbound-rtp'&&s.kind==='video').map(s=>stats.get(s.codecId)?.mimeType)};
+   });
+   assert.equal(quality.camera.encodings[0].maxBitrate,3000000);
+   assert.equal(quality.screen.encodings[0].maxBitrate,5000000);
+   assert.equal(quality.screen.encodings[0].maxFramerate,15);
+   assert.equal(quality.audio.encodings[0].maxBitrate,128000);
+   assert(quality.codecs.length>0&&quality.codecs.every(c=>c==='video/H264'));
+  }
+  assert(state.guests.every(g=>g.media.cameraUnbuffered&&g.media.screenUnbuffered));
+  console.log('PASS: negotiated H264, per-sender bitrate/FPS bounds, unbuffered native video');
   for(const page of pages){
    await page.waitForFunction(()=>document.querySelector('#programVideo').videoWidth>0,null,{timeout:10000});
    const pixel=await page.evaluate(()=>{const video=document.querySelector('#programVideo'),canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0);return Array.from(ctx.getImageData(10,10,1,1).data);});
@@ -70,6 +90,29 @@ function keepDiscoveryPending(){
    assert.ok(result.other>-60&&result.other>result.own+15,'mix-minus should return the other guest, not own voice: '+JSON.stringify(result));
   }
   console.log('PASS: two-way return audio excludes each guest’s own tone');
+  // Direct exclusion is insufficient when a host microphone recaptures a guest
+  // from speakers. Native test fixture injects that delayed echo alongside a
+  // separate 1320 Hz host signal, without opening any physical device.
+  // Opt-in diagnostic: known acoustic recapture issue, not a passing regression.
+  if(process.env.DANTE_ACOUSTIC_ECHO_TEST==='1'){
+  fs.writeFileSync(path.join(root,'echo-start'),'');
+  const echoDeadline=Date.now()+10000;while(!fs.existsSync(path.join(root,'echo-ready'))&&Date.now()<echoDeadline)await new Promise(r=>setTimeout(r,100));
+  assert(fs.existsSync(path.join(root,'echo-ready')),'synthetic acoustic path starts');
+  await new Promise(r=>setTimeout(r,8000));
+  const echo=await pages[0].evaluate(async()=>{
+   const ac=new AudioContext({sampleRate:48000}),analyser=ac.createAnalyser();analyser.fftSize=8192;
+   await ac.resume();ac.createMediaStreamSource(document.querySelector('#returnAudio').srcObject).connect(analyser);
+   await new Promise(r=>setTimeout(r,600));const data=new Float32Array(analyser.frequencyBinCount);analyser.getFloatFrequencyData(data);
+   const level=f=>Math.max(...data.slice(Math.round(f*8192/ac.sampleRate)-2,Math.round(f*8192/ac.sampleRate)+3));
+   const result={own:level(440),other:level(880),host:level(1320)};await ac.close();return result;
+  });
+  fs.writeFileSync(path.join(root,'echo-result.json'),JSON.stringify(echo,null,2));console.log('Acoustic return levels',echo);
+  assert(echo.host>-60&&echo.other>-60&&echo.own<Math.min(echo.host,echo.other)-20,'recaptured own voice must be suppressed while host and other guest remain audible: '+JSON.stringify(echo));
+  fs.writeFileSync(path.join(root,'echo-stop'),'');
+  const stopDeadline=Date.now()+10000;while(!fs.existsSync(path.join(root,'echo-stopped'))&&Date.now()<stopDeadline)await new Promise(r=>setTimeout(r,100));
+  assert(fs.existsSync(path.join(root,'echo-stopped')),'synthetic acoustic path stops');
+  console.log('PASS: delayed own echo suppressed; host and other guest preserved');
+  }
   fs.writeFileSync(path.join(root,'panel-checks'),'');
   const deadline=Date.now()+10000;while(!fs.existsSync(path.join(root,'panel-checks-passed'))&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
   assert(fs.existsSync(path.join(root,'panel-checks-passed')),'native participant grouping, scene transfer, mute and ordering checks');

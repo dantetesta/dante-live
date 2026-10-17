@@ -1,3 +1,9 @@
+## Versão 0.1.17 — áudio e latência
+
+Implementados em código: redução de ruído opcional por participante (RNNoise/Speex, bypass persistindo ajustes), bitrates/FPS separados para convidados, preferência H.264, recepção de vídeo sem fila assíncrona adicional, saída VT sem B-frames e x264 zerolatency. Novas preparações YouTube usam ultrabaixa latência; configurações salvas são preservadas, 4K exige Normal. Estúdio oferece link do vídeo iniciado para copiar.
+
+Cancelamento de eco acústico NÃO está resolvido: mix-minus direto passou; o ensaio de AEC para voz recaptada falhou e a tentativa não foi mantida no produto. [Pesquisa, decisões e limites](MEDIA-RESEARCH.md).
+
 ## Versão 0.1.16 — preparação de lives e biblioteca local
 
 Guia Preparar live separada de Conta YouTube: formulário de título/descrição/visibilidade, capa com prévia, categoria/palavras-chave/latência e opções Salvar na lista ou Agendar. Agendamento abre calendário nativo do Mac com horário, fuso, canal e visibilidade; cria o vídeo no YouTube sem iniciar transmissão. Transmitir reúne várias preparações locais e eventos remotos, depois confirma e mantém contagem 3–2–1.
@@ -46,7 +52,7 @@ Contratos offline de ocultação/persistência/reversão passaram; compilação 
 
 # Estado do projeto
 
-Release experimental atual: **0.1.16 (17)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
+Release experimental: **0.1.17 (18)**. Foco exclusivo em produção de lives para Mac: configurações persistentes em abas, presets automáticos e personalizados, início pelo estúdio com contagem regressiva e alerta de microfone sem sinal. Gravação de arquivos e replay buffer foram retirados da aplicação por decisão de produto. Convidados por link foram implementados experimentalmente; TURN e testes em redes distintas continuam pendentes.
 
 | Área | Estado atual |
 |---|---|

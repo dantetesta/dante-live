@@ -227,6 +227,11 @@ static bool startOutput(dante_engine *e, Output &o, NSString *kind, NSDictionary
     if (!video) video = obs_data_create();
     obs_data_set_int(video,"bitrate",bitrate); obs_data_set_string(video,"rate_control","CBR");
     obs_data_set_int(video,"keyint_sec",2); obs_data_set_string(video,"profile","high");
+    if(stream){
+        // Avoid frame-reordering/lookahead queues in the interactive live path.
+        if([encoder containsString:@"videotoolbox"])obs_data_set_bool(video,"bframes",false);
+        if([encoder isEqualToString:@"obs_x264"])obs_data_set_string(video,"tune","zerolatency");
+    }
     o.encoderName=std::string("Dante ")+kind.UTF8String+" video";
     {std::lock_guard<std::mutex> lock(hardwareLogMutex);hardwareSessions.erase(o.encoderName);}
     o.video = obs_video_encoder_create(encoder.UTF8String,o.encoderName.c_str(),video,nullptr);
@@ -440,7 +445,8 @@ static NSDictionary *outputState(Output &o,bool secret=false) {
     obs_data_t *videoSettings=obs_encoder_get_settings(o.video),*audioSettings=obs_encoder_get_settings(o.audio);
     NSDictionary *encoderSettings=@{@"bitrate":@(obs_data_get_int(videoSettings,"bitrate")),
         @"audioBitrate":@(obs_data_get_int(audioSettings,"bitrate")),@"keyframeSeconds":@(obs_data_get_int(videoSettings,"keyint_sec")),
-        @"rateControl":S(obs_data_get_string(videoSettings,"rate_control"))};
+        @"rateControl":S(obs_data_get_string(videoSettings,"rate_control")),
+        @"bframes":@(obs_data_get_bool(videoSettings,"bframes")),@"tune":S(obs_data_get_string(videoSettings,"tune"))};
     obs_data_release(videoSettings);obs_data_release(audioSettings);
     bool confirmed=false;{std::lock_guard<std::mutex> lock(hardwareLogMutex);auto it=hardwareSessions.find(o.encoderName);confirmed=it!=hardwareSessions.end()&&it->second;}
     return @{@"active":@(obs_output_active(o.output)),@"busy":@(busy(o)),@"starting":@(o.starting.load()),@"started":@(o.started.load()),@"stopping":@(o.stopping.load()),
@@ -704,7 +710,7 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
             auto *filter=obs_source_get_filter_by_name(source,[a[@"filter"] UTF8String]);
             if(!filter)result=fail(e,"Filtro não encontrado.");
             else {if([op isEqual:@"filter.remove"])obs_source_filter_remove(source,filter);
-                else {auto *data=settings(a[@"settings"]);obs_source_update(filter,data);obs_data_release(data);}obs_source_release(filter);}
+                else {auto *data=settings(a[@"settings"]);obs_source_update(filter,data);obs_data_release(data);if(a[@"enabled"])obs_source_set_enabled(filter,[a[@"enabled"] boolValue]);}obs_source_release(filter);}
         } else if([op isEqual:@"media.play"])obs_source_media_play_pause(source,false);
         else if([op isEqual:@"media.pause"])obs_source_media_play_pause(source,true);
         else if([op isEqual:@"media.restart"])obs_source_media_restart(source);

@@ -5,6 +5,30 @@ const token=location.hash.slice(1)||storage.get('dante-invite')||'';
 if(/^[a-f0-9]{64}$/.test(token)){storage.set('dante-invite',token);history.replaceState(null,'',location.pathname);}
 let client=storage.get('dante-client');if(!client){client=crypto.randomUUID();storage.set('dante-client',client);}
 let media=null,screen=null,peer=null,cameraSender=null,micSender=null,screenSender=null,heartbeat=null,context=null,animation=null,joining=false,preparing=false,mediaGeneration=0,screenGeneration=0,sharingBusy=false,connectionGeneration=0,connectionDeadline=null;
+// Bounds, not forced minimums: congestion control must still be able to recover
+// on a slower link. Prefer retaining pixels and reducing FPS for legible screens.
+const sendQuality={camera:{maxBitrate:3000000,maxFramerate:30,priority:'medium'},screen:{maxBitrate:5000000,maxFramerate:15,priority:'medium'},audio:{maxBitrate:128000,priority:'high'}};
+function preferH264(transceiver){
+ // H265 capability levels can differ between the browser's camera and screen
+ // transceivers, colliding on a bundled payload type in the native receiver.
+ const codecs=RTCRtpSender.getCapabilities?.('video')?.codecs.filter(c=>c.mimeType.toLowerCase()!=='video/h265');
+ if(!codecs||!transceiver.setCodecPreferences)return;
+ const h264=codecs.filter(c=>c.mimeType.toLowerCase()==='video/h264');
+ if(h264.length)try{transceiver.setCodecPreferences([...h264,...codecs.filter(c=>!h264.includes(c))]);}catch{}
+}
+async function configureSender(sender,kind){
+ if(!sender)return;
+ const parameters=sender.getParameters();if(!parameters.encodings?.length)return;
+ for(const encoding of parameters.encodings)Object.assign(encoding,sendQuality[kind]);
+ if(kind!=='audio')parameters.degradationPreference='maintain-resolution';
+ try{await sender.setParameters(parameters);}catch{
+  // Some browsers don't expose priority/degradationPreference. Keep their
+  // transport usable and retry only the standard bitrate/frame-rate bounds.
+  const fallback=sender.getParameters();
+  for(const encoding of fallback.encodings||[]){encoding.maxBitrate=sendQuality[kind].maxBitrate;if(kind!=='audio')encoding.maxFramerate=sendQuality[kind].maxFramerate;}
+  try{await sender.setParameters(fallback);}catch{}
+ }
+}
 function status(text){$('status').textContent=text;}
 async function api(path,body={}){
  const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({client,...body}),signal:AbortSignal.timeout(22000)});
@@ -44,7 +68,7 @@ async function prepare(){
  try{
   next=await navigator.mediaDevices.getUserMedia({video:{deviceId:selectedDevice('camera'),width:{ideal:1280,max:1920},height:{ideal:720,max:1080},frameRate:{ideal:30,max:30}},audio:{channelCount:{ideal:1,max:2},deviceId:selectedDevice('microphone'),echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
   if(generation!==mediaGeneration){next.getTracks().forEach(t=>t.stop());return;}
-  if(peer){previousCamera=cameraSender.track;previousMic=micSender.track;await cameraSender.replaceTrack(next.getVideoTracks()[0]);await micSender.replaceTrack(next.getAudioTracks()[0]);}
+  if(peer){previousCamera=cameraSender.track;previousMic=micSender.track;await cameraSender.replaceTrack(next.getVideoTracks()[0]);await micSender.replaceTrack(next.getAudioTracks()[0]);await configureSender(cameraSender,'camera');await configureSender(micSender,'audio');}
   if(generation!==mediaGeneration){next.getTracks().forEach(t=>t.stop());return;}
   media?.getTracks().forEach(t=>t.stop());media=next;next=null;updateControls();$('preview').srcObject=media;$('previewEmpty').hidden=true;
   $('preview').play().catch(()=>{});
@@ -75,10 +99,11 @@ async function shareScreen(){
  if(sharingBusy)return;sharingBusy=true;$('screen').disabled=true;const generation=screenGeneration;
  try{
   if(screen){const previous=screen;screen=null;previous.getTracks().forEach(t=>t.stop());$('screenPreview').srcObject=null;$('screenPreview').hidden=true;updateControls();await screenSender?.replaceTrack(null);return;}
-  const next=await navigator.mediaDevices.getDisplayMedia({video:{width:{max:1920},height:{max:1080},frameRate:{max:30}},audio:false});
+  const next=await navigator.mediaDevices.getDisplayMedia({video:{width:{max:1920},height:{max:1080},frameRate:{ideal:15,max:15}},audio:false});
   if(generation!==screenGeneration){next.getTracks().forEach(t=>t.stop());return;}
   const track=next.getVideoTracks()[0];
-  try{await screenSender?.replaceTrack(track);}catch(error){next.getTracks().forEach(t=>t.stop());throw error;}
+  if('contentHint' in track)track.contentHint='detail';
+  try{await screenSender?.replaceTrack(track);await configureSender(screenSender,'screen');}catch(error){next.getTracks().forEach(t=>t.stop());throw error;}
   if(generation!==screenGeneration){next.getTracks().forEach(t=>t.stop());return;}
   screen=next;$('screenPreview').srcObject=screen;$('screenPreview').hidden=false;updateControls();
   track.onended=()=>{if(screen===next){screen=null;void screenSender?.replaceTrack(null).catch(failure);$('screenPreview').srcObject=null;$('screenPreview').hidden=true;updateControls();}};
@@ -89,6 +114,7 @@ function closeConnection(){
  const previous=peer;peer=null;
  if(heartbeat)clearInterval(heartbeat);heartbeat=null;
  if(connectionDeadline)clearTimeout(connectionDeadline);connectionDeadline=null;
+ $('returnAudio').pause();$('returnAudio').srcObject=null;$('listen').hidden=true;
  $('programVideo').srcObject=null;$('programReturn').hidden=true;
  previous?.close();cameraSender=micSender=screenSender=null;
 }
@@ -105,9 +131,11 @@ async function join(){
   const negotiation=crypto.randomUUID(),candidates=[];
   const pc=new RTCPeerConnection({iceServers:info.iceServers});peer=pc;
   pc.onicecandidate=event=>{if(event.candidate&&candidates.length<64)candidates.push(event.candidate.toJSON());};
-  cameraSender=pc.addTransceiver(media.getVideoTracks()[0],{direction:'sendrecv',streams:[media]}).sender;
-  micSender=pc.addTransceiver(media.getAudioTracks()[0],{direction:'sendrecv',streams:[media]}).sender;
-  screenSender=pc.addTransceiver(screen?.getVideoTracks()[0]||'video',{direction:'sendonly',streams:screen?[screen]:[]}).sender;
+  const cameraTransceiver=pc.addTransceiver(media.getVideoTracks()[0],{direction:'sendrecv',streams:[media],sendEncodings:[sendQuality.camera]});
+  preferH264(cameraTransceiver);cameraSender=cameraTransceiver.sender;
+  micSender=pc.addTransceiver(media.getAudioTracks()[0],{direction:'sendrecv',streams:[media],sendEncodings:[sendQuality.audio]}).sender;
+  const screenTransceiver=pc.addTransceiver(screen?.getVideoTracks()[0]||'video',{direction:'sendonly',streams:screen?[screen]:[],sendEncodings:[sendQuality.screen]});
+  preferH264(screenTransceiver);screenSender=screenTransceiver.sender;
   pc.ontrack=event=>{if(pc!==peer)return;if(event.track.kind==='video'){$('programVideo').srcObject=new MediaStream([event.track]);$('programReturn').hidden=false;$('programVideo').play().catch(()=>{});}if(event.track.kind==='audio'){$('returnAudio').srcObject=new MediaStream([event.track]);$('returnAudio').play().catch(()=>{$('listen').hidden=false;});}};
   pc.onconnectionstatechange=()=>{if(pc!==peer)return;const state=pc.connectionState;
    if(state==='connected'){clearTimeout(connectionDeadline);connectionDeadline=null;status('Conectado. Aguarde o apresentador inserir você na cena.');$('join').hidden=true;}
@@ -120,6 +148,8 @@ async function join(){
   if(pc!==peer)return;
   const answer=await api('/offer',{sdp:pc.localDescription.sdp,negotiation});
   if(pc!==peer)return;await pc.setRemoteDescription(answer);
+  if(pc!==peer)return;
+  await configureSender(cameraSender,'camera');await configureSender(micSender,'audio');await configureSender(screenSender,'screen');
   if(pc!==peer)return;
   let polling=false,remoteCount=0,sentCount=0,lastPoll=0,failures=0;
   const exchange=async()=>{

@@ -58,6 +58,10 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 </details>
 
+## Novidades da versão 0.1.17
+
+Tratamento de ruído opcional por participante (automático ou intensidade manual), ajustes de bitrate/filas de vídeo, escolha destacada de latência do YouTube e botão para copiar o link da live iniciada. Consulte a [avaliação de Ant Media, Moxygen e Stream-DiffVSR](docs/MEDIA-RESEARCH.md), incluindo limites dos testes e o diagnóstico de eco ainda aberto.
+
 ## Prepare cada transmissão em seu próprio espaço
 
 Na guia **Preparar live**, organize título, descrição, capa e visibilidade. **Salvar na lista** guarda uma preparação local sem horário marcado; **Agendar…** abre calendário e horário para criar o evento no YouTube. Você pode manter várias preparações por canal, com salvamento automático.

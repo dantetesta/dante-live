@@ -199,6 +199,23 @@ import CryptoKit
     try check(migratedSelection.localLives.count == 1 && migratedSelection.localLives[0].state.draft == draft)
     migratedSelection.shutdown()
     print("PASS: legacy draft migration, multiple saved preparations, independent metadata/covers, restart persistence, channel isolation, no API mutation on save/select, disk failure preservation and confirmation snapshot")
+    // Share the actual launched video, never another selected draft or a stream key.
+    let launched = LiveLaunch(channel: "QA", title: "Live em andamento", thumbnailURL: nil, server: "rtmps://example.invalid", key: "test-key-not-for-sharing", youtubeAccount: account.id, broadcastID: "video-test", privacy: "private")
+    try check(YouTubeDraft().latency == "ultraLow")
+    var interactive = launched; interactive.latency = "ultraLow"
+    var output = LiveVideoSettings(); output.width = 3840; output.height = 2160
+    do { try interactive.validateVideoLatency(output); preconditionFailure("4K must require Normal latency") } catch is StudioError { }
+    interactive.latency = "normal"; try interactive.validateVideoLatency(output)
+    output.width = 2560; output.height = 1440; interactive.latency = "ultraLow"; try interactive.validateVideoLatency(output)
+    model.watchStarted(launched, isSending: { false })
+    try check(model.liveShare?.url.absoluteString == "https://www.youtube.com/watch?v=video-test")
+    try check(model.liveShare?.title == launched.title && model.liveShare?.privacy == "private")
+    let rtmp = LiveLaunch(channel: "RTMP", title: "RTMP", thumbnailURL: nil, server: "rtmps://example.invalid", key: "test-key-not-for-sharing")
+    try check(LiveShareInfo(rtmp) == nil)
+    var unprepared = launched; unprepared.broadcastID = nil
+    try check(LiveShareInfo(unprepared) == nil)
+    model.endActive(); try check(model.liveShare == nil)
+    print("PASS: live share uses launched broadcast, keeps privacy, excludes keys and unprepared/RTMP destinations, clears on stop")
     model.shutdown(); reloaded.shutdown()
     print("PASS: local hide/restore without API requests, persistence across refresh/reload/new draft, channel isolation, selection clearing and save failure rollback")
     print("PASS: live library routing/cancel without output or API mutations, read-only refresh, selected-video persistence rollback, local schedule date including fractional ISO and non-startable states")

@@ -33,7 +33,7 @@ struct YouTubeDraft: Codable, Equatable {
     var privacy = "unlisted"
     var category = "22"
     var madeForKids = false
-    var latency = "normal"
+    var latency = "ultraLow"
     var scheduledAt = Date().addingTimeInterval(3600)
     var thumbnailFile: String?
     func validate() throws {
@@ -53,11 +53,13 @@ struct YouTubeBroadcast: Codable, Identifiable {
     var boundStreamID: String
     var lifeCycle: String
     var autoStart: Bool
+    var latency: String?
     init(_ json: [String: Any]) {
         id = json.string("id"); let snippet = json.object("snippet"); let status = json.object("status"); let content = json.object("contentDetails")
         title = snippet.string("title"); description = snippet.string("description"); privacy = status.string("privacyStatus")
         scheduledAt = snippet.string("scheduledStartTime"); boundStreamID = content.string("boundStreamId"); lifeCycle = status.string("lifeCycleStatus")
         autoStart = content.flag("enableAutoStart")
+        latency = content["latencyPreference"] as? String
         thumbnailURL = snippet.object("thumbnails").object("medium")["url"] as? String
     }
     var watchURL: URL? { URL(string: "https://www.youtube.com/watch?v=\(id)") }

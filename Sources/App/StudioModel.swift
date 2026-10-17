@@ -195,7 +195,9 @@ final class StudioModel: ObservableObject {
         launchTask = Task { [weak self] in
             guard let self else { return }; defer { self.preparingLive = false }
             do {
+                try selection.validateVideoLatency(video)
                 let launch = selection.youtubeAccount == nil ? selection : try await self.youtube.prepare(selection)
+                try launch.validateVideoLatency(video)
                 try Task.checkCancellation()
                 self.countdown.start { [weak self] in
                     guard let self, !self.active else { return }

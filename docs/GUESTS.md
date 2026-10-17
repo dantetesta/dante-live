@@ -54,3 +54,9 @@ A página mostra o programa composto, diretamente do Dante, até 960×540/15 FPS
 A cor acompanha o participante durante a sala, mesmo se o outro sair; nomes iguais não unem fontes. Componentes são associados a uma cena por participante, com transferência preservando enquadramento e estado. No modo estúdio, alterações dos itens da prévia aguardam Corte/Transição; mute/volume e dispositivos continuam controles globais. Ouvir neste Mac controla somente a monitoração do operador.
 
 Os testes locais da 0.1.14 incluíram tela compartilhada após conexão, stop/restart, microfone mono e estéreo, quatro vídeos com dimensões reais, dois medidores, pixels do programa recebidos pelos dois convidados, análise espectral do mix-minus e controles locais. Foram usados dispositivos sintéticos em Chrome no mesmo Mac, sem transmissão pública.
+
+## Tratamento de voz e qualidade — 0.1.17
+
+Em **Participantes → Tratamento da voz**, habilite **Reduzir ruído de fundo** para o microfone desejado. **Automático • voz** usa RNNoise; **Manual • intensidade** usa Speex e permite ajustar a redução de 0 a 60 dB. Comece com uma redução moderada: valores fortes podem cortar partes da voz. Desligar o tratamento mantém método e intensidade, sem mudar o volume, mute ou a exclusão da própria voz no retorno. O ajuste afeta o áudio enviado à live e aos demais convidados. A captura do navegador pode ter tratamento próprio adicional.
+
+Câmera e tela negociam H.264 quando disponível, com limites separados de bitrate e FPS e adaptação à rede. Não há taxa mínima forçada nem promessa de qualidade constante em uma conexão congestionada. Veja [decisões de mídia e limites do diagnóstico de eco](MEDIA-RESEARCH.md).

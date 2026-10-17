@@ -34,14 +34,14 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 @interface DanteGuestAudioDevice:NSObject<LKRTCAudioDevice> {
     ReturnRing _ring;dispatch_queue_t _queue;dispatch_source_t _timer;
     id<LKRTCAudioDeviceDelegate> _delegate;
-    std::atomic<bool> _playing,_recording;bool _initialized,_connected;NSInteger _slot;
+    std::atomic<bool> _playing,_recording;std::atomic<int> _referencePeak;bool _initialized,_connected;NSInteger _slot;
 }
 - (instancetype)initWithSlot:(NSInteger)slot;
 - (void)disconnect;
 - (NSDictionary*)diagnostics;
 @end
 @implementation DanteGuestAudioDevice
-- (instancetype)initWithSlot:(NSInteger)slot {if((self=[super init])){_slot=slot;_queue=dispatch_queue_create("com.dantetesta.guest.audio",DISPATCH_QUEUE_SERIAL);}return self;}
+- (instancetype)initWithSlot:(NSInteger)slot {if((self=[super init])){_slot=slot;_referencePeak=0;_queue=dispatch_queue_create("com.dantetesta.guest.audio",DISPATCH_QUEUE_SERIAL);}return self;}
 - (double)deviceInputSampleRate{return 48000;}- (double)deviceOutputSampleRate{return 48000;}
 - (NSTimeInterval)inputIOBufferDuration{return .01;}- (NSTimeInterval)outputIOBufferDuration{return .01;}
 - (NSTimeInterval)inputLatency{return 0;}- (NSTimeInterval)outputLatency{return 0;}
@@ -67,6 +67,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
         int16_t samples[960]={};AudioBufferList list={};list.mNumberBuffers=1;list.mBuffers[0]={2,sizeof(samples),samples};
         AudioTimeStamp time={};time.mFlags=kAudioTimeStampHostTimeValid;time.mHostTime=mach_absolute_time();AudioUnitRenderActionFlags flags=0;
         if(_playing.load())delegate.getPlayoutData(&flags,&time,0,480,&list); // Drives per-track PCM renderers; never plays to speakers itself.
+        int referencePeak=0;for(int16_t sample:samples)referencePeak=std::max(referencePeak,std::abs((int)sample));_referencePeak=referencePeak;
         if(_recording.load()){
             _ring.pop(samples,960);flags=0;const int16_t *input=samples;
             // M150's direct inputData path counts frames as samples for stereo.
@@ -79,7 +80,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
     }
 }
 - (BOOL)terminateDevice{[self disconnect];return YES;}
-- (NSDictionary*)diagnostics{return @{@"playing":@(_playing.load()),@"recording":@(_recording.load()),@"samplesReceived":@(_ring.written.load()),@"samplesRead":@(_ring.read.load()),@"returnPeak":@(_ring.peak.load())};}
+- (NSDictionary*)diagnostics{return @{@"playing":@(_playing.load()),@"recording":@(_recording.load()),@"samplesReceived":@(_ring.written.load()),@"samplesRead":@(_ring.read.load()),@"returnPeak":@(_ring.peak.load()),@"echoReferencePeak":@(_referencePeak.load())};}
 - (void)disconnect {
     _playing=false;_recording=false;
     if(_connected){audio_output_disconnect(obs_get_audio(),4+_slot,returnAudio,&_ring);_connected=false;}
@@ -191,6 +192,10 @@ static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgr
     auto source=[](NSString *name,const char *type){auto *s=obs_get_source_by_name(name.UTF8String);if(s&&strcmp(obs_source_get_unversioned_id(s),type)){obs_source_release(s);return (obs_source_t*)nullptr;}return s?:obs_source_create(type,name.UTF8String,nullptr,nullptr);};
     _camera=source(camera,"dante_guest_video");_screen=source(screen,"dante_guest_video");_microphone=source(microphone,"dante_guest_audio");
     if(!_camera||!_screen||!_microphone){[self close];return nil;}
+    // WebRTC has already jitter-buffered these frames. A second asynchronous
+    // video queue in OBS can make the canvas lag behind the conversation.
+    obs_source_set_async_unbuffered(_camera,true);
+    obs_source_set_async_unbuffered(_screen,true);
     obs_source_set_audio_mixers(_microphone,63&~(1<<(4+slot)));
     auto *guestSettings=obs_source_get_settings(_microphone);obs_data_set_int(guestSettings,"return_slot",slot);obs_source_update(_microphone,guestSettings);obs_data_release(guestSettings);
     _cameraSink=[[DanteGuestVideoSink alloc]initWithSource:_camera];_screenSink=[[DanteGuestVideoSink alloc]initWithSource:_screen];_audioSink=[[DanteGuestAudioSink alloc]initWithSource:_microphone];
@@ -221,6 +226,9 @@ static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgr
     result[@"programFrames"]=@([_program frames]);
     result[@"cameraFrames"]=@([_cameraSink frames]);result[@"screenFrames"]=@([_screenSink frames]);
     result[@"candidateErrors"]=@(_candidateErrors);result[@"iceGatheringState"]=@(_peer.iceGatheringState);
+    result[@"returnEchoCancellation"] = @(_factory.audioProcessingState.echoCancellation.isSoftwareActive);
+    result[@"cameraUnbuffered"] = @(obs_source_async_unbuffered(_camera));
+    result[@"screenUnbuffered"] = @(obs_source_async_unbuffered(_screen));
     return result;
 }
 - (void)setCameraEnabled:(BOOL)camera screenEnabled:(BOOL)screen {if(!_closed){[_cameraSink setEnabled:camera];[_screenSink setEnabled:screen];}}
@@ -238,7 +246,10 @@ static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgr
         if(!s->_programSource){
             s->_programSource=[s->_factory videoSource];
             LKRTCVideoTrack *track=[s->_factory videoTrackWithSource:s->_programSource trackId:@"dante-program"];
-            [s->_peer addTrack:track streamIds:@[@"dante-program"]];
+            LKRTCRtpSender *sender=[s->_peer addTrack:track streamIds:@[@"dante-program"]];
+            LKRTCRtpParameters *parameters=sender.parameters;
+            for(LKRTCRtpEncodingParameters *encoding in parameters.encodings){encoding.maxBitrateBps=@1500000;encoding.maxFramerate=@15;}
+            sender.parameters=parameters;
             s->_program=[[DanteGuestProgram alloc]initWithSource:s->_programSource];
         }
         [s->_peer answerForConstraints:[[LKRTCMediaConstraints alloc]initWithMandatoryConstraints:nil optionalConstraints:nil] completionHandler:^(LKRTCSessionDescription *answer,NSError *err){dispatch_async(dispatch_get_main_queue(),^{

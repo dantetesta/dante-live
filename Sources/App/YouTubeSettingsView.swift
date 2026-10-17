@@ -81,6 +81,10 @@ struct LiveConfirmationView: View {
             HStack(spacing: 16) { LiveCover(url: launch.thumbnailURL); VStack(alignment: .leading, spacing: 6) { Text(launch.title).font(.headline); Text(launch.channel); if let privacy = launch.privacy { Text(privacyName(privacy)).foregroundStyle(.secondary) } } }
             LabeledContent("Servidor", value: launch.server)
             LabeledContent("Chave", value: "•••••••• • protegida")
+            if let latency = launch.latency {
+                LabeledContent("Atraso no YouTube", value: latency == "ultraLow" ? "Ultrabaixo" : latency == "low" ? "Baixo" : "Normal")
+                if latency == "normal" { Text("Esta live usa um buffer maior no YouTube. Para conversar com o chat com menos atraso, escolha latência Ultrabaixa ao preparar a live.").font(.caption).foregroundStyle(.secondary) }
+            }
             if launch.youtubeAccount == nil {
                 Text("Com RTMP manual, título, capa, visibilidade e agendamento são definidos no serviço de destino. O Dante envia para a live vinculada à sua chave.").font(.callout).foregroundStyle(.secondary)
             } else if let id = launch.broadcastID, let url = URL(string: "https://www.youtube.com/watch?v=\(id)") { Link("Esta transmissão usará o vídeo já criado", destination: url) }

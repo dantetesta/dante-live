@@ -10,6 +10,7 @@ struct StudioView: View {
             topBar
             CountdownBanner(countdown: model.countdown)
             YouTubeStatusBanner(youtube: model.youtube)
+            if model.streaming { LiveShareBanner(youtube: model.youtube) }
             if let message = model.pendingUpdateMessage { Label(message, systemImage: "arrow.down.circle.fill").font(.callout).frame(maxWidth: .infinity, alignment: .leading).padding(12).background(Color.orange.opacity(0.15)) }
             if !model.microphoneWarnings.isEmpty {
                 HStack(spacing: 12) {
@@ -180,6 +181,34 @@ struct CountdownBanner: View {
                 Spacer()
                 Button("Cancelar início") { countdown.cancel() }
             }.padding(16).background(Color.teal.opacity(0.15))
+        }
+    }
+}
+
+struct LiveShareBanner: View {
+    @ObservedObject var youtube: YouTubeModel
+    @LegacyState private var copied = false
+    var body: some View {
+        if let live = youtube.liveShare {
+            HStack(spacing: 12) {
+                Image(systemName: "link.circle.fill").font(.title2).foregroundStyle(.teal)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(live.title).font(.callout.weight(.semibold)).lineLimit(1)
+                    HStack(spacing: 8) {
+                        Link(live.url.absoluteString, destination: live.url).lineLimit(1)
+                        if live.privacy == "private" { Text("Privada • acesso restrito").foregroundStyle(.orange) }
+                        else if !youtube.remoteLive { Text("Aguardando YouTube").foregroundStyle(.secondary) }
+                    }.font(.caption)
+                }
+                Spacer(minLength: 4)
+                Button {
+                    NSPasteboard.general.clearContents()
+                    copied = NSPasteboard.general.setString(live.url.absoluteString, forType: .string)
+                } label: { Label(copied ? "Link copiado" : "Copiar link da live", systemImage: copied ? "checkmark" : "doc.on.doc") }
+                    .accessibilityLabel("Copiar link da live \(live.title)")
+                    .task(id: copied) { if copied { try? await Task.sleep(for: .seconds(3)); if !Task.isCancelled { copied = false } } }
+            }.padding(.horizontal, 16).padding(.vertical, 10).background(Color.teal.opacity(0.08))
+            .onChange(of: live.url) { _, _ in copied = false }
         }
     }
 }

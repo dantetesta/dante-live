@@ -31,6 +31,7 @@ private struct ParticipantCard: View {
     @ObservedObject var studio: StudioModel
     let guest: GuestInvite
     @LegacyState private var destination = ""
+    @LegacyState private var showingAudio = false
     private var scene: String? { guests.scene(for: guest) }
     private var target: String { studio.scenes.contains { $0.string("name") == destination } ? destination : scene ?? studio.sceneName }
     var body: some View {
@@ -71,6 +72,8 @@ private struct ParticipantCard: View {
                         Text("\(Int(mic.number("volume",1)*100))%").font(.caption2.monospacedDigit()).frame(width:34)
                     }
                     Toggle("Ouvir neste Mac",isOn:Binding(get:{mic.number("monitoring")==2},set:{_ = studio.command("audio.set",["name":guest.microphone,"monitoring":$0 ? 2 : 0],undo:false)})).font(.caption2).toggleStyle(.checkbox)
+                    Button { showingAudio = true } label: { Label("Tratamento da voz", systemImage: "waveform") }.font(.caption2)
+                        .popover(isPresented: $showingAudio) { GuestVoiceControls(studio: studio, guest: guest) }
                     if !guest.microphoneEnabled { Text("Microfone desligado pelo convidado").font(.caption2).foregroundStyle(.orange) }
                 }
                 Menu {
@@ -93,6 +96,58 @@ private struct ParticipantCard: View {
             if !available { Text(screen ? "Não está compartilhando" : "Desligada pelo convidado").font(.caption2).foregroundStyle(.secondary) }
             else if item?.flag("awaitingVideo") == true { Text("Aguardando imagem…").font(.caption2).foregroundStyle(.orange) }
         }
+    }
+}
+
+private struct GuestVoiceControls: View {
+    @ObservedObject var studio: StudioModel
+    let guest: GuestInvite
+    @LegacyState private var method = "rnnoise"
+    @LegacyState private var strength = 30.0
+    @LegacyState private var availableMethods: [String] = []
+    private let filterName = "Dante • Redução de ruído"
+    private var filter: [String: Any]? { studio.scenes.flatMap { $0.array("items") }.first { $0.string("name") == guest.microphone }?.array("filters").first { $0.string("name") == filterName } }
+    private var isEnabled: Bool { filter?.flag("enabled") == true }
+    private var available: Bool { studio.catalog.array("filters").contains { $0.string("id") == "noise_suppress_filter_v2" } }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Voz de \(guest.firstName)").font(.headline)
+            Toggle("Reduzir ruído de fundo", isOn: Binding(get: { isEnabled }, set: { enabled in
+                if filter != nil { _ = studio.command("filter.update", ["name": guest.microphone, "filter": filterName, "settings": [:], "enabled": enabled], undo: false) }
+                else if enabled { _ = studio.command("filter.add", ["name": guest.microphone, "type": "noise_suppress_filter_v2", "filter": filterName, "settings": values], undo: false) }
+                reload()
+            })).disabled(!available)
+            if available {
+                if availableMethods.count > 1 {
+                    Picker("Tratamento", selection: Binding(get: { method }, set: { method = $0; apply() })) {
+                        ForEach(availableMethods, id: \.self) { value in Text(value == "rnnoise" ? "Automático • voz" : "Manual • intensidade").tag(value) }
+                    }.disabled(!isEnabled)
+                }
+                if method == "speex" {
+                    HStack { Text("Redução"); Spacer(); Text("\(Int(strength)) dB").monospacedDigit() }
+                    Slider(value: $strength, in: 0...60, step: 1, onEditingChanged: { editing in if !editing { apply() } })
+                        .disabled(!isEnabled).accessibilityLabel("Intensidade da redução de ruído")
+                }
+                Text(method == "rnnoise" ? "Diminui ruídos contínuos, como ventilador. O modo automático não tem ajuste de intensidade." : "Aumente aos poucos. Uma redução muito forte pode cortar partes da voz.").font(.caption).foregroundStyle(.secondary)
+                Text("O ajuste vale para a live e para os outros participantes. Desative para comparar.").font(.caption).foregroundStyle(.secondary)
+            } else { Text("Redução de ruído indisponível neste motor.").font(.caption).foregroundStyle(.secondary) }
+        }.padding(18).frame(width: 300).onAppear { reload() }
+    }
+    private var values: [String: Any] { ["method": method, "suppress_level": -Int(strength)] }
+    private func apply() {
+        guard filter != nil else { return }
+        _ = studio.command("filter.update", ["name": guest.microphone, "filter": filterName, "settings": values], undo: false)
+        reload()
+    }
+    private func reload() {
+        guard let engine = studio.engine else { return }
+        let result = filter == nil
+            ? jsonObject(copied(dante_engine_type_properties(engine, "noise_suppress_filter_v2")))
+            : jsonObject(copied(dante_engine_filter_properties(engine, guest.microphone, filterName)))
+        let settings = result.object("settings")
+        method = settings.string("method", "rnnoise"); strength = min(60, max(0, -settings.number("suppress_level", -30)))
+        let properties = result.array("properties")
+        availableMethods = properties.first { $0.string("name") == "method" }?.array("items").compactMap { $0["value"] as? String } ?? []
     }
 }
 

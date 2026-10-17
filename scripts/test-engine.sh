@@ -8,6 +8,7 @@ mkdir -p "$OUT" evidence/runtime
 ARCH="$(uname -m)"
 xcrun clang++ -std=c++17 -fobjc-arc -O2 -target "$ARCH-apple-macos14.0" \
   -I vendor/obs-studio/libobs -I vendor/simde -I build/generated -I Sources/Bridge \
+  -F "$ROOT/vendor/guest-runtime/LiveKitWebRTC.xcframework/macos-arm64_x86_64" \
   -F "$APP/Contents/Frameworks" Sources/Bridge/DanteEngine.mm Tests/EngineSmoke.mm \
   -framework AppKit -framework Foundation -framework VideoToolbox -framework LiveKitWebRTC -framework libobs \
   -Wl,-rpath,"$APP/Contents/Frameworks" -o "$OUT/EngineSmoke"

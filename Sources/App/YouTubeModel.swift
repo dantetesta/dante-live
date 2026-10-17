@@ -14,6 +14,25 @@ struct LiveLaunch: Identifiable {
     var privacy: String?
     var localLiveID: String?
     var confirmedDraft: YouTubeDraft?
+    var latency: String?
+    func validateVideoLatency(_ video: LiveVideoSettings) throws {
+        if youtubeAccount != nil, let latency, latency != "normal", max(video.width,video.height) >= 3840 {
+            throw StudioError.message("O YouTube exige latência Normal para 4K. Escolha 1080p/1440p para menor atraso ou altere a latência da live para Normal antes de transmitir.")
+        }
+    }
+}
+
+struct LiveShareInfo: Equatable {
+    let url: URL
+    let title: String
+    let privacy: String
+    init?(_ launch: LiveLaunch) {
+        guard launch.youtubeAccount != nil, let id = launch.broadcastID, !id.isEmpty else { return nil }
+        var components = URLComponents(string: "https://www.youtube.com/watch")!
+        components.queryItems = [URLQueryItem(name: "v", value: id)]
+        guard let url = components.url else { return nil }
+        self.url = url; title = launch.title; privacy = launch.privacy ?? "unknown"
+    }
 }
 
 @MainActor final class YouTubeModel: ObservableObject {
@@ -23,6 +42,7 @@ struct LiveLaunch: Identifiable {
     @Published var message: String?
     @Published private(set) var clientConfigured = false
     @Published private(set) var remoteLive = false
+    @Published private(set) var liveShare: LiveShareInfo?
     @Published private(set) var draftSaveStatus = "Alterações salvas neste Mac"
     private let api: YouTubeAPI
     private let vault: LiveKeyVault
@@ -367,11 +387,11 @@ struct LiveLaunch: Identifiable {
             let event = try await api.broadcast(selected, token: accessToken(account.id))
             guard event.canTransmit else { throw StudioError.message("Esta live já foi encerrada. Escolha outra live.") }
             if let index = broadcasts.firstIndex(where: { $0.id == event.id }) { broadcasts[index] = event } else { broadcasts.append(event) }
-            return LiveLaunch(channel: account.name, title: event.title, thumbnailURL: event.thumbnailURL.flatMap(URL.init(string:)), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: event.id, privacy: event.privacy)
+            return LiveLaunch(channel: account.name, title: event.title, thumbnailURL: event.thumbnailURL.flatMap(URL.init(string:)), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: event.id, privacy: event.privacy, latency: event.latency)
         }
         guard state.createdBroadcast == nil, !state.creationUncertain else { throw StudioError.message("Confira a criação anterior no YouTube antes de transmitir. Atualize a lista e selecione a live correspondente.") }
         try state.draft.validate(); try save()
-        return LiveLaunch(channel: account.name, title: state.draft.title, thumbnailURL: thumbnailURL(state.draft.thumbnailFile), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: nil, privacy: state.draft.privacy, localLiveID: currentLiveID, confirmedDraft: state.draft)
+        return LiveLaunch(channel: account.name, title: state.draft.title, thumbnailURL: thumbnailURL(state.draft.thumbnailFile), server: "YouTube • RTMPS", key: "", youtubeAccount: account.id, broadcastID: nil, privacy: state.draft.privacy, localLiveID: currentLiveID, confirmedDraft: state.draft, latency: state.draft.latency)
     }
     func prepare(_ launch: LiveLaunch) async throws -> LiveLaunch {
         guard !busy, let id = launch.youtubeAccount, id == account?.id else { throw StudioError.message("A seleção do canal mudou. Confirme a transmissão novamente.") }
@@ -395,9 +415,11 @@ struct LiveLaunch: Identifiable {
         guard !connection.active else { throw StudioError.message("Este stream já está recebendo vídeo. Pare o outro envio antes de iniciar pelo Dante.") }
         preferences.states[id]?.selectedBroadcast = event.id; try save()
         var prepared = launch; prepared.server = connection.server; prepared.key = connection.key; prepared.broadcastID = event.id
+        prepared.latency = event.latency ?? launch.latency
         return prepared
     }
     func watchStarted(_ launch: LiveLaunch, isSending: @escaping @MainActor () -> Bool) {
+        liveShare = LiveShareInfo(launch)
         guard let account = launch.youtubeAccount, let id = launch.broadcastID else { return }
         activeEvent = (account,id); message = nil; remoteLive = false; livePoll?.cancel()
         livePoll = Task { [weak self] in
@@ -418,6 +440,7 @@ struct LiveLaunch: Identifiable {
         }
     }
     func endActive() {
+        liveShare = nil
         livePoll?.cancel(); remoteLive = false
         guard let event = activeEvent else { return }; activeEvent = nil
         Task { [weak self] in

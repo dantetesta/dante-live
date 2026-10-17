@@ -110,11 +110,17 @@ struct LivePreparationView: View {
                         Text("Pessoas e blogs").tag("22"); Text("Educação").tag("27"); Text("Ciência e tecnologia").tag("28"); Text("Entretenimento").tag("24"); Text("Jogos").tag("20"); Text("Música").tag("10"); Text("Notícias e política").tag("25")
                     }
                     TextField("Palavras-chave, separadas por vírgulas", text: draft(\.tags)).textFieldStyle(.roundedBorder)
-                    Picker("Latência", selection: draft(\.latency)) {
-                        Text("Normal").tag("normal"); Text("Baixa").tag("low"); Text("Ultrabaixa").tag("ultraLow")
-                    }
-                    Text("Para 4K, use Normal. A disponibilidade final depende do YouTube.").font(.caption).foregroundStyle(.secondary)
                 }.padding(.top, 10)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Picker("Atraso para o público", selection: draft(\.latency)) {
+                    Text("Ultrabaixo • conversa com o chat").tag("ultraLow")
+                    Text("Baixo • equilíbrio").tag("low")
+                    Text("Normal • maior buffer / 4K").tag("normal")
+                }
+                Text(youtube.state.draft.latency == "ultraLow" ? "Prioriza a interação. O YouTube ainda tem alguns segundos de atraso e precisa de conexão estável." : youtube.state.draft.latency == "low" ? "Equilibra interação e tolerância a oscilações da conexão." : "Mais tolerante a oscilações, com maior atraso. Use este modo para 4K.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text("Os convidados recebem o retorno direto do Dante, independente desta opção.").font(.caption).foregroundStyle(.secondary)
             }
         }.padding(16).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
     }

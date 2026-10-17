@@ -13,8 +13,10 @@ let appVersion = "0.1.9 QA"
             ? GuestModel(studio:studio, discoveryServers:["stun:192.0.2.1:3478"])
             : studio.guests
         Task { @MainActor in
+            var echoFixture: UnsafeMutableRawPointer?
             do {
-                try await guests.startServer(resources:URL(fileURLWithPath:app).appendingPathComponent("Contents/Resources/GuestWeb"))
+                let resources = ProcessInfo.processInfo.environment["DANTE_GUEST_WEB"].map { URL(fileURLWithPath: $0) } ?? URL(fileURLWithPath:app).appendingPathComponent("Contents/Resources/GuestWeb")
+                try await guests.startServer(resources: resources)
                 let publicTest=CommandLine.arguments.contains("--public")
                 if publicTest {
                     for _ in 0..<2 {
@@ -29,6 +31,20 @@ let appVersion = "0.1.9 QA"
                 print("READY: isolated synthetic guest test");fflush(stdout)
                 while !FileManager.default.fileExists(atPath:root.appendingPathComponent("stop").path) {
                     studio.refresh()
+                    let echoRequest=root.appendingPathComponent("echo-start")
+                    if FileManager.default.fileExists(atPath:echoRequest.path),echoFixture == nil,let guest=guests.invites.first,guest.admitted {
+                        echoFixture=guest_echo_fixture_start(guest.microphone,studio.sceneName)
+                        precondition(echoFixture != nil)
+                        try FileManager.default.removeItem(at:echoRequest)
+                        try Data("ready".utf8).write(to:root.appendingPathComponent("echo-ready"))
+                    }
+                    let echoStop=root.appendingPathComponent("echo-stop")
+                    if FileManager.default.fileExists(atPath:echoStop.path) {
+                        guest_echo_fixture_stop(echoFixture);echoFixture=nil
+                        try FileManager.default.removeItem(at:echoStop)
+                        try Data("stopped".utf8).write(to:root.appendingPathComponent("echo-stopped"))
+                        studio.refresh()
+                    }
                     for guest in guests.invites where guest.peer != nil && !guest.admitted {
                         guests.admit(guest.id);guests.insertScreen(guest.id)
                         _=studio.command("audio.set",["name":guest.microphone,"monitoring":0],undo:false)
@@ -39,6 +55,23 @@ let appVersion = "0.1.9 QA"
                     let panelRequest=root.appendingPathComponent("panel-checks")
                     if FileManager.default.fileExists(atPath:panelRequest.path),guests === studio.guests,let guest=guests.invites.first,guests.invites.count==2 {
                         try FileManager.default.removeItem(at:panelRequest)
+                        let filterName = "Dante • Redução de ruído"
+                        let microphoneBefore = guests.item(guest.microphone, in: studio.sceneName)!
+                        let properties = jsonObject(copied(dante_engine_type_properties(studio.engine, "noise_suppress_filter_v2")))
+                        let methods = properties.array("properties").first { $0.string("name") == "method" }?.array("items").map { $0.string("value") } ?? []
+                        precondition(methods.contains("rnnoise") && methods.contains("speex"))
+                        precondition(studio.command("filter.add", ["name": guest.microphone, "type": "noise_suppress_filter_v2", "filter": filterName, "settings": ["method": "rnnoise"]], undo: false))
+                        for enabled in [false, true] {
+                            precondition(studio.command("filter.update", ["name": guest.microphone, "filter": filterName, "enabled": enabled, "settings": ["method": "speex", "suppress_level": -24]], undo: false))
+                            let settings = jsonObject(copied(dante_engine_filter_properties(studio.engine, guest.microphone, filterName))).object("settings")
+                            precondition(settings.string("method") == "speex" && settings.number("suppress_level") == -24)
+                            let microphone = guests.item(guest.microphone, in: studio.sceneName)!
+                            precondition(microphone.array("filters").first { $0.string("name") == filterName }?.flag("enabled") == enabled)
+                            precondition(microphone.number("tracks") == microphoneBefore.number("tracks") && microphone.flag("muted") == microphoneBefore.flag("muted"))
+                        }
+                        precondition(studio.command("filter.remove", ["name": guest.microphone, "filter": filterName], undo: false))
+                        precondition(guests.item(guest.microphone, in: studio.sceneName)!.array("filters").count == microphoneBefore.array("filters").count)
+                        print("PASS: optional RNNoise/Speex, strength, bypass and routing preservation")
                         let original=studio.sceneName
                         precondition(studio.listedSources.isEmpty)
                         precondition(guests.displayName(for:guest.camera).hasPrefix(guest.firstName))
@@ -69,8 +102,8 @@ let appVersion = "0.1.9 QA"
                     try JSONSerialization.data(withJSONObject:snapshot).write(to:root.appendingPathComponent("state.json"),options:.atomic)
                     try await Task.sleep(for:.milliseconds(200))
                 }
-                guests.stop();studio.shutdown();try? FileManager.default.removeItem(at:config);print("PASS: guest engine shutdown");exit(0)
-            } catch {print("FAIL: guest harness \(error)");guests.stop();studio.shutdown();exit(1)}
+                guest_echo_fixture_stop(echoFixture);guests.stop();studio.shutdown();try? FileManager.default.removeItem(at:config);print("PASS: guest engine shutdown");exit(0)
+            } catch {print("FAIL: guest harness \(error)");guest_echo_fixture_stop(echoFixture);guests.stop();studio.shutdown();exit(1)}
         }
         NSApp.run()
     }

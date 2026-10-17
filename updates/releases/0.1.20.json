@@ -1,0 +1,16 @@
+{
+  "version": "0.1.20",
+  "build": 21,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.20/Dante-Live-0.1.20-macOS-universal.dmg",
+  "length": 96969081,
+  "sha256": "0da20de7afa09e91f7456b796a5b1fc94cd7910eedd90591065450779770d089",
+  "signature": "DjpYXIekOYCayZIADXpMr7fJ9fFuQkxFOVBdy/gYO8mmcB3qGDy1xKU575Gk7HUiyHtHIBpwWUJw/Bjfg1nlDA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-17T04:02:47.323000+00:00",
+  "changelog": "# Dante Live 0.1.20 — chat responsivo e alertas\n\n- Chat e Super Chat redesenhados com cartões por mensagem, iniciais e cores por autor. Seis modelos principais inspirados na referência: YouTube Clean, Vidro, Neon, Claro, Balões e Terminal, além de seis variações.\n- Nome, texto e distância entre comentários com controles independentes; cores e opacidade personalizáveis.\n- Alças redimensionam a área do chat e do destaque em largura e altura, reorganizando as linhas sem deformar as letras.\n- Exemplos visuais antes da live para configurar chat, Super Chat e alertas. Desenhados somente no editor, nunca na imagem transmitida.\n- Novo componente Likes e novos inscritos: total de likes com joinha animado quando aumenta, consultado a cada 15 segundos.\n- Inscrições públicas recentes entram numa fila de cinco segundos por aviso, sem repetir o mesmo canal na live. Primeira consulta não anuncia inscritos antigos.\n- Biblioteca de lives em duas abas, atalho Transmitir nos cartões e remoção local de preparações/agendamentos sem alterar o canal. Confirmação e contagem regressiva preservadas.\n- Destaques longos paginados conforme o tamanho e a fonte da área, preservando todo o texto.\n\nA API do YouTube não informa quem deu like. Inscrições privadas não aparecem; consultas de inscritos a cada 30 segundos podem sofrer atraso e retornar lista limitada. Alertas são opcionais, com limites de memória/fila e limpeza ao encerrar. Nenhuma garantia de tempo real.\n\nTestes locais: leitura autenticada com transporte simulado, fila/deduplicação/reset, cards/spacing/fonts, pixels reais de programa, prévia de exemplo separada e redimensionamento por gestos. Não houve live pública, inscrição real ou teste em Intel físico.\n\nMantém faixa rolante e QR Code da 0.1.19. macOS 14+, Universal 2. Versão experimental assinada e notarizada pela Apple. Credenciais privadas permanecem no Keychain local.\n",
+  "notarized": true
+}

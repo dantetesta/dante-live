@@ -6,6 +6,32 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.20</title>
+      <pubDate>Sat, 17 Oct 2026 04:02:47 +0000</pubDate>
+      <sparkle:version>21</sparkle:version>
+      <sparkle:shortVersionString>0.1.20</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.20 — chat responsivo e alertas
+
+- Chat e Super Chat redesenhados com cartões por mensagem, iniciais e cores por autor. Seis modelos principais inspirados na referência: YouTube Clean, Vidro, Neon, Claro, Balões e Terminal, além de seis variações.
+- Nome, texto e distância entre comentários com controles independentes; cores e opacidade personalizáveis.
+- Alças redimensionam a área do chat e do destaque em largura e altura, reorganizando as linhas sem deformar as letras.
+- Exemplos visuais antes da live para configurar chat, Super Chat e alertas. Desenhados somente no editor, nunca na imagem transmitida.
+- Novo componente Likes e novos inscritos: total de likes com joinha animado quando aumenta, consultado a cada 15 segundos.
+- Inscrições públicas recentes entram numa fila de cinco segundos por aviso, sem repetir o mesmo canal na live. Primeira consulta não anuncia inscritos antigos.
+- Biblioteca de lives em duas abas, atalho Transmitir nos cartões e remoção local de preparações/agendamentos sem alterar o canal. Confirmação e contagem regressiva preservadas.
+- Destaques longos paginados conforme o tamanho e a fonte da área, preservando todo o texto.
+
+A API do YouTube não informa quem deu like. Inscrições privadas não aparecem; consultas de inscritos a cada 30 segundos podem sofrer atraso e retornar lista limitada. Alertas são opcionais, com limites de memória/fila e limpeza ao encerrar. Nenhuma garantia de tempo real.
+
+Testes locais: leitura autenticada com transporte simulado, fila/deduplicação/reset, cards/spacing/fonts, pixels reais de programa, prévia de exemplo separada e redimensionamento por gestos. Não houve live pública, inscrição real ou teste em Intel físico.
+
+Mantém faixa rolante e QR Code da 0.1.19. macOS 14+, Universal 2. Versão experimental assinada e notarizada pela Apple. Credenciais privadas permanecem no Keychain local.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.20/Dante-Live-0.1.20-macOS-universal.dmg" length="96969081" type="application/octet-stream" sparkle:edSignature="DjpYXIekOYCayZIADXpMr7fJ9fFuQkxFOVBdy/gYO8mmcB3qGDy1xKU575Gk7HUiyHtHIBpwWUJw/Bjfg1nlDA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.19</title>
       <pubDate>Sat, 17 Oct 2026 03:20:32 +0000</pubDate>
       <sparkle:version>20</sparkle:version>
@@ -316,6 +342,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 99z6L6tnc96qKe2uWslcGaU4g+9VllRJX7KUwpOiphqEYDlGGrQEhBjczsbZ8nazOzELJmO5Fp6rG+ctIVkhAQ==
-length: 28462
+edSignature: ZLnRV3rgZVndJzjxeFtUWy7VlyKj1U0uWP4jgLJVveCU7B1K/Mw2Rg0/EH2j3+tekaDQnIHeGJjSdBsyrgibAA==
+length: 31174
 -->

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.17",
+  "build": 18,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.17/Dante-Live-0.1.17-macOS-universal.dmg",
+  "length": 94126678,
+  "sha256": "c320119f73049e61c977786dd46d0acb45fe64465589a07b48147847ed1dcd8a",
+  "signature": "7JH4LofEzIXLH89322s01H23XjC9NqO8XVQO/h8tIX6qPM+WM+pHjN4gDzdMjSFq9DYIC//nYKR7lYpnkksYDA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-17T00:42:37.129762+00:00",
+  "changelog": "# Dante Live 0.1.17\n\n## Áudio e vídeo para lives\n\n- Novo controle **Participantes → Tratamento da voz**: redução de ruído opcional por convidado, modo automático para voz (RNNoise) e modo manual com intensidade (Speex). Desativar preserva os ajustes para reativação.\n- Bitrates separados para câmera, tela e áudio dos convidados, preferência por H.264 e compartilhamento de tela a até 15 FPS, priorizando detalhes. O envio continua se adaptando à conexão.\n- Removida uma fila adicional do vídeo recebido; retorno do programa com limite próprio de bitrate.\n- Saída VideoToolbox sem B-frames e x264 com configuração de baixa latência.\n- **Atraso para o público** fica visível na preparação. Novas lives YouTube usam latência ultrabaixa; configurações existentes são preservadas. Para 4K, use Normal.\n- Link da live iniciada disponível no estúdio para copiar e divulgar, com indicação quando o vídeo é privado.\n\n## Validação e limites\n\nTestes locais com dois convidados sintéticos, câmera/tela/medidores/retorno, filtros, saída RTMP loopback e suíte Swift/Python aprovados. Isso não mede a qualidade na rede real nem o atraso até o espectador do YouTube. Não há promessa de atraso zero ou qualidade constante sob congestionamento.\n\n**Eco por recaptura ainda pendente:** o retorno direto exclui o microfone do próprio convidado, mas a recaptura pelos alto-falantes/microfone do anfitrião não foi resolvida. A tentativa de cancelamento que falhou no teste não foi incluída.\n\nmacOS 14+, Universal 2 para Apple Silicon e Intel. Versão experimental assinada com Developer ID e notarizada pela Apple. Intel físico, Safari/Firefox, redes distintas e sessões prolongadas continuam pendentes. Atualize fora de uma transmissão ativa; reabra o Dante e gere novos convites para usar a nova página de convidados.\n",
+  "notarized": true
+}

@@ -73,6 +73,7 @@ struct StudioView: View {
         .sheet(isPresented: $model.showingLiveLibrary, onDismiss: { model.liveLibraryDismissed() }) {
             YouTubeLibraryView(youtube: model.youtube, forTransmission: true) { model.continueFromLiveLibrary() }
         }
+        .sheet(isPresented: $model.showingChat) { ChatControlView(studio: model, chat: model.youtube.chat) }
         .sheet(isPresented: $model.showingGuests) { GuestsView(guests: model.guests, studio: model) }
         .sheet(isPresented: $model.showingOutput) { OutputSettingsView(model: model) }
         .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
@@ -93,6 +94,7 @@ struct StudioView: View {
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active || model.guests.inUse).help("Desfazer ⌘Z")
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active || model.guests.inUse).help("Refazer ⇧⌘Z")
+            Button { model.showingChat = true } label: { Image(systemName: "bubble.left.and.bubble.right") }.help("Chat e Super Chats do YouTube")
             Button { model.showingGuests = true } label: { Image(systemName: "person.badge.plus") }.help("Convidar participantes")
             Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
 
@@ -164,6 +166,7 @@ struct StudioView: View {
 }
 
 func iconForSource(_ type: String) -> String {
+    if ["dante_youtube_chat", "dante_superchat"].contains(type) { return "text.bubble" }
     if type.contains("audio") { return "mic" }
     if type.contains("capture") { return type.contains("screen") || type.contains("display") || type.contains("window") ? "display" : "video" }
     if type.contains("image") { return "photo" }

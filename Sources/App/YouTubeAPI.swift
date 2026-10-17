@@ -6,6 +6,9 @@ struct YouTubeAPIError: LocalizedError {
     var definitelyRejected: Bool { (400..<500).contains(statusCode) && statusCode != 408 }
     var errorDescription: String? {
         switch reason {
+        case "liveChatDisabled": "O chat está desativado nesta live."
+        case "liveChatEnded": "O chat desta live foi encerrado."
+        case "liveChatNotFound": "O chat da live não foi encontrado."
         case "quotaExceeded", "dailyLimitExceeded": "A cota da API do YouTube foi atingida. Tente mais tarde."
         case "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions": "O YouTube ainda não permite lives neste canal. Confira a habilitação no YouTube Studio."
         case "invalid_grant", "unauthorized": "A autorização do YouTube expirou ou foi revogada. Conecte o canal novamente."
@@ -54,7 +57,9 @@ struct YouTubeBroadcast: Codable, Identifiable {
     var lifeCycle: String
     var autoStart: Bool
     var latency: String?
+    var liveChatID: String?
     init(_ json: [String: Any]) {
+        liveChatID = json.object("snippet")["liveChatId"] as? String
         id = json.string("id"); let snippet = json.object("snippet"); let status = json.object("status"); let content = json.object("contentDetails")
         title = snippet.string("title"); description = snippet.string("description"); privacy = status.string("privacyStatus")
         scheduledAt = snippet.string("scheduledStartTime"); boundStreamID = content.string("boundStreamId"); lifeCycle = status.string("lifeCycleStatus")
@@ -127,7 +132,7 @@ struct YouTubePreferences: Codable {
         guard (200..<300).contains(response.statusCode) else {
             // Never surface response bodies or URLs: they may contain credentials.
             let reason = json.object("error").array("errors").first?.string("reason") ?? (json["error"] as? String) ?? (response.statusCode == 401 ? "unauthorized" : "HTTP \(response.statusCode)")
-            let known: Set<String> = ["quotaExceeded", "dailyLimitExceeded", "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions", "invalid_grant", "unauthorized", "forbidden", "insufficientPermissions", "redundantTransition"]
+            let known: Set<String> = ["quotaExceeded", "dailyLimitExceeded", "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions", "invalid_grant", "unauthorized", "forbidden", "insufficientPermissions", "redundantTransition", "liveChatDisabled", "liveChatEnded", "liveChatNotFound", "rateLimitExceeded"]
             throw YouTubeAPIError(reason: known.contains(reason) ? reason : "HTTP \(response.statusCode)", statusCode: response.statusCode)
         }
         return json

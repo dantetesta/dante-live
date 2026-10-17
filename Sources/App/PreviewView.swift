@@ -36,6 +36,7 @@ struct EnginePreview: NSViewRepresentable {
 
 struct CanvasView: View {
     @ObservedObject var model: StudioModel
+    @Environment(\.colorScheme) private var colorScheme
     var program = false
     var cropModifier: () -> Bool = { NSEvent.modifierFlags.contains(.option) }
     @LegacyState private var dragStart: [String: Any]?
@@ -78,9 +79,17 @@ struct CanvasView: View {
             }
             .frame(width: size.width, height: size.height)
             .coordinateSpace(name: canvasSpace).clipped().background(.black)
+            // Editor chrome only: the exact output boundary remains visible even
+            // with a black scene. It never enters the engine's program texture.
+            .overlay {
+                Rectangle().strokeBorder(colorScheme == .dark ? Color.white.opacity(0.45) : Color.black.opacity(0.5), lineWidth: 1)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
         }
-        .background(Color.black.opacity(0.85))
+        .background(colorScheme == .dark
+                    ? Color(red: 0.20, green: 0.22, blue: 0.25)
+                    : Color(red: 0.84, green: 0.86, blue: 0.89))
         .accessibilityLabel(program ? "Programa ao vivo" : "Editor da cena")
     }
     func scaled(_ point: CGPoint, _ factor: Double) -> CGPoint {

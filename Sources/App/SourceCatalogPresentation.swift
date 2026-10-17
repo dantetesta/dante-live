@@ -15,6 +15,10 @@ struct SourceChoice: Identifiable {
         id = source.string("id"); originalName = source.string("name")
         let data: (String, String, String, String, String, Int)
         switch id {
+        case "dante_youtube_chat":
+            data = ("Chat do YouTube", "Uma janela com a conversa da sua live.", "Mostra as mensagens recentes da live conectada. Super Chats ficam na fila de revisão. Personalize estilo, cor e fonte nas Propriedades.", "bubble.left.and.bubble.right.fill", "Elementos", 11)
+        case "dante_superchat":
+            data = ("Destaque de comentário", "Perguntas e Super Chats aprovados por você.", "Selecione uma mensagem no painel Chat. Ela entra com animação e fica até você ocultar. O olho da fonte controla sua visibilidade na cena.", "text.bubble.fill", "Elementos", 12)
         case "macos-avcapture":
             data = ("Câmera", "Webcam, câmera USB ou iPhone compatível.", "Adicione a câmera e escolha o dispositivo e a resolução na janela de prévia. O iPhone precisa estar disponível como câmera no macOS.", "web.camera.fill", "Câmera e tela", 0)
         case "screen_capture":

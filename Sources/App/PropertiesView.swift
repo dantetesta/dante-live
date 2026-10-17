@@ -158,7 +158,10 @@ struct InspectorView: View {
                             HStack { Button("Reproduzir") { _ = model.command("media.play", ["name": model.selectedName], undo: false) }; Button("Pausar") { _ = model.command("media.pause", ["name": model.selectedName], undo: false) }; Button { _ = model.command("media.restart", ["name": model.selectedName], undo: false) } label: { Image(systemName: "backward.end") } }.controlSize(.small)
                         }
                         Divider()
-                        PropertyFields(properties: properties, settings: $settings, onEdit: applyChange)
+                        if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
+                            ChatStylePicker(settings: $settings) { applyChange(immediate: true) }
+                            Button("Abrir chat e fila de Super Chats") { model.showingChat = true }
+                        } else { PropertyFields(properties: properties, settings: $settings, onEdit: applyChange) }
                         Text("Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary)
                         DisclosureGroup("JSON avançado") {
                             VStack {

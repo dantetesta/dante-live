@@ -1,3 +1,19 @@
+## Versão 0.1.18 — chat e Super Chats (experimental)
+
+Duas fontes nativas: janela de chat (últimas quatro mensagens comuns) e destaque animado, com 12 estilos, cores de destaque/fundo/texto, seis famílias de fonte e tamanho. Painel Chat na barra superior separa conversa e fila de Super Chats/Super Stickers; aprovar, ocultar, marcar como exibido e navegar páginas. Mensagens pagas não entram no feed automático; texto completo no painel e no destaque paginado. Super Stickers usam descrição textual porque a API não fornece sua imagem. No modo estúdio, o conteúdo é uma entrada ao vivo compartilhada; posição/visibilidade da cena continuam sujeitas a Corte/Transição.
+
+Conexão usa OAuth do evento realmente iniciado, `snippet.liveChatId` e `liveChatMessages.list`, respeitando `pollingIntervalMillis` com mínimo de cinco segundos. Reconexão com backoff, cursor e geração de sessão; quotas/permissões/encerramento aparecem no painel. Ainda não usa `streamList`: polling consome quota (5 unidades por chamada) e não oferece chegada instantânea. Nenhuma publicação, exclusão ou moderação remota é executada.
+
+Memória limitada a 100 mensagens comuns, 500 apoios pendentes e 10.000 IDs recentes. Fila cheia avisa; não descarta silenciosamente apoios antigos para receber novos. Mensagens, fila e texturas limpas ao parar/encerrar; apenas fontes/estilos/transforms são salvos. Textos remotos são desenhados como texto simples, sem HTML ou carregamento de avatares. Validação local: transporte falso, moderação/dedup/paginação/reset, capturas claro/escuro, e pixels reais de saída do libobs em processo isolado. YouTube real, doações reais e sessões prolongadas ainda não validados. Incluído na versão 0.1.18; validação com conta real permanece pendente.
+
+Referências: [mensagens e Super Chats](https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages), [consulta e cadência](https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages/list).
+
+## Versão 0.1.18 — organização da preparação de lives
+
+Formulário reorganizado em Conteúdo e Público e interação, com título maior, descrição com orientação, categoria/palavras-chave recolhíveis, cartões de visibilidade e capa clicável em coluna menor. Ações Salvar para transmitir/Agendar e status de autosave ficam fora da rolagem. Layout passa para uma coluna abaixo de 760 pontos; janela de configurações usa até 1000×820 pontos, limitada à área útil da tela. Tema claro/escuro acompanha o app. Fluxos de persistência e publicação continuam nos mesmos métodos do modelo. Incluído na versão 0.1.18.
+
+Limite do canvas: fundo externo cinza-azulado opaco, adaptado ao tema, e borda fina no retângulo exato de saída, tanto na prévia quanto no programa. Decoração apenas da UI, sem mudar enquadramento, coordenadas das alças ou textura enviada pelo motor. Incluído na versão 0.1.18.
+
 ## Versão 0.1.17 — áudio e latência
 
 Implementados em código: redução de ruído opcional por participante (RNNoise/Speex, bypass persistindo ajustes), bitrates/FPS separados para convidados, preferência H.264, recepção de vídeo sem fila assíncrona adicional, saída VT sem B-frames e x264 zerolatency. Novas preparações YouTube usam ultrabaixa latência; configurações salvas são preservadas, 4K exige Normal. Estúdio oferece link do vídeo iniciado para copiar.

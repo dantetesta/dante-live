@@ -18,6 +18,7 @@
 #include <thread>
 #include <vector>
 #include "DanteCameraMask.hpp"
+#include "DanteChatOverlay.hpp"
 
 static std::string creationError;
 static NSString *S(const char *s) { return s ? [NSString stringWithUTF8String:s] ?: @"" : @""; }
@@ -332,6 +333,7 @@ dante_engine_t *dante_engine_create_with_config(const char *bundlePath,uint32_t 
     }
     obs_post_load_modules();
     dante_register_guest_sources();
+    dante_register_chat_sources();
     DanteMask::registerFilter();
     e->transition=obs_source_create_private("fade_transition","Dante fade",nullptr);
     if (!e->transition) { creationError="Módulo de transição ausente."; obs_shutdown(); delete e; return nullptr; }

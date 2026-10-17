@@ -13,6 +13,8 @@ final class StudioModel: ObservableObject {
     @Published var notice = "Pronto para criar"
     @Published var studioMode = false
     @Published var showingAdd = false
+    @Published var showingChat = false
+    let chatRenderer = ChatOverlayRenderer()
     @Published var showingGuests = false
     @Published var showingOutput = false
     @Published var outputTab = "quality"
@@ -145,6 +147,9 @@ final class StudioModel: ObservableObject {
         }
         let warnings = silenceWatch.update(samples, live: state.object("outputs").object("stream").flag("started"), now: ProcessInfo.processInfo.systemUptime)
         if warnings != microphoneWarnings { microphoneWarnings = warnings }
+        let streamOutput = state.object("outputs").object("stream")
+        if youtube.chat.sessionActive && !streaming && !streamOutput.flag("starting") && !streamOutput.flag("reconnecting") && !streamOutput.flag("busy") { youtube.chat.reset() }
+        chatRenderer.update(studio: self)
         if let id = selectedItem, !items.contains(where: { $0.sceneItemID == id }) { selectedItem = nil }
     }
     func watchesMicrophone(_ source: [String: Any]) -> Bool {
@@ -204,7 +209,11 @@ final class StudioModel: ObservableObject {
                     guard self.liveSettings.video == video else { self.error = "As configurações mudaram durante a preparação. Confirme a transmissão novamente."; return }
                     if self.command("stream.start", ["server": launch.server, "key": launch.key, "encoder": video.encoder, "bitrate": video.bitrate, "audioBitrate": video.audioBitrate], undo: false) {
                         self.notice = "Conectando ao servidor…"
-                        self.youtube.watchStarted(launch) { [weak self] in self?.active == true }
+                        self.youtube.watchStarted(launch) { [weak self] in
+                            guard let self else { return false }
+                            let output = self.state.object("outputs").object("stream")
+                            return self.streaming || output.flag("starting") || output.flag("reconnecting")
+                        }
                     }
                 }
             } catch { self.error = error.localizedDescription }
@@ -253,13 +262,13 @@ final class StudioModel: ObservableObject {
     func undo() {
         guard !active, !guests.inUse, let engine, let previous = undoStack.last else { return }
         let current = copied(dante_engine_save(engine))
-        if dante_engine_load(engine, previous) { undoStack.removeLast(); redoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
+        if dante_engine_load(engine, previous) { chatRenderer.invalidate(); undoStack.removeLast(); redoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
     }
     func redo() {
         guard !active, !guests.inUse, let engine, let next = redoStack.last else { return }
         let current = copied(dante_engine_save(engine))
-        if dante_engine_load(engine, next) { redoStack.removeLast(); undoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
+        if dante_engine_load(engine, next) { chatRenderer.invalidate(); redoStack.removeLast(); undoStack.append(current); updateHistory(); refresh(); inspectorRevision += 1; scheduleSave() }
         else { error = copied(dante_engine_last_error(engine)) }
     }
     private func scheduleSave() {
@@ -354,7 +363,7 @@ final class StudioModel: ObservableObject {
             try validateNoInlineSecrets(jsonObject(text))
             let snapshot = copied(dante_engine_save(engine))
             guard dante_engine_load(engine, text) else { throw StudioError.message(copied(dante_engine_last_error(engine))) }
-            preserveFailedProject = false; pushUndo(snapshot); refresh(); save(); notice = "Coleção aberta; arquivo original preservado"
+            chatRenderer.invalidate(); preserveFailedProject = false; pushUndo(snapshot); refresh(); save(); notice = "Coleção aberta; arquivo original preservado"
         } catch { self.error = error.localizedDescription }
     }
     func requestPermission(for type: String, completion: @escaping () -> Void) {

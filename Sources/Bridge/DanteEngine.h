@@ -15,6 +15,8 @@ dante_engine_t *dante_engine_create(const char *app_bundle_path, uint32_t width,
  * uses this user's Application Support/Dante Live/engine, never OBS settings. */
 dante_engine_t *dante_engine_create_with_config(const char *app_bundle_path, uint32_t width, uint32_t height, uint32_t fps, const char *module_config_directory);
 void dante_engine_destroy(dante_engine_t *engine);
+/* Ephemeral premultiplied RGBA overlay pixels; copied synchronously, never serialized. Main thread. */
+bool dante_chat_frame(const char *name, const uint8_t *pixels, uint32_t width, uint32_t height, uint32_t stride, bool animate);
 const char *dante_engine_last_error(dante_engine_t *engine);
 const char *dante_engine_state(dante_engine_t *engine);
 /* Lightweight meter snapshot for UI polling; no full scene enumeration. */

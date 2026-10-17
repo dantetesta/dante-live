@@ -13,7 +13,7 @@ struct OutputSettingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Configurações da live").font(.title2.bold())
-                    Text("Suas alterações são salvas automaticamente neste Mac.").foregroundStyle(.secondary)
+                    Text(model.outputTab == "broadcast" ? "Prepare o conteúdo, escolha o público e deixe tudo pronto para transmitir." : "Suas alterações são salvas automaticamente neste Mac.").foregroundStyle(.secondary)
                 }
                 Spacer()
                 Image(systemName: "antenna.radiowaves.left.and.right").font(.title).foregroundStyle(.teal)
@@ -51,7 +51,10 @@ struct OutputSettingsView: View {
                 Button("Fechar") { settings.flush(); dismiss() }.keyboardShortcut(.cancelAction)
 
             }
-        }.padding(24).frame(width: 840, height: 700).background(Color(nsColor: .windowBackgroundColor))
+        }.padding(24).frame(
+            width: min(1000, (NSScreen.main?.visibleFrame.width ?? 1080) - 80),
+            height: min(820, (NSScreen.main?.visibleFrame.height ?? 900) - 80)
+        ).background(Color(nsColor: .windowBackgroundColor))
         .onAppear { settings.loadKey() }
         .onDisappear { settings.flush(); model.youtube.flush() }
     }

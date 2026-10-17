@@ -58,9 +58,19 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 </details>
 
-## Novidades da versão 0.1.17
+## Novidades da versão 0.1.18
 
-Tratamento de ruído opcional por participante (automático ou intensidade manual), ajustes de bitrate/filas de vídeo, escolha destacada de latência do YouTube e botão para copiar o link da live iniciada. Consulte a [pesquisa de transporte, qualidade e referências de streaming](docs/MEDIA-RESEARCH.md), incluindo limites dos testes e o diagnóstico de eco ainda aberto.
+- Chat do YouTube como uma fonte na cena, com as últimas mensagens comuns.
+- Fila de Super Chats e Super Stickers para revisar, mostrar, ocultar e marcar como exibido. Mensagens pagas só aparecem depois da sua aprovação.
+- Destaque animado com 12 estilos, cores e fontes personalizáveis. Textos longos são divididos em páginas.
+- Preparação de lives reorganizada, com campos maiores, capa clicável e ações sempre acessíveis.
+- Fundo e borda do canvas mais visíveis nos temas claro e escuro.
+
+O chat requer a integração YouTube e uma transmissão iniciada pelo aplicativo. Consulta periódica respeita a cadência da API; não é instantânea e consome quota. Mensagens e fila ficam somente na sessão e são limpas ao encerrar. Validado com API simulada e pixels reais do motor; chat e doações em uma live real ainda precisam de validação. [Detalhes e limites](docs/STATUS.md).
+
+![Doze estilos de comentários do Dante Live; prévia com dados fictícios](docs/images/chat-estilos.png)
+
+As melhorias anteriores de áudio e latência estão documentadas na [pesquisa de mídia](docs/MEDIA-RESEARCH.md), incluindo o diagnóstico de eco acústico ainda aberto.
 
 ## Prepare cada transmissão em seu próprio espaço
 

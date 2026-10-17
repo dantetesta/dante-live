@@ -23,6 +23,8 @@ Versão experimental **0.1.19**. Assinado com Developer ID e notarizado pela App
 
 ## Chat e alertas — 0.1.20
 
+A biblioteca separa **Salvas para transmitir agora** de **Criadas e agendadas**, com atalho **Transmitir** nos cartões. Remova preparações deste Mac ou oculte agendamentos localmente, preservando o canal. O atalho mantém a confirmação e a contagem regressiva.
+
 Cartões de chat redesenhados com seis modelos principais (Clean, Vidro, Neon, Claro, Balões e Terminal) e seis variações. Ajuste nome, texto, distância, cores e opacidade; redimensione largura e altura sem deformar letras. Chat e Super Chat mostram exemplos somente no editor antes da live.
 
 Novo componente **Likes e novos inscritos**: contador do total de likes com animação ao aumentar e fila de inscrições públicas de cinco segundos, sem repetir a pessoa na mesma live. A API é consultada periodicamente: não identifica quem curtiu, não revela inscrições privadas e pode atrasar/limitar resultados. [Como configurar e limites](docs/YOUTUBE-OVERLAYS.md).

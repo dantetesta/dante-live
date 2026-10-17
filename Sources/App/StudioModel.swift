@@ -175,6 +175,12 @@ final class StudioModel: ObservableObject {
             pendingLive = LiveLaunch(channel: liveSettings.selectedChannel?.name ?? "Conexão RTMP", title: "Live configurada no serviço de destino", thumbnailURL: nil, server: liveSettings.document.server, key: liveSettings.key)
         }
     }
+    func transmitSelectedFromSettings() {
+        guard !active, !preparingLive, !updateInstalling, !youtube.busy, countdown.remaining == nil, pendingLive == nil else { return }
+        liveSettings.edit({ $0.youtubeMode = true }, immediate: true)
+        continueAfterLiveLibrary = true
+        showingOutput = false
+    }
     func continueFromLiveLibrary() {
         guard showingLiveLibrary, !active, !preparingLive, !updateInstalling, !youtube.busy else { return }
         continueAfterLiveLibrary = true

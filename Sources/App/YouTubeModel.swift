@@ -77,7 +77,7 @@ struct LiveShareInfo: Equatable {
     private func migrateLibrary() {
         if preferences.savedLives == nil { preferences.savedLives = [:] }
         if preferences.currentLiveIDs == nil { preferences.currentLiveIDs = [:] }
-        for account in preferences.accounts where preferences.currentLiveIDs?[account.id] == nil {
+        for account in preferences.accounts where preferences.currentLiveIDs?[account.id] == nil && preferences.savedLives?[account.id] == nil {
             var value = preferences.states[account.id] ?? YouTubeDraftState()
             // Older versions allowed a remote selection and an unrelated local draft
             // to occupy the same slot. Preserve both when migrating that layout.
@@ -121,6 +121,31 @@ struct LiveShareInfo: Equatable {
         preferences.states[account.id] = item.state
         do { try save(); message = nil; return true }
         catch { preferences = previous; message = error.localizedDescription; return false }
+    }
+    /// Deletes only an unpublished local preparation. No YouTube request is made.
+    @discardableResult func removeLocalLive(_ id: String) -> Bool {
+        guard canOrganizeLibrary, let account else { return false }
+        edits.flush()
+        guard localLives.contains(where: { $0.id == id }) else { return false }
+        let previous = preferences
+        storeCurrentLive()
+        preferences.savedLives?[account.id]?.removeAll { $0.id == id }
+        if currentLiveID == id {
+            let next = preferences.savedLives?[account.id]?.first {
+                $0.state.createdBroadcast == nil && $0.state.selectedBroadcast == nil
+            }
+            preferences.currentLiveIDs?[account.id] = next?.id
+            preferences.states[account.id] = next?.state ?? YouTubeDraftState()
+        }
+        do {
+            try save()
+            message = "Preparação removida deste Mac. Nada foi alterado no YouTube."
+            return true
+        } catch {
+            preferences = previous
+            message = "Não foi possível remover a preparação. Seus dados foram preservados."
+            return false
+        }
     }
     var selectedBroadcast: YouTubeBroadcast? { broadcasts.first { $0.id == state.selectedBroadcast } }
     var hiddenBroadcastIDs: Set<String> { account.flatMap { preferences.hiddenBroadcasts?[$0.id] } ?? [] }
@@ -207,6 +232,7 @@ struct LiveShareInfo: Equatable {
     }
     func editDraft(_ change: (inout YouTubeDraft) -> Void) {
         guard canEditDraft, let id = account?.id else { return }
+        if currentLiveID == nil { preferences.currentLiveIDs?[id] = UUID().uuidString }
         var value = state; change(&value.draft); preferences.states[id] = value
         draftSaveStatus = "Salvando alterações…"
         edits.submit(immediate: false) { [weak self] in

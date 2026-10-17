@@ -198,6 +198,40 @@ import CryptoKit
     try check(migratedSelection.state.selectedBroadcast == "legacy-remote")
     try check(migratedSelection.localLives.count == 1 && migratedSelection.localLives[0].state.draft == draft)
     migratedSelection.shutdown()
+    // Local deletion stays deleted across save/restart, rolls back on disk errors and never calls the API.
+    try JSONEncoder().encode(legacy).write(to: localFile)
+    let cleanup = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    try check(cleanup.newDraft())
+    cleanup.editDraft { $0.title = "Excluir somente local" }; cleanup.flush()
+    let cleanupID = cleanup.currentLiveID!
+    let requestsBeforeRemoval = requests.count
+    let cleanupBytes = try Data(contentsOf: localFile)
+    try FileManager.default.removeItem(at: localFile)
+    try FileManager.default.createDirectory(at: localFile, withIntermediateDirectories: false)
+    try check(!cleanup.removeLocalLive(cleanupID) && cleanup.currentLiveID == cleanupID)
+    try check(cleanup.localLives.contains { $0.id == cleanupID })
+    try FileManager.default.removeItem(at: localFile); try cleanupBytes.write(to: localFile)
+    try check(cleanup.removeLocalLive(cleanupID))
+    for item in cleanup.localLives { try check(cleanup.removeLocalLive(item.id)) }
+    try check(cleanup.localLives.isEmpty && cleanup.currentLiveID == nil)
+    try cleanup.prepareForApplicationUpdate()
+    let cleanReload = YouTubeModel(directory: localDirectory, api: api, vault: vault)
+    try check(cleanReload.localLives.isEmpty && cleanReload.currentLiveID == nil)
+    try check(!cleanReload.removeLocalLive(firstID))
+    cleanReload.editDraft { $0.title = "Nova após limpeza" }; cleanReload.flush()
+    try check(cleanReload.localLives.count == 1 && cleanReload.currentLiveID != cleanupID)
+    try check(requests.count == requestsBeforeRemoval)
+    cleanReload.shutdown(); cleanup.shutdown()
+    let shortcut = StudioModel(projectDirectory: directory.appendingPathComponent("shortcut-fixture"))
+    shortcut.youtube = cleanReload
+    shortcut.liveSettings = LiveSettingsModel(model: shortcut, vault: vault)
+    shortcut.showingOutput = true
+    shortcut.transmitSelectedFromSettings()
+    try check(!shortcut.showingOutput && shortcut.liveSettings.document.youtubeMode == true)
+    try check(shortcut.pendingLive == nil && shortcut.countdown.remaining == nil)
+    // Routing only closes settings; confirmation waits for sheet dismissal, no output/API side effect.
+    try check(requests.count == requestsBeforeRemoval)
+    print("PASS: local deletion persistence, empty library, disk rollback, fresh draft after deletion and zero remote requests")
     print("PASS: legacy draft migration, multiple saved preparations, independent metadata/covers, restart persistence, channel isolation, no API mutation on save/select, disk failure preservation and confirmation snapshot")
     // Share the actual launched video, never another selected draft or a stream key.
     let launched = LiveLaunch(channel: "QA", title: "Live em andamento", thumbnailURL: nil, server: "rtmps://example.invalid", key: "test-key-not-for-sharing", youtubeAccount: account.id, broadcastID: "video-test", privacy: "private")

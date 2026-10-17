@@ -1,5 +1,7 @@
 ## Versão 0.1.20 — chat responsivo e alertas
 
+Biblioteca em duas abas, ações Transmitir/Editar por cartão e remoção de preparações locais com confirmação. Agendamentos saem da lista local e podem ser restaurados; nenhuma exclusão remota. Exclusão persistente inclusive da última preparação, isolamento por conta e rollback em erro de disco. Atalho nas configurações fecha as folhas antes de abrir a confirmação existente.
+
 Cartões por mensagem com seis estilos principais e seis variações; nome/texto/espaçamento separados, iniciais e cores por autor, opacidade e destaque Super Chat com o mesmo desenho. Dimensões de fonte editáveis pelas alças, reflow sem escala não uniforme. Paginação de destaque adaptada ao espaço. Exemplos somente na camada SwiftUI do editor, estruturalmente fora da textura do programa; ocultos durante preparação/contagem/saída ativa.
 
 Fonte de alertas: total de likes (15 s), inscrições públicas recentes (30 s), fila de cinco segundos, referência inicial sem replay e IDs únicos por sessão. Sem identificação de quem curtiu, sem inscritos privados ou garantia de tempo real. Consultas somente quando habilitado, limites de fila/memória, tratamento de quota e reset. [Operação e limites](YOUTUBE-OVERLAYS.md). Testes locais de transporte, filas, rasterização, geometria e programa nativo aprovados. Incluído na versão 0.1.20; conta real/inscrições reais e Intel físico não testados.

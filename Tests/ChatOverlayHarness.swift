@@ -128,6 +128,22 @@ let appVersion = "Chat QA"
         let settingsBitmap=settingsHost.bitmapImageRepForCachingDisplay(in:settingsHost.bounds)!
         settingsHost.cacheDisplay(in:settingsHost.bounds,to:settingsBitmap)
         try settingsBitmap.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("chat-settings-revised.png"))
+        let libraryDirectory=directory.appendingPathComponent("library-visual")
+        try FileManager.default.createDirectory(at:libraryDirectory,withIntermediateDirectories:true)
+        var libraryPrefs=YouTubePreferences()
+        let libraryAccount=YouTubeAccount(id:"visual",name:"Canal de exemplo",tokenAccount:"unused",clientID:"unused")
+        libraryPrefs.accounts=[libraryAccount];libraryPrefs.selectedAccount=libraryAccount.id
+        var libraryDraft=YouTubeDraftState();libraryDraft.draft.title="Conversa com a comunidade"
+        libraryPrefs.states[libraryAccount.id]=libraryDraft
+        try JSONEncoder().encode(libraryPrefs).write(to:libraryDirectory.appendingPathComponent("youtube.json"))
+        let libraryModel=YouTubeModel(directory:libraryDirectory,api:YouTubeAPI { _ in throw URLError(.notConnectedToInternet) },vault:LiveKeyVault(read:{ _ in "" },save:{ _,_ in },delete:{ _ in }))
+        let libraryHost=NSHostingView(rootView:YouTubeLibraryView(youtube:libraryModel,forTransmission:false,onTransmit:{}) {}.environment(\.colorScheme,.dark))
+        window.contentView=libraryHost;window.setContentSize(libraryHost.fittingSize)
+        try await Task.sleep(for:.milliseconds(150));libraryHost.layoutSubtreeIfNeeded()
+        let libraryBitmap=libraryHost.bitmapImageRepForCachingDisplay(in:libraryHost.bounds)!
+        libraryHost.cacheDisplay(in:libraryHost.bounds,to:libraryBitmap)
+        try libraryBitmap.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("library-tabs.png"))
+        libraryModel.shutdown()
         window.close()
         // Isolated engine, no devices or network outputs. Verify actual native source and serialization.
         guard let engine = dante_engine_create_with_config(CommandLine.arguments[1], 1280, 720, 30, fixture.appendingPathComponent("engine").path) else { fatalError(copied(dante_engine_last_error(nil))) }

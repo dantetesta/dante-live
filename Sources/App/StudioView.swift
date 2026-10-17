@@ -75,7 +75,7 @@ struct StudioView: View {
         }
         .sheet(isPresented: $model.showingChat) { ChatControlView(studio: model, chat: model.youtube.chat) }
         .sheet(isPresented: $model.showingGuests) { GuestsView(guests: model.guests, studio: model) }
-        .sheet(isPresented: $model.showingOutput) { OutputSettingsView(model: model) }
+        .sheet(isPresented: $model.showingOutput, onDismiss: { model.liveLibraryDismissed() }) { OutputSettingsView(model: model) }
         .sheet(isPresented: $model.showingProperties, onDismiss: { model.inspectorRevision += 1 }) {
             VStack(spacing: 0) {
                 InspectorView(model: model, allowsSecondarySheets: false)

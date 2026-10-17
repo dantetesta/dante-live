@@ -31,11 +31,14 @@ extension YouTubeBroadcast {
 struct YouTubeLibraryView: View {
     @ObservedObject var youtube: YouTubeModel
     let forTransmission: Bool
+    var onTransmit: (() -> Void)? = nil
     var onChoose: () -> Void
     @Environment(\.dismiss) private var dismiss
     @LegacyState private var selection = ""
     @LegacyState private var query = ""
     @LegacyState private var showHidden = false
+    @LegacyState private var pendingRemoval: YouTubeSavedLive?
+    @LegacyState private var libraryTab = "local"
     private var localLives: [YouTubeSavedLive] {
         youtube.localLives.filter { query.isEmpty || $0.state.draft.title.localizedStandardContains(query) }
     }
@@ -71,8 +74,13 @@ struct YouTubeLibraryView: View {
             } else if let message = youtube.message {
                 Text(message).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).padding(.horizontal, 24).padding(.top, 10)
             }
+            Picker("Tipo de live", selection: $libraryTab) {
+                Text("Salvas para transmitir agora (\(youtube.localLives.count))").tag("local")
+                Text("Criadas e agendadas (\(youtube.visibleBroadcasts.count))").tag("scheduled")
+            }.pickerStyle(.segmented).padding(.horizontal, 24).padding(.top, 16)
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    if libraryTab == "local" {
                     HStack {
                         Text("Salvas neste Mac • sem horário marcado").font(.headline)
                         Text("\(localLives.count)").foregroundStyle(.secondary)
@@ -83,20 +91,35 @@ struct YouTubeLibraryView: View {
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
                         ForEach(localLives) { item in
-                            localCard(item)
+                            VStack(alignment: .trailing, spacing: 8) {
+                                localCard(item)
+                                HStack {
+                                    Button(youtube.canTransmitLocal(item) ? "Transmitir" : "Editar preparação") {
+                                        selection = "local:" + item.id
+                                        choose(transmit: youtube.canTransmitLocal(item))
+                                    }.buttonStyle(.borderedProminent).disabled(!youtube.canOrganizeLibrary || (forTransmission && !youtube.canTransmitLocal(item)))
+                                    Spacer()
+                                Button(role: .destructive) { pendingRemoval = item } label: {
+                                    Label("Remover deste Mac", systemImage: "trash")
+                                }.buttonStyle(.borderless).disabled(!youtube.canOrganizeLibrary)
+                                }
+                            }.contextMenu {
+                                Button("Remover deste Mac", role: .destructive) { pendingRemoval = item }
+                                    .disabled(!youtube.canOrganizeLibrary)
+                            }
                         }
                     }
-                    Divider()
+                    } else {
                     HStack {
                         Text("Lives criadas e agendadas").font(.headline)
                         Text("\(events.count)").foregroundStyle(.secondary)
                         Spacer()
                         Toggle("Mostrar ocultas (\(youtube.hiddenBroadcastIDs.count))", isOn: $showHidden).toggleStyle(.checkbox)
                     }
-                    Text("Use o menu ••• de uma live para ocultá-la somente neste Mac. Ela continuará no YouTube.")
+                    Text("Use o menu ••• para remover uma live desta lista. O agendamento e o vídeo continuam no YouTube. Você pode restaurá-la em Mostrar ocultas.")
                         .font(.caption).foregroundStyle(.secondary)
                     if events.isEmpty {
-                        ContentUnavailableView(youtube.busy ? "Consultando o canal" : query.isEmpty ? "Nenhuma live na lista" : "Nenhuma live com esse título", systemImage: "calendar", description: Text(query.isEmpty ? "As preparações salvas neste Mac aparecem abaixo. As lives encerradas não aparecem aqui." : "Tente buscar outro título."))
+                        ContentUnavailableView(youtube.busy ? "Consultando o canal" : query.isEmpty ? "Nenhuma live na lista" : "Nenhuma live com esse título", systemImage: "calendar", description: Text(query.isEmpty ? "Veja as preparações locais na aba Salvas para transmitir agora. Lives encerradas não aparecem aqui." : "Tente buscar outro título."))
                             .frame(maxWidth: .infinity).frame(height: 190)
                     } else {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
@@ -106,6 +129,10 @@ struct YouTubeLibraryView: View {
                                     BroadcastCard(event: event, selected: selection == event.id) { selection = event.id }
                                         .disabled(youtube.busy || !event.canTransmit || hidden)
                                     HStack {
+                                        if !hidden {
+                                            Button("Transmitir") { selection = event.id; choose(transmit: true) }
+                                                .buttonStyle(.borderedProminent).disabled(!youtube.canOrganizeLibrary || !event.canTransmit)
+                                        }
                                         if hidden { Label("Oculta neste Mac", systemImage: "eye.slash").font(.caption).foregroundStyle(.secondary) }
                                         Spacer()
                                         Menu { visibilityAction(event) } label: { Image(systemName: "ellipsis") }
@@ -115,6 +142,7 @@ struct YouTubeLibraryView: View {
                                 }.contextMenu { visibilityAction(event) }
                             }
                         }
+                    }
                     }
                     Text("Horários no fuso deste Mac (\(TimeZone.current.identifier)). Selecionar uma live preserva o vídeo e o link já criados no YouTube.").font(.caption).foregroundStyle(.secondary)
                 }.padding(24)
@@ -128,15 +156,31 @@ struct YouTubeLibraryView: View {
                 Spacer()
                 Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(forTransmission ? "Continuar" : selectedLocal != nil ? "Editar preparação" : "Usar esta seleção") {
-                    guard canContinue else { return }
-                    let saved = selectedLocal.map { youtube.selectLocalLive($0.id) } ?? youtube.selectBroadcast(selection)
-                    if saved { onChoose() }
+                    choose(transmit: forTransmission)
                 }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction).disabled(!canContinue)
             }.controlSize(.large).padding(24)
         }.frame(width: sheetSize.width, height: sheetSize.height)
             .background(Color(nsColor: .windowBackgroundColor)).tint(.teal)
-            .onAppear { selection = initialSelection; youtube.refresh() }
+            .alert("Remover preparação deste Mac?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })) {
+                Button("Cancelar", role: .cancel) { pendingRemoval = nil }
+                Button("Remover deste Mac", role: .destructive) {
+                    if let item = pendingRemoval, youtube.removeLocalLive(item.id), selection == "local:" + item.id {
+                        selection = ""
+                    }
+                    pendingRemoval = nil
+                }
+            } message: {
+                Text("A preparação local será excluída. Nenhum vídeo ou agendamento será alterado no YouTube.")
+            }
+            .onAppear { selection = initialSelection; libraryTab = youtube.state.selectedBroadcast == nil ? "local" : "scheduled"; youtube.refresh() }
+            .onChange(of: libraryTab) { _, _ in selection = "" }
             .onChange(of: youtube.preferences.selectedAccount) { _, _ in selection = initialSelection }
+    }
+    private func choose(transmit: Bool) {
+        guard canContinue else { return }
+        let saved = selectedLocal.map { youtube.selectLocalLive($0.id) } ?? youtube.selectBroadcast(selection)
+        guard saved else { return }
+        if transmit, let onTransmit { onTransmit() } else { onChoose() }
     }
     private func localCard(_ item: YouTubeSavedLive) -> some View {
         let selected = selection == "local:" + item.id
@@ -163,7 +207,7 @@ struct YouTubeLibraryView: View {
         return Button {
             if youtube.setBroadcastHidden(event.id, hidden: !hidden), !hidden, selection == event.id { selection = "" }
         } label: {
-            Label(hidden ? "Mostrar novamente neste Mac" : "Ocultar neste Mac", systemImage: hidden ? "eye" : "eye.slash")
+            Label(hidden ? "Mostrar novamente neste Mac" : "Remover da lista neste Mac", systemImage: hidden ? "eye" : "trash")
         }.disabled(!youtube.canOrganizeLibrary)
     }
     private var header: some View {

@@ -7,6 +7,7 @@ struct LivePreparationView: View {
     @ObservedObject var youtube: YouTubeModel
     @ObservedObject var settings: LiveSettingsModel
     @LegacyState private var showingLibrary = false
+    @LegacyState private var transmitAfterLibrary = false
     @LegacyState private var showingSchedule = false
     @LegacyState private var editorPage = "content"
     @FocusState private var titleFocused: Bool
@@ -55,8 +56,12 @@ struct LivePreparationView: View {
         }
         .font(.system(size: 14))
         .onDisappear { youtube.flush() }
-        .sheet(isPresented: $showingLibrary) {
-            YouTubeLibraryView(youtube: youtube, forTransmission: false) { showingLibrary = false }
+        .sheet(isPresented: $showingLibrary, onDismiss: {
+            if transmitAfterLibrary { transmitAfterLibrary = false; model.transmitSelectedFromSettings() }
+        }) {
+            YouTubeLibraryView(youtube: youtube, forTransmission: false, onTransmit: {
+                transmitAfterLibrary = true; showingLibrary = false
+            }) { showingLibrary = false }
         }
         .sheet(isPresented: $showingSchedule) {
             LiveScheduleView(youtube: youtube) {

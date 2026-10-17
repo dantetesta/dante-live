@@ -6,6 +6,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.22</title>
+      <pubDate>Sat, 17 Oct 2026 21:17:48 +0000</pubDate>
+      <sparkle:version>23</sparkle:version>
+      <sparkle:shortVersionString>0.1.22</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.22 — convidados e enquadramento
+
+- A página do convidado tenta recuperar automaticamente a conexão de áudio e vídeo após falha ou negociação expirada, mantendo o convite e os dispositivos já autorizados. O botão Reconectar agora continua disponível.
+- Oscilações breves aguardam recuperação antes de refazer a conexão; novas tentativas têm espera crescente, limitada a 15 segundos.
+- O controle de captura foi corrigido e passou a indicar “Ocultar Dante Live da captura”. A opção conserva a configuração existente; a exclusão visual com dispositivos reais ainda precisa de confirmação no Mac do operador.
+- Option/Alt destaca o recorte em laranja. O novo ajuste de enquadramento permite recortar e mover o conteúdo visual com uma guia translúcida apenas no editor.
+
+Validação local: dois Chrome com mídia sintética e WebRTC real, reconexão após resposta ICE obsoleta sem novo convite, retorno de programa e revogação; testes da captura, geometria e editor. Isso não comprova horas de sessão, redes externas distintas ou Mac Intel físico. Quick Tunnel é temporário e não substitui TURN; se a sala cair, é preciso enviar novo link.
+
+macOS 14+, Universal 2. Versão experimental assinada e notarizada. Chaves privadas e credenciais permanecem somente no Keychain local.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.22/Dante-Live-0.1.22-macOS-universal.dmg" length="93205141" type="application/octet-stream" sparkle:edSignature="/1nx11DazSc4t2coLiCLlKndC6luAnB100bsuDsYd84RhM7yIXrCwSlCEc5uEgaZQlS5OmR7UoXx5rNOZpHQAA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.21</title>
       <pubDate>Sat, 17 Oct 2026 04:49:44 +0000</pubDate>
       <sparkle:version>22</sparkle:version>
@@ -365,6 +385,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 6FvVe5mDTPd6lwVM3dSDo8JYDONeaUyveWQ7bJ+G/F2Guklj5ScTyZ85/vA8MpoGVq2sEkz/mX7FjYvxpEQwDg==
-length: 33205
+edSignature: IGZfkk6N73KRzAOtoYIbzRkurriIszkHzx7K7CpURymJd8WGi/JGIX7QPPs8gVJL4ViEXGJmwuLqJiK6gW35Cw==
+length: 35319
 -->

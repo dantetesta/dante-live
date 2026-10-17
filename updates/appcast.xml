@@ -6,6 +6,29 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.21</title>
+      <pubDate>Sat, 17 Oct 2026 04:49:44 +0000</pubDate>
+      <sparkle:version>22</sparkle:version>
+      <sparkle:shortVersionString>0.1.21</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown"># Dante Live 0.1.21 — painéis livres e chat organizado
+
+- Painéis flutuantes e arrastáveis pela barra de título: chat, convidados, configurações, biblioteca, propriedades, filtros e demais painéis podem coexistir com o estúdio.
+- Busca de comentários pelo nome da pessoa ou pelo texto da mensagem.
+- Ordenação por mais recentes ou mais antigos.
+- Nova aba Já exibidos, com tags coloridas para Em exibição, Aguardando arquivamento e Já exibido.
+- Arquivamento automático 30 segundos após o destaque sair do programa. Reexibir dentro desse prazo cancela o arquivamento.
+- Selecionar uma mensagem ou mostrá-la apenas na prévia não marca como exibida. O estado real do programa é observado, inclusive no modo estúdio.
+- Histórico limitado a 500 destaques, moderação e limpeza ao encerrar a sessão. Nenhuma classificação é enviada ao YouTube.
+
+Testes locais: painéis AppKit simultâneos, movimento, fechamento independente e reabertura; temporização, busca/ordem, moderação/reset; saída real libobs com visibilidade e Corte. Não houve live pública ou teste em hardware Intel físico.
+
+macOS 14+, Universal 2. Versão experimental assinada e notarizada. Chaves privadas e credenciais permanecem no Keychain local.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.21/Dante-Live-0.1.21-macOS-universal.dmg" length="93545974" type="application/octet-stream" sparkle:edSignature="kbRkXODMN9LC2m6nlSsJ0fWe9KcFy82O9USOZZKyNn5BXpHcuPjEcZ+H/Bfn+hGGMohuYvUNkmyJcvPnIojzCQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.20</title>
       <pubDate>Sat, 17 Oct 2026 04:02:47 +0000</pubDate>
       <sparkle:version>21</sparkle:version>
@@ -342,6 +365,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: ZLnRV3rgZVndJzjxeFtUWy7VlyKj1U0uWP4jgLJVveCU7B1K/Mw2Rg0/EH2j3+tekaDQnIHeGJjSdBsyrgibAA==
-length: 31174
+edSignature: 6FvVe5mDTPd6lwVM3dSDo8JYDONeaUyveWQ7bJ+G/F2Guklj5ScTyZ85/vA8MpoGVq2sEkz/mX7FjYvxpEQwDg==
+length: 33205
 -->

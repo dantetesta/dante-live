@@ -1,0 +1,16 @@
+{
+  "version": "0.1.21",
+  "build": 22,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.21/Dante-Live-0.1.21-macOS-universal.dmg",
+  "length": 93545974,
+  "sha256": "cd3aa0b7f6c6d376812f598b6eafbfbe74a21348ab2dad64ffae4fcfa1c52782",
+  "signature": "kbRkXODMN9LC2m6nlSsJ0fWe9KcFy82O9USOZZKyNn5BXpHcuPjEcZ+H/Bfn+hGGMohuYvUNkmyJcvPnIojzCQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-17T04:49:44.196891+00:00",
+  "changelog": "# Dante Live 0.1.21 — painéis livres e chat organizado\n\n- Painéis flutuantes e arrastáveis pela barra de título: chat, convidados, configurações, biblioteca, propriedades, filtros e demais painéis podem coexistir com o estúdio.\n- Busca de comentários pelo nome da pessoa ou pelo texto da mensagem.\n- Ordenação por mais recentes ou mais antigos.\n- Nova aba Já exibidos, com tags coloridas para Em exibição, Aguardando arquivamento e Já exibido.\n- Arquivamento automático 30 segundos após o destaque sair do programa. Reexibir dentro desse prazo cancela o arquivamento.\n- Selecionar uma mensagem ou mostrá-la apenas na prévia não marca como exibida. O estado real do programa é observado, inclusive no modo estúdio.\n- Histórico limitado a 500 destaques, moderação e limpeza ao encerrar a sessão. Nenhuma classificação é enviada ao YouTube.\n\nTestes locais: painéis AppKit simultâneos, movimento, fechamento independente e reabertura; temporização, busca/ordem, moderação/reset; saída real libobs com visibilidade e Corte. Não houve live pública ou teste em hardware Intel físico.\n\nmacOS 14+, Universal 2. Versão experimental assinada e notarizada. Chaves privadas e credenciais permanecem no Keychain local.\n",
+  "notarized": true
+}

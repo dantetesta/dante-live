@@ -6,6 +6,30 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.24</title>
+      <pubDate>Mon, 19 Oct 2026 19:26:53 +0000</pubDate>
+      <sparkle:version>25</sparkle:version>
+      <sparkle:shortVersionString>0.1.24</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">DANTE LIVE 0.1.24 — NOVIDADES
+
+• Nome dinâmico do convidado: uma camada independente da câmera, com seis estilos, fontes, cores, tamanho, posição e controle de visibilidade. O convidado conectado pode alterar o nome sem interromper áudio ou vídeo.
+• Cena para até três convidados, com câmeras, telas e retorno individual que exclui a própria voz de cada participante.
+• Visualizador de áudio para a cena: dez aparências e vínculo com uma fonte específica, sem alterar a mixagem.
+• Perfis de produção: projetos de cenas separados por tema, com restauração do último perfil usado.
+• MCP local opcional para agentes lerem e editarem cenas e elementos visuais; não oferece controle de transmissão ou credenciais.
+• Reforço de volume acima de 100% no mixer e nos participantes, com limitação de picos. Use com cuidado e escute o resultado.
+• Estado mais claro da VPS de convidados, correção do alerta de silêncio quando o microfone desconecta e encerramento da sala ao terminar a transmissão.
+• Fontes instaladas no Mac disponíveis para comentários e destaques; correção da consulta de atualizações após a live.
+
+VALIDAÇÃO: build macOS Universal 2 e testes locais com três convidados sintéticos no mesmo Mac. A alteração de nome manteve a conexão WebRTC e as trilhas de câmera e microfone. Testes nativos cobriram os estilos e a persistência das camadas. A assinatura, notarização e leitura pública do instalador são verificadas separadamente no processo de publicação.
+
+LIMITES: convidados reais em redes diferentes, Intel físico, live pública longa e qualidade subjetiva do áudio não foram validados nesta versão. Quem usa VPS própria precisa atualizar a página estática do convidado para que o botão de alterar nome apareça; a API de controle existente já aceita a mudança.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.24/Dante-Live-0.1.24-macOS-universal.dmg" length="95965873" type="application/octet-stream" sparkle:edSignature="2wygiqv23tCpYD1kHZmzoz579wADn7i23m0Z99IUDQf8Ius75IOitgf6iC3jrZsX8YI9pMqt6Eax/jqDnJk5CA=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.23</title>
       <pubDate>Mon, 19 Oct 2026 14:29:12 +0000</pubDate>
       <sparkle:version>24</sparkle:version>
@@ -408,6 +432,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: kw04//14GstRha4XwWsl1Kr2Zwjximi3VJIfq6sHG7v9A11xJTn7bOflPpP66iHwA+YGJ9FLvcRYWafkDymIBw==
-length: 37549
+edSignature: 1l+l2XGjDB8CTbZN9bAzQopNwyU09zENHDR4+99rGWbeLf1adFvg3rxh7HwDGQpKth7d05aoeGZWYwneMPWcAA==
+length: 40185
 -->

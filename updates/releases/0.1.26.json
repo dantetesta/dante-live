@@ -1,0 +1,16 @@
+{
+  "version": "0.1.26",
+  "build": 27,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.26/Dante-Live-0.1.26-macOS-universal.dmg",
+  "length": 97341367,
+  "sha256": "fb12f4e698b3b9f773889e14c8eeac5fdd023144fb284446122f4ede1340b1e0",
+  "signature": "65W652vxWwiURyR8B7UGQqrOBpzj8obov1LRG9jaWPQjSm2UENjrjYnIp/ba+ceAIjt4OeEXz37wcrXTxwRWAA==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-19T22:44:41.475653+00:00",
+  "changelog": "DANTE LIVE 0.1.26 — NOVIDADES\n\n• Chat, destaque de comentário e alertas de likes/inscrições ganharam Escala geral de 50% a 200%. O cartão, os ícones e os textos crescem juntos e são redesenhados em nova resolução.\n• Largura e altura permanecem independentes para controlar a área e a quebra de linha. Arrastar uma alça lateral não estica as letras nem altera a Escala geral.\n• Novos alertas de likes e inscrições começam em 820 × 240, com título, contagem e detalhes maiores para leitura em cenas de alta resolução. Componentes já salvos preservam suas medidas e fontes.\n\nCOMO USAR\nSelecione o componente na cena. Em Propriedades, ajuste Escala geral para aumentar ou reduzir tudo proporcionalmente. Use as alças ou os campos Largura e Altura para alterar a área e a disposição do conteúdo. O botão 100% restaura a escala original.\n\nVALIDAÇÃO\nBuild Universal 2 assinada e testes locais do app, canvas, chat e renderização nativa aprovados. Cartões em 100% e 150% foram inspecionados. Uma live pública e hardware Intel físico não foram validados.\n",
+  "notarized": true
+}

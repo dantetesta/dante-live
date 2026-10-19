@@ -22,8 +22,10 @@ int main(int argc,char **argv){@autoreleasepool {
     auto *sceneSource=obs_get_source_by_name("Cena 1");auto *scene=obs_scene_from_source(sceneSource);auto *item=obs_scene_find_source(scene,"Faixa QA");assert(item);
     assert(obs_source_get_width(obs_sceneitem_get_source(item))==1280);assert(channel(10,710,0)>140&&channel(1270,710,0)>140&&channel(10,600,0)<10);
     auto *staticImage=capture(@"marquee-static.png");int textPixels=0;for(int y=620;y<720;y++)for(int x=0;x<1280;x++)if(staticImage.bitmapData[(y*1280+x)*4+1]>150)textPixels++;assert(textPixels>500);
-    auto *ocr=[[VNRecognizeTextRequest alloc]init];ocr.recognitionLevel=VNRequestTextRecognitionLevelAccurate;
-    auto *ocrHandler=[[VNImageRequestHandler alloc]initWithCGImage:staticImage.CGImage options:@{}];assert([ocrHandler performRequests:@[ocr] error:nil]);
+    auto *ocr=[[VNRecognizeTextRequest alloc]init];ocr.recognitionLevel=VNRequestTextRecognitionLevelFast;
+    NSData *ocrPNG=[staticImage representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    auto *ocrHandler=[[VNImageRequestHandler alloc]initWithData:ocrPNG options:@{}];NSError *ocrError=nil;
+    BOOL ocrOK=[ocrHandler performRequests:@[ocr] error:&ocrError];if(!ocrOK)fprintf(stderr,"Vision OCR unavailable: %s\n",ocrError.localizedDescription.UTF8String);assert(ocrOK);
     BOOL upright=NO;for(VNRecognizedTextObservation *o in ocr.results){NSString *text=[o topCandidates:1].firstObject.string;if([text containsString:@"DANTE LIVE"]&&[text containsString:@"LIVE10"])upright=YES;}assert(upright);
     command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"height":@60}});pump();assert(channel(10,650,0)<10&&channel(10,710,0)>140);
     command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"speed":@500}});pump(.8);auto *first=capture(nil);pump(.4);auto *second=capture(@"marquee-moving.png");assert(memcmp(first.bitmapData,second.bitmapData,1280*720*4)!=0);

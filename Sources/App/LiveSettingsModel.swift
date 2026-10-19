@@ -1,5 +1,20 @@
 import Foundation
 import Combine
+import AppKit
+import UniformTypeIdentifiers
+
+struct ManualLiveDraft: Codable, Equatable {
+    var title = ""
+    var description = ""
+    var thumbnailFile: String?
+
+    func validate() throws {
+        guard title.count <= 100, description.utf8.count <= 5_000,
+              thumbnailFile == nil || (thumbnailFile?.range(of: #"^[A-Fa-f0-9-]{36}\.(jpg|png)$"#, options: .regularExpression) != nil) else {
+            throw StudioError.message("Use até 100 caracteres no título, 5.000 bytes na descrição e uma capa JPEG ou PNG válida.")
+        }
+    }
+}
 
 struct LiveVideoSettings: Codable, Equatable {
     var width = 1920
@@ -38,10 +53,12 @@ struct LiveSettingsDocument: Codable {
     var channels: [SavedLiveChannel]?
     var selectedChannelID: UUID?
     var youtubeMode: Bool?
+    var manualLive: ManualLiveDraft?
     var microphoneAlerts = true
     var audioWatchOverrides: [String: Bool] = [:]
     func validate() throws {
         try video.validate()
+        try manualLive?.validate()
         guard version == 1, uploadMbps.isFinite, (0...100_000).contains(uploadMbps), presets.count <= 100,
               Set(presets.map(\.id)).count == presets.count,
               keyAccount.hasPrefix("live-"), UUID(uuidString: String(keyAccount.dropFirst(5))) != nil else {
@@ -126,6 +143,45 @@ struct LiveKeyVault {
         return Int(model.canvasWidth) != video.width || Int(model.canvasHeight) != video.height || Int(model.state.number("fps")) != video.fps
     }
     var selectedQuality: LiveQuality? { LiveQuality(rawValue: document.selection) }
+    var manualDraft: ManualLiveDraft { document.manualLive ?? ManualLiveDraft() }
+    var manualCoverURL: URL? {
+        guard let name = manualDraft.thumbnailFile else { return nil }
+        let url = store.url.deletingLastPathComponent().appendingPathComponent("manual-live-covers").appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+    func editManualDraft<T>(_ path: WritableKeyPath<ManualLiveDraft, T>, _ value: T) {
+        edit { document in
+            var draft = document.manualLive ?? ManualLiveDraft()
+            draft[keyPath: path] = value
+            document.manualLive = draft
+        }
+    }
+    func chooseManualCover() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.jpeg, .png]
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        do {
+            let data = try Data(contentsOf: source)
+            guard data.count <= 2_000_000, NSImage(data: data) != nil else {
+                throw StudioError.message("Escolha uma imagem JPEG ou PNG de até 2 MB.")
+            }
+            let ext = source.pathExtension.lowercased()
+            guard ["jpg", "jpeg", "png"].contains(ext) else { throw StudioError.message("Use JPEG ou PNG.") }
+            let filename = "\(UUID().uuidString).\(ext == "png" ? "png" : "jpg")"
+            let directory = store.url.deletingLastPathComponent().appendingPathComponent("manual-live-covers")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try data.write(to: directory.appendingPathComponent(filename), options: .atomic)
+            editManualDraft(\.thumbnailFile, filename)
+        } catch { problem = "Não foi possível usar a capa: \(error.localizedDescription)" }
+    }
+    @discardableResult func saveManualDraft() -> Bool {
+        guard !manualDraft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            problem = "Informe um título para identificar esta preparação."; return false
+        }
+        queue.cancel()
+        return commit()
+    }
     var recommendation: LiveRecommendation? { selectedQuality.map { LiveRecommendation(quality: $0, fps: video.fps, uploadMbps: document.uploadMbps > 0 ? document.uploadMbps : nil) } }
 
     func edit(_ change: (inout LiveSettingsDocument) -> Void, immediate: Bool = false, custom: Bool = false) {

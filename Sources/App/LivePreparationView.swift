@@ -14,12 +14,26 @@ struct LivePreparationView: View {
     private var locked: Bool { model.active || model.preparingLive || model.countdown.remaining != nil || youtube.busy }
     private var missingTitle: Bool { youtube.state.draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var titleTooLong: Bool { youtube.state.draft.title.count > 100 }
+    private var usingYouTubeAPI: Bool { settings.document.youtubeMode == true }
+    private func manual<T>(_ path: WritableKeyPath<ManualLiveDraft, T>) -> Binding<T> {
+        Binding(get: { settings.manualDraft[keyPath: path] }, set: { settings.editManualDraft(path, $0) })
+    }
     private func draft<T>(_ path: WritableKeyPath<YouTubeDraft, T>) -> Binding<T> {
         Binding(get: { youtube.state.draft[keyPath: path] }, set: { value in youtube.editDraft { $0[keyPath: path] = value } })
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if youtube.account == nil {
+            HStack {
+                Text("Como você vai transmitir?").fontWeight(.semibold)
+                Picker("Modo de transmissão", selection: Binding(get: { usingYouTubeAPI ? "api" : "rtmp" }, set: { mode in settings.edit({ $0.youtubeMode = mode == "api" }, immediate: true) })) {
+                    Text("RTMP / RTMPS").tag("rtmp")
+                    Text("Conta YouTube").tag("api")
+                }.pickerStyle(.segmented).frame(maxWidth: 330)
+                Spacer()
+            }
+            if !usingYouTubeAPI {
+                manualPreparation
+            } else if youtube.account == nil {
                 ContentUnavailableView {
                     Label("Conecte seu canal", systemImage: "person.crop.rectangle.badge.plus")
                 } description: {
@@ -55,7 +69,7 @@ struct LivePreparationView: View {
             }
         }
         .font(.system(size: 14))
-        .onDisappear { youtube.flush() }
+        .onDisappear { youtube.flush(); settings.flush() }
         .studioPanel(isPresented: $showingLibrary, title: "Minhas lives", onDismiss: {
             if transmitAfterLibrary { transmitAfterLibrary = false; model.transmitSelectedFromSettings() }
         }) {
@@ -70,6 +84,91 @@ struct LivePreparationView: View {
                 youtube.schedule()
             }
         }
+    }
+    private var manualPreparation: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Label(settings.selectedChannel?.name ?? "Conexão RTMP manual", systemImage: "antenna.radiowaves.left.and.right").font(.headline)
+                Spacer()
+                Button("Configurar conexão") { model.outputTab = "connection" }
+            }
+            if settings.document.server.isEmpty {
+                Label("Informe o servidor e a chave na guia Conexão antes de transmitir.", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+            } else {
+                Text(settings.document.server).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            GeometryReader { geometry in
+                ScrollView {
+                    Group {
+                        if geometry.size.width >= 760 {
+                            HStack(alignment: .top, spacing: 20) {
+                                manualDetails.frame(maxWidth: .infinity)
+                                manualCover.frame(width: 280)
+                            }
+                        } else {
+                            VStack(spacing: 20) { manualDetails; manualCover }
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.scrollIndicators(.visible).disabled(locked)
+            }
+            if let problem = settings.problem { Text(problem).font(.callout).foregroundStyle(.red) }
+            HStack {
+                Label(settings.status, systemImage: "internaldrive").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Salvar preparação") {
+                    if settings.saveManualDraft() { settings.edit({ $0.youtubeMode = false }, immediate: true); model.showingOutput = false }
+                }.buttonStyle(.borderedProminent)
+                    .disabled(locked || settings.manualDraft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || settings.manualDraft.title.count > 100 || settings.manualDraft.description.utf8.count > 5_000)
+            }
+        }
+    }
+    private var manualDetails: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            sectionHeading("Preparação local", subtitle: "Guarde os dados da live neste Mac.", icon: "text.alignleft")
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Título").fontWeight(.semibold)
+                    Spacer()
+                    Text("\(settings.manualDraft.title.count)/100").font(.caption.monospacedDigit()).foregroundStyle(settings.manualDraft.title.count > 100 ? .red : .secondary)
+                }
+                TextField("Título da transmissão", text: manual(\.title))
+                    .textFieldStyle(.plain).font(.system(size: 16)).padding(12).frame(minHeight: 48)
+                    .background(fieldBackground).overlay(fieldBorder)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack { Text("Descrição").fontWeight(.semibold); Spacer(); Text("\(settings.manualDraft.description.utf8.count)/5000 bytes").font(.caption.monospacedDigit()).foregroundStyle(settings.manualDraft.description.utf8.count > 5_000 ? .red : .secondary) }
+                TextEditor(text: manual(\.description)).scrollContentBackground(.hidden).padding(8).frame(height: 150)
+                    .background(fieldBackground).overlay(fieldBorder)
+            }
+            Label("RTMP transmite áudio e vídeo. Sem conectar a API, o Dante não altera título, descrição, capa ou agendamento no YouTube.", systemImage: "info.circle")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Link("Configurar estes dados no YouTube Studio", destination: URL(string: "https://studio.youtube.com")!)
+                .font(.callout)
+        }.padding(20).frame(maxWidth: .infinity, alignment: .leading).background(cardBackground)
+    }
+    private var manualCover: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeading("Capa de referência", subtitle: "Visualize a capa escolhida para esta preparação.", icon: "photo")
+            Button { settings.chooseManualCover() } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.07))
+                    if let url = settings.manualCoverURL, let image = NSImage(contentsOf: url) {
+                        Image(nsImage: image).resizable().scaledToFit()
+                    } else {
+                        Label("Escolher capa", systemImage: "photo.badge.plus").foregroundStyle(.secondary)
+                    }
+                }.aspectRatio(16/9, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: 12))
+            }.buttonStyle(.plain)
+            if settings.manualDraft.thumbnailFile != nil {
+                Button("Remover capa", role: .destructive) { settings.editManualDraft(\.thumbnailFile, nil) }
+            }
+            Text("JPEG ou PNG • até 2 MB • preferencialmente 16:9.").font(.caption).foregroundStyle(.secondary)
+            Divider()
+            Text(settings.manualDraft.title.isEmpty ? "Sua próxima live" : settings.manualDraft.title).font(.headline).lineLimit(3)
+            Text("Esta imagem fica somente no Dante Live. Envie a capa ao YouTube Studio para que apareça para o público.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(cardBackground)
     }
     private var channelBar: some View {
         ViewThatFits(in: .horizontal) {
@@ -270,10 +369,11 @@ struct LivePreparationView: View {
             Button {
                 if youtube.saveDraftForLater() {
                     settings.edit({ $0.youtubeMode = true }, immediate: true)
-                    showingLibrary = true
+                    model.showingOutput = false
                 }
-            } label: { Label("Salvar para transmitir", systemImage: "checkmark") }
+            } label: { Label("Salvar", systemImage: "checkmark") }
                 .buttonStyle(.borderedProminent)
+                .help("Salva a preparação e fecha as configurações. Para iniciar a live, use Transmitir no estúdio.")
         }.controlSize(.large).disabled(locked || missingTitle || titleTooLong)
     }
     private func sectionHeading(_ title: String, subtitle: String, icon: String) -> some View {

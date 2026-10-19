@@ -15,7 +15,13 @@ O servidor escuta somente em loopback. O helper cloudflared cria um endereço HT
 
 O token aleatório de 256 bits fica no fragmento do convite e depois na sessão do navegador. As chamadas usam Bearer, validação de origem, limites de tamanho, tempo e frequência. Não há acesso remoto genérico ao motor. Cada convite aceita um navegador; o primeiro acesso expira em 12 horas. Não envie o link a pessoas não autorizadas. Revogue se houver exposição.
 
-STUN Cloudflare é o padrão. TURN **não está configurado** nesta distribuição. Redes corporativas, NAT restritivo ou certas operadoras podem impedir conexão direta. A área avançada aceita uma lista JSON de URLs TURN e credenciais temporárias, apenas em memória; nunca informe chave administrativa de provedor. Provisionamento de conta, renovação automática de credenciais TURN e controle de franquia não estão implementados.
+STUN Cloudflare é o padrão. TURN **não está configurado por padrão** nesta distribuição. Redes corporativas, NAT restritivo ou certas operadoras podem impedir conexão direta. A guia Servidor TURN aceita uma VPS própria e obtém credenciais temporárias automaticamente. A área avançada ainda aceita uma lista JSON manual de URLs TURN e credenciais temporárias, apenas em memória; nunca informe chave administrativa de provedor. Controle de franquia não está implementado.
+
+## VPS própria para convidados — implementação local em validação
+
+Na guia **Participantes → Servidor TURN**, informe o IPv4 público, a porta HTTPS (443 no instalador de referência) e o token de conexão. O token fica no Acesso às Chaves deste Mac; o app não armazena senha SSH. É possível importar o perfil JSON gerado pelo instalador. O perfil contém segredo: mantenha permissões privadas, não envie pelo convite e remova o arquivo de importação após salvá-lo no app.
+
+O instalador de referência em `server/install-ubuntu.sh` prepara Ubuntu 24.04 com Nginx, certificado HTTPS por IP, Coturn e um pequeno gateway de sinalização Python. A página do convidado e a sinalização passam pelo HTTPS da VPS; câmera, tela e áudio usam WebRTC direto ou TURN, nunca o gateway HTTP. O gateway só aceita host autorizado para obter credenciais TURN de validade limitada e encaminha mensagens de convidados numa fila limitada. A configuração é por usuário/VPS, não há SSH dentro do aplicativo. Dois navegadores sintéticos neste Mac passaram pelo endereço da VPS, inclusive com candidato TURN relay obrigatório, mídia, retorno, reconexão e revogação. **Ainda não foi validado com convidados reais em redes externas diferentes nem com live longa**. Dimensione tráfego com medições reais.
 
 ## Limites e validação
 

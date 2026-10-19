@@ -176,7 +176,8 @@ final class StudioModel: ObservableObject {
         } else {
             liveSettings.loadKey()
             guard liveSettings.prepareStream() else { outputTab = "connection"; showingOutput = true; return }
-            pendingLive = LiveLaunch(channel: liveSettings.selectedChannel?.name ?? "Conexão RTMP", title: "Live configurada no serviço de destino", thumbnailURL: nil, server: liveSettings.document.server, key: liveSettings.key)
+            let title = liveSettings.manualDraft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            pendingLive = LiveLaunch(channel: liveSettings.selectedChannel?.name ?? "Conexão RTMP", title: title.isEmpty ? "Live configurada no serviço de destino" : title, thumbnailURL: liveSettings.manualCoverURL, server: liveSettings.document.server, key: liveSettings.key)
         }
     }
     func transmitSelectedFromSettings() {

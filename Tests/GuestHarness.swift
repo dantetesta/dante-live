@@ -16,8 +16,13 @@ let appVersion = "0.1.9 QA"
             var echoFixture: UnsafeMutableRawPointer?
             do {
                 let resources = ProcessInfo.processInfo.environment["DANTE_GUEST_WEB"].map { URL(fileURLWithPath: $0) } ?? URL(fileURLWithPath:app).appendingPathComponent("Contents/Resources/GuestWeb")
-                try await guests.startServer(resources: resources)
-                let publicTest=CommandLine.arguments.contains("--public")
+                let vpsIndex=CommandLine.arguments.firstIndex(of:"--vps-profile")
+                if let vpsIndex,CommandLine.arguments.indices.contains(vpsIndex+1) {
+                    try guests.importVPSProfile(Data(contentsOf:URL(fileURLWithPath:CommandLine.arguments[vpsIndex+1])))
+                    await guests.testVPS()
+                    guard guests.vpsStatus?.hasPrefix("Servidor conectado") == true else { throw StudioError.message("VPS de teste indisponível.") }
+                } else { try await guests.startServer(resources: resources) }
+                let publicTest=CommandLine.arguments.contains("--public") || vpsIndex != nil
                 if publicTest {
                     for _ in 0..<2 {
                         guests.createInvite()

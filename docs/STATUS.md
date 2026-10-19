@@ -1,3 +1,13 @@
+## Versão 0.1.23 — preparação para distribuição
+
+VPS própria de convidados por IPv4 HTTPS, gateway autenticado, Coturn com credenciais temporárias, guia Servidor TURN, importação de perfil protegido, preparação RTMP sem API e clareza dos limites de captura por aplicativo. Build e testes locais passaram; dois Chrome sintéticos no mesmo Mac conectaram pela VPS com relay TURN selecionado, mídia, mix-minus, reconexão e revogação. Renovação Certbot/webroot passou em dry-run. Publicação, notarização do novo artefato, teste físico entre redes distintas, live longa e primeira renovação real ainda precisam de confirmação. [Prompt de instalação](../server/PROMPT-INSTALACAO.md).
+
+## Alterações locais após 0.1.22 — preparação RTMP e clareza da captura
+
+A guia Preparar live voltou a abrir sem conta YouTube quando o modo RTMP está selecionado. Título, descrição e capa são salvos localmente e título/capa aparecem na confirmação; o envio manual usa servidor/chave já configurados, com a mesma contagem regressiva. A seleção Conta YouTube mantém o fluxo OAuth/API. RTMP não publica metadados nem agenda no serviço remoto: o usuário deve configurá-los no YouTube Studio. Ainda sem build de distribuição ou transmissão real desta alteração.
+
+As propriedades de áudio do Mac agora informam que a seleção por aplicativo inclui todas as abas do navegador; a captura de janela isola sua imagem, não o áudio por aba. Isolamento de aba com áudio exigiria integração autorizada com o navegador, ainda não implementada. Typecheck arm64/x86_64 e suíte local `test-app.sh` passaram com runtime isolado da versão 0.1.22, sem saída de rede ou dispositivos físicos nesta alteração. Typecheck Intel não substitui teste em hardware Intel.
+
 ## Versão 0.1.22 — recuperação do convidado, captura e enquadramento
 
 O convidado tenta reconstruir automaticamente a conexão WebRTC após falha de mídia ou negociação obsoleta, mantendo convite, identificação e trilhas autorizadas. Oscilações breves aguardam cinco segundos; tentativas seguintes usam espera crescente até 15 segundos. O botão Reconectar agora permite agir sem aguardar. Revogação e saída encerram as tentativas. O Quick Tunnel continua temporário: se a sala ou o endereço mudar, é necessário enviar novo convite. Esta mudança não substitui TURN, não garante conexão em toda rede e não comprova sessão de longa duração.
@@ -112,7 +122,7 @@ Release experimental: **0.1.17 (18)**. Foco exclusivo em produção de lives par
 | Projeto | Salvamento atômico, backup, recuperação e exportação/importação de JSON compatível |
 | Conexões | Canais RTMP nomeados com servidor e chave independente no Keychain; seleção automática |
 | Convidados por link | Até dois convidados, fontes separadas e retorno mix-minus; experimental, TURN não provisionado |
-| YouTube | RTMP manual e integração OAuth/API para metadados, capa, agendamento e seleção de vídeos; API validada offline, autenticação/produção reais pendentes |
+| YouTube | RTMP manual com preparação local de título/descrição/capa (sem publicação desses dados) e integração OAuth/API para metadados, capa, agendamento e seleção de vídeos; API validada offline, autenticação/produção reais pendentes |
 | Outros destinos simultâneos | Fora da prioridade atual; não implementado |
 | Browser e câmera virtual | Pendentes; nenhum módulo Qt carregado |
 | Editor avançado | Propriedades em modal e drag-and-drop de camadas disponíveis; grupos, seleção múltipla e guias completas pendentes |
@@ -212,3 +222,6 @@ Correção de placeholder enviado como deviceId de câmera/microfone, com regres
 ## Correção local — salvar preparação sem abrir a biblioteca
 
 O botão de preparação foi simplificado para **Salvar**. Após `saveDraftForLater()` confirmar persistência, habilita o modo YouTube e fecha as configurações, retornando ao estúdio. Falha de validação/persistência mantém o formulário aberto com a mensagem existente. Não abre a biblioteca nem inicia transmissão. O botão **Transmitir** do estúdio mantém seleção, confirmação e contagem regressiva. Alteração local, ainda não distribuída; sem teste em live pública.
+## VPS de convidados por IPv4 — validação em curso
+
+O servidor dedicado Ubuntu 24.04 foi configurado com HTTPS por IP, Coturn, renovação automática, firewall e gateway Python de convites. O app agora tem guia Servidor TURN, guarda token no Acesso às Chaves, aceita importação de perfil e prepara convites no endereço da VPS. Compilação universal e suíte local passaram. Dois navegadores Chrome sintéticos neste Mac atravessaram o HTTPS da VPS e completaram mídia WebRTC, retorno sem a própria voz, reconexão e revogação; um segundo teste forçou e confirmou candidato TURN relay para ambos. A simulação de renovação do certificado com Certbot/webroot passou; a primeira renovação real ainda não ocorreu. Convidados reais em redes externas distintas e duração prolongada continuam pendentes. Não há garantia de zero quedas ou de capacidade para mais de dois convidados. O executável frpc detectado/removido pelo macOS foi retirado do projeto e do VPS; o gateway usa código Python/Swift próprio.

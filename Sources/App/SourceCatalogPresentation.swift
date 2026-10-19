@@ -32,7 +32,7 @@ struct SourceChoice: Identifiable {
         case "coreaudio_input_capture":
             data = ("Microfone", "Sua voz, uma interface ou outra entrada de som.", "Escolha a entrada de áudio que deseja enviar à live. Depois, ajuste volume e mute pelo mixer.", "mic.fill", "Áudio", 2)
         case "sck_audio_capture":
-            data = ("Áudio do Mac", "Som do sistema ou de um aplicativo.", "Leve o áudio do computador para a live. Após adicionar, selecione a captura disponível e autorize o acesso quando solicitado pelo macOS.", "speaker.wave.2.fill", "Áudio", 3)
+            data = ("Áudio do Mac", "Som do sistema ou de um aplicativo.", "Selecione o sistema ou um aplicativo inteiro. Navegadores misturam o som de suas abas; para isolar uma aba seria necessária uma integração específica com o navegador.", "speaker.wave.2.fill", "Áudio", 3)
         case let value where value.hasPrefix("image_source"):
             data = ("Imagem", "Logo, foto, arte ou sobreposição.", "Escolha um arquivo de imagem. Depois de adicionar, arraste e redimensione a imagem no canvas para compor sua cena.", "photo.fill", "Elementos", 4)
         case let value where value.hasPrefix("text_ft2_source"):

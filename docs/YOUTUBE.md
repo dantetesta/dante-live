@@ -2,9 +2,15 @@
 
 A chave RTMP transporta áudio/vídeo. Para criar vídeos, definir título, descrição, palavras-chave, capa, visibilidade e agendamento, o Dante usa a API oficial do YouTube com autorização Google. Não reutiliza as credenciais OAuth do OBS.
 
-## Preparar, salvar ou agendar
+## RTMP manual, sem conectar a API
 
-1. Em **Conta YouTube**, conecte o canal.
+Em **Conexão**, escolha RTMP/RTMPS e informe servidor e chave. Na guia **Preparar live**, selecione **RTMP / RTMPS**: título, descrição e capa ficam salvos neste Mac como referência para conferir a transmissão. **Salvar preparação** fecha as configurações; no estúdio, **Transmitir** mostra essa referência e, após confirmação e contagem regressiva, inicia o envio de áudio e vídeo para a chave escolhida. O título continua opcional para transmissões manuais antigas já configuradas.
+
+RTMP não cria nem edita uma live no YouTube. Configure título, descrição, capa, visibilidade e eventual agendamento no [YouTube Studio](https://studio.youtube.com) e confira que a chave aponta para o evento desejado. Em uma live agendada, pode ser necessário clicar **Transmitir ao vivo** também no Studio, dependendo da configuração de início automático. O envio RTMP conectado não comprova sozinho que o público já está vendo a live.
+
+## Preparar, salvar ou agendar com API
+
+1. Em **Conta YouTube**, conecte o canal e selecione **Conta YouTube** na guia Preparar live.
 2. Na guia **Preparar live**, preencha título, descrição, capa e visibilidade. Categoria, palavras-chave e latência ficam em uma seção expansível.
 3. **Salvar na lista** mantém uma preparação local para transmitir sem horário marcado. Você pode criar outras usando **Nova live**; as anteriores continuam disponíveis em **Minhas lives**. Os campos também têm autosave.
 4. **Agendar…** abre calendário e horário no fuso deste Mac. Confira canal e visibilidade e clique em **Agendar no YouTube**. Essa ação cria o vídeo e o link, mas não inicia o envio automaticamente.

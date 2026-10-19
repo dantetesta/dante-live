@@ -24,16 +24,22 @@ function keepDiscoveryPending(){
   constructor(...args){super(...args);Object.defineProperty(this,'iceGatheringState',{get:()=> 'gathering'});}
  };
 }
+function forceTurnRelay(){
+ const Native=window.RTCPeerConnection;
+ window.RTCPeerConnection=class extends Native {
+  constructor(configuration){super({...configuration,iceTransportPolicy:'relay'});}
+ };
+}
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--no-first-run']});
  try {
   const pages=[];
   for(let i=0;i<2;i++){
-   const context=await browser.newContext({viewport:{width:1100,height:900}});await context.grantPermissions(["camera","microphone"]);await context.addInitScript(synthetic,{frequency:i?880:440});if(process.env.DANTE_PENDING_DISCOVERY)await context.addInitScript(keepDiscoveryPending);const page=await context.newPage();pages.push(page);
+   const context=await browser.newContext({viewport:{width:1100,height:900}});await context.grantPermissions(["camera","microphone"]);await context.addInitScript(synthetic,{frequency:i?880:440});if(process.env.DANTE_PENDING_DISCOVERY)await context.addInitScript(keepDiscoveryPending);if(process.env.DANTE_FORCE_TURN)await context.addInitScript(forceTurnRelay);const page=await context.newPage();pages.push(page);
    page.on('pageerror',e=>console.error('PAGE ERROR',e.message));
    await page.goto(fixture.base+'/#'+fixture.tokens[i]);await page.locator('#name').fill('João '+(i?'Beta':'Alfa'));await page.locator('#devices').click();await page.locator('#join').waitFor({state:'visible'});
    await page.waitForFunction(()=>!document.querySelector('#join').disabled);if(i===0)await page.locator('#screen').click();const started=Date.now();await page.locator('#join').click();
-   try { await page.waitForFunction(()=>peer?.connectionState==='connected',null,{timeout:30000}); } catch(e) { console.log(await page.evaluate(async()=>({status:document.querySelector('#status').textContent, state:peer?.connectionState, ice:peer?.iceConnectionState, descriptions:[peer?.localDescription?.sdp,peer?.remoteDescription?.sdp].map(s=>s?.split('\r\n').filter(x=>/^m=|^a=mid:|^a=group:|^a=inactive|^a=send|^a=recv/.test(x))), local:peer?.localDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), remote:peer?.remoteDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), stats:peer?Array.from((await peer.getStats()).values()).filter(x=>x.type==='candidate-pair').map(x=>({state:x.state,requestsSent:x.requestsSent,responsesReceived:x.responsesReceived})):[]})));throw e; }const elapsed=Date.now()-started;assert(elapsed<15000,'connection must not wait for STUN gathering timeout');console.log('PASS: browser '+(i+1)+' connected through real WebRTC in '+elapsed+' ms');if(i===1){await new Promise(r=>setTimeout(r,1000));await page.locator('#screen').click();}
+   try { await page.waitForFunction(()=>peer?.connectionState==='connected',null,{timeout:30000}); } catch(e) { console.log(await page.evaluate(async()=>({status:document.querySelector('#status').textContent, state:peer?.connectionState, ice:peer?.iceConnectionState, descriptions:[peer?.localDescription?.sdp,peer?.remoteDescription?.sdp].map(s=>s?.split('\r\n').filter(x=>/^m=|^a=mid:|^a=group:|^a=inactive|^a=send|^a=recv/.test(x))), local:peer?.localDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), remote:peer?.remoteDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), stats:peer?Array.from((await peer.getStats()).values()).filter(x=>x.type==='candidate-pair').map(x=>({state:x.state,requestsSent:x.requestsSent,responsesReceived:x.responsesReceived})):[]})));throw e; }const elapsed=Date.now()-started;assert(elapsed<15000,'connection must not wait for STUN gathering timeout');console.log('PASS: browser '+(i+1)+' connected through real WebRTC in '+elapsed+' ms');if(process.env.DANTE_FORCE_TURN){await page.waitForFunction(async()=>{const values=Array.from((await peer.getStats()).values()),pair=values.find(x=>x.type==='candidate-pair'&&x.nominated&&x.state==='succeeded');return pair&&values.find(x=>x.id===pair.localCandidateId)?.candidateType==='relay';},null,{timeout:10000});console.log('PASS: browser '+(i+1)+' selected TURN relay');}if(i===1){await new Promise(r=>setTimeout(r,1000));await page.locator('#screen').click();}
   }
   await new Promise(r=>setTimeout(r,6000));
   const state=JSON.parse(fs.readFileSync(path.join(root,'state.json')));

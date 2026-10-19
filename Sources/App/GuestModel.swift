@@ -1,6 +1,12 @@
 import AppKit
 import Security
 
+private final class GuestVPSNoRedirect: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        completionHandler(nil)
+    }
+}
+
 @MainActor struct GuestInvite: Identifiable {
     let id = UUID()
     let token: String
@@ -32,6 +38,10 @@ final class GuestModel: ObservableObject {
     @Published private(set) var publicURL: URL?
     @Published var message: String?
     @Published var turnJSON = ""
+    @Published var vpsAddress = UserDefaults.standard.string(forKey: "guestVPSAddress") ?? ""
+    @Published var vpsPort = UserDefaults.standard.integer(forKey: "guestVPSPort") == 0 ? 443 : UserDefaults.standard.integer(forKey: "guestVPSPort")
+    @Published var vpsEnabled = UserDefaults.standard.bool(forKey: "guestVPSEnabled")
+    @Published var vpsStatus: String?
     @Published var showing = false
     private weak var studio: StudioModel?
     private let discoveryServers: [String]
@@ -41,8 +51,12 @@ final class GuestModel: ObservableObject {
     private var tunnelOutput = ""
     private var timer: Timer?
     private var generation = UUID()
+    private var relayTask: Task<Void,Never>?
+    private let vpsSession = URLSession(configuration: .ephemeral, delegate: GuestVPSNoRedirect(), delegateQueue: nil)
+    private var remoteICE: [[String: Any]] = []
+    var hasVPSConfiguration: Bool { !vpsAddress.isEmpty && (try? SecretStore.read(account: "guest-vps-token"))?.isEmpty == false }
     var inUse: Bool { busy || !invites.isEmpty }
-    var hasTURN: Bool { (try? iceServers()).map { $0.count > 1 } ?? false }
+    var hasTURN: Bool { !remoteICE.isEmpty || (try? iceServers()).map { $0.count > 1 } ?? false }
     init(studio: StudioModel, discoveryServers: [String] = ["stun:stun.cloudflare.com:3478"]) {
         self.studio = studio; self.discoveryServers = discoveryServers
     }
@@ -54,6 +68,7 @@ final class GuestModel: ObservableObject {
     }
     func iceServers() throws -> [[String: Any]] {
         var ice: [[String: Any]] = [["urls":discoveryServers]]
+        if vpsEnabled { ice.append(contentsOf:remoteICE); return ice }
         if !turnJSON.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             guard let data = turnJSON.data(using: .utf8),data.count < 8192,
                   let entries = try? JSONSerialization.jsonObject(with:data) as? [[String: Any]],(1...4).contains(entries.count) else { throw StudioError.message("Informe uma lista JSON de servidores TURN com credenciais temporárias.") }
@@ -73,9 +88,10 @@ final class GuestModel: ObservableObject {
         Task { @MainActor in
             defer { busy=false }
             do {
+                if vpsEnabled { try await refreshVPSICE() }
                 _ = try iceServers()
-                if server == nil { try await startServer() }
-                if publicURL == nil { try await startTunnel() }
+                if !vpsEnabled && server == nil { try await startServer() }
+                if publicURL == nil { if vpsEnabled { try await startVPSBridge() } else { try await startTunnel() } }
                 try makeInvite()
             } catch { message=error.localizedDescription;if invites.isEmpty { stop() } }
         }
@@ -93,6 +109,103 @@ final class GuestModel: ObservableObject {
         self.server=server;try await server.start()
     }
     var localURL: URL? { server.flatMap { URL(string:"http://127.0.0.1:\($0.port)") } }
+    private func vpsURL(_ path: String) throws -> URL {
+        let address=vpsAddress.trimmingCharacters(in:.whitespacesAndNewlines)
+        let octets=address.split(separator:".",omittingEmptySubsequences:false)
+        guard octets.count==4,octets.allSatisfy({ $0.count <= 3 && UInt8($0) != nil }),
+              let url=URL(string:"https://\(address)\(vpsPort == 443 ? "" : ":\(vpsPort)")\(path)"),url.host==address,
+              (1...65535).contains(vpsPort) else { throw StudioError.message("Informe o IPv4 público da VPS e a porta HTTPS.") }
+        return url
+    }
+    func saveVPS(token: String) throws {
+        _ = try vpsURL("/api/health")
+        guard token.count >= 32,token.count <= 256,!token.contains("\n") else { throw StudioError.message("O token da VPS é inválido.") }
+        try SecretStore.save(token,account:"guest-vps-token")
+        UserDefaults.standard.set(vpsAddress,forKey:"guestVPSAddress")
+        UserDefaults.standard.set(vpsPort,forKey:"guestVPSPort")
+        UserDefaults.standard.set(true,forKey:"guestVPSEnabled")
+        vpsEnabled=true;vpsStatus="Configuração salva no Acesso às Chaves. Teste a conexão antes de convidar."
+    }
+    func importVPSProfile(_ data: Data) throws {
+        guard data.count < 4096,
+              let value=try JSONSerialization.jsonObject(with:data) as? [String:Any],
+              value["protocol"] as? Int == 2,
+              let server=value["server"] as? String,
+              let url=URL(string:server),url.scheme=="https",let host=url.host,
+              let token=value["connectionToken"] as? String else { throw StudioError.message("Este arquivo não é um perfil Dante Live compatível.") }
+        vpsAddress=host;vpsPort=value["httpsPort"] as? Int ?? 443
+        try saveVPS(token:token)
+    }
+    func removeVPS() throws {
+        guard !inUse else { throw StudioError.message("Encerre a sala antes de remover o servidor.") }
+        try SecretStore.delete(account:"guest-vps-token")
+        vpsAddress="";vpsEnabled=false;remoteICE=[];vpsStatus=nil
+        UserDefaults.standard.removeObject(forKey:"guestVPSAddress")
+        UserDefaults.standard.set(false,forKey:"guestVPSEnabled")
+    }
+    private func vpsData(_ path: String) async throws -> [String:Any] {
+        let token=try SecretStore.read(account:"guest-vps-token")
+        guard !token.isEmpty else { throw StudioError.message("Informe o token de conexão da VPS.") }
+        var request=URLRequest(url:try vpsURL(path));request.setValue("Bearer \(token)",forHTTPHeaderField:"Authorization")
+        request.timeoutInterval=path == "/api/poll" ? 25 : 10
+        let (data,response)=try await vpsSession.data(for:request)
+        guard let http=response as? HTTPURLResponse,http.statusCode==200,
+              data.count < (path == "/api/poll" ? 100_000 : 8192),
+              let object=try JSONSerialization.jsonObject(with:data) as? [String:Any] else { throw StudioError.message("A VPS não respondeu com uma configuração válida.") }
+        return object
+    }
+    func testVPS() async {
+        do { let health=try await vpsData("/api/health");guard health["status"] as? String=="ready",health["protocol"] as? Int==2 else { throw StudioError.message("A versão do serviço da VPS não é compatível.") };try await refreshVPSICE();vpsStatus="Servidor conectado. TURN e ponte de convites disponíveis." }
+        catch { vpsStatus="Não foi possível conectar: \(error.localizedDescription)" }
+    }
+    private func refreshVPSICE() async throws {
+        let value=try await vpsData("/api/turn")
+        guard let entries=value["iceServers"] as? [[String:Any]],entries.count==1,
+              let entry=entries.first,let urls=entry["urls"] as? [String],!urls.isEmpty,
+              urls.allSatisfy({$0.hasPrefix("turn:") || $0.hasPrefix("turns:")}),
+              let user=entry["username"] as? String,!user.isEmpty,
+              let credential=entry["credential"] as? String,!credential.isEmpty else { throw StudioError.message("A VPS não forneceu credenciais TURN válidas.") }
+        remoteICE=entries
+    }
+    private func startVPSBridge() async throws {
+        let url=try vpsURL("/")
+        let (_,response)=try await vpsSession.data(from:url)
+        guard let http=response as? HTTPURLResponse,http.statusCode==200 else { throw StudioError.message("A página de convidados da VPS não está disponível.") }
+        publicURL=try vpsURL("")
+        let id=UUID();generation=id
+        relayTask=Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self,self.generation==id else { return }
+                do {
+                    let result=try await self.vpsData("/api/poll")
+                    if let request=result["request"] as? [String:Any] { self.relay(request) }
+                } catch {
+                    self.vpsStatus="Ponte de convites reconectando à VPS…"
+                    try? await Task.sleep(for:.seconds(2))
+                }
+            }
+        }
+    }
+    private func relay(_ request: [String:Any]) {
+        guard let id=request["id"] as? String,id.count==32,
+              let path=request["path"] as? String,let token=request["token"] as? String,
+              let payload=request["payload"] as? [String:Any] else { return }
+        handle(path,token,payload) { [weak self] status,body,_ in
+            Task { @MainActor in
+                guard let self else { return }
+                do {
+                    let url=try self.vpsURL("/api/reply")
+                    let secret=try SecretStore.read(account:"guest-vps-token")
+                    var post=URLRequest(url:url)
+                    post.httpMethod="POST";post.setValue("Bearer \(secret)",forHTTPHeaderField:"Authorization")
+                    post.setValue("application/json",forHTTPHeaderField:"Content-Type")
+                    post.httpBody=try JSONSerialization.data(withJSONObject:["id":id,"status":status,"body":body.base64EncodedString()])
+                    post.timeoutInterval=10
+                    _ = try await self.vpsSession.data(for:post)
+                } catch { self.vpsStatus="Falha ao responder ao convite. A ponte tentará reconectar." }
+            }
+        }
+    }
     private func startTunnel() async throws {
         guard let server else { throw StudioError.message("Sala local indisponível.") }
         let executable=Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/cloudflared")
@@ -219,6 +332,7 @@ final class GuestModel: ObservableObject {
         pipe?.fileHandleForReading.readabilityHandler=nil
         tunnel?.terminationHandler=nil;if tunnel?.isRunning == true { tunnel?.terminate() }
         tunnel=nil;pipe=nil;publicURL=nil;tunnelOutput="";server?.stop();server=nil
+        relayTask?.cancel();relayTask=nil;remoteICE=[]
     }
     private func refresh() {
         for i in invites.indices {

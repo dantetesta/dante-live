@@ -169,6 +169,13 @@ struct InspectorView: View {
                         } else if item.string("type") == "dante_qrcode" {
                             QRCodeSettingsView(settings: $settings) { applyChange(immediate: true) }
                         } else { PropertyFields(properties: properties, settings: $settings, onEdit: applyChange) }
+                        if item.string("type") == "sck_audio_capture" {
+                            Text("A captura de aplicativo inclui todo o áudio desse app. No Chrome, Safari e outros navegadores, as abas são misturadas; esta opção não isola uma aba. Para música independente, prefira o aplicativo dedicado ou um arquivo de mídia na cena.")
+                                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        } else if item.string("type") == "screen_capture" {
+                            Text("Para mostrar só uma janela do navegador, escolha o método Janela e selecione o título desejado. Isso isola a imagem da janela, mas não separa o áudio das abas; adicione áudio somente quando necessário.")
+                                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
                         if item.string("type") != "dante_qrcode" { Text("Alterações aplicadas automaticamente.").font(.caption).foregroundStyle(.secondary) }
                         DisclosureGroup("JSON avançado") {
                             VStack {

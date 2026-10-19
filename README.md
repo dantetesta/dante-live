@@ -21,6 +21,14 @@ Versão experimental **0.1.22**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Convidados por VPS e preparação RTMP — 0.1.23
+
+- **Participantes → Servidor TURN** conecta uma VPS própria por IPv4 HTTPS. O token fica no Acesso às Chaves; o app aceita importar um perfil privado e testar o serviço. Convites, sinalização e credenciais TURN temporárias passam pela VPS; o vídeo e o áudio usam WebRTC direto ou relay TURN conforme a rede.
+- **Preparar live** voltou a aceitar o modo RTMP/RTMPS sem conta YouTube. O título, a descrição e a capa ficam como preparação local; sem API, esses dados precisam ser configurados separadamente na plataforma de destino. Salvar retorna ao estúdio sem iniciar a transmissão.
+- A captura de áudio por aplicativo explica que um navegador inclui todas as abas; capturar uma janela isola a imagem, não o áudio de uma aba. Nenhum isolamento de áudio por aba é prometido.
+
+[Receita de instalação da VPS](server/PROMPT-INSTALACAO.md) · [Limites e testes](docs/GUESTS.md). O ensaio TURN usou dois navegadores no mesmo Mac; convidados reais em redes distintas e lives longas ainda precisam de validação.
+
 ## Convidados e enquadramento — 0.1.22
 
 - Se a mídia do convidado cair ou a negociação expirar, o navegador tenta reconectar com o mesmo convite e os dispositivos já autorizados. O botão **Reconectar agora** permanece disponível. Uma sala encerrada ainda exige novo link.
@@ -194,6 +202,7 @@ A versão **0.1.11** amplia a base funcional, em estágio experimental, com func
 - Modo estúdio, corte/fade e transmissão manual RTMP/RTMPS, com início pelo estúdio e contagem regressiva cancelável.
 - Configurações em abas, autosave, presets automáticos e criação contextual de presets personalizados.
 - Diagnóstico de internet legível, canais RTMP nomeados e painéis laterais recolhíveis.
+- RTMP/RTMPS manual com título, descrição e capa salvos como referência local; o envio usa servidor e chave, enquanto os dados públicos da live são configurados no serviço de destino.
 - Integração YouTube com OAuth, rascunhos de título/descrição/capa, agendamento e escolha do mesmo vídeo para transmitir (exige configuração Google; validação real pendente).
 - Alerta visual de microfone sem sinal por 30 segundos durante a live, com recuperação automática e controle por fonte.
 - Presets de **1080p, 1440p/QHD e 2160p/4K**, com 30/60 FPS e configuração de bitrate orientada pelo upload.
@@ -215,7 +224,7 @@ Evoluir grupos, seleção múltipla, alinhamento e atalhos. Painéis recolhívei
 
 Disponível de forma **experimental na 0.1.9**: clique no ícone de convidar, gere um link e envie à pessoa. Ela informa o nome, autoriza câmera/microfone e pode compartilhar uma tela. O apresentador insere câmera, microfone e tela como fontes independentes, com mute, volume e visibilidade.
 
-A mídia usa WebRTC; o link HTTPS usa uma ponte temporária Cloudflare Quick Tunnel, sem garantia de disponibilidade. A conexão direta usa STUN. TURN aceita credenciais temporárias opcionais e **não vem provisionado**: redes restritas podem não conectar. Não há limite de duração imposto pelo Dante, mas não prometemos sessões sem quedas. [Guia de convidados e limites](docs/GUESTS.md).
+A mídia usa WebRTC. Por padrão, o link HTTPS usa Cloudflare Quick Tunnel (temporário e sem garantia); em **Participantes → Servidor TURN**, é possível configurar uma VPS própria por IPv4 com HTTPS, página de convite estável e TURN. O token fica no Acesso às Chaves e o app não solicita SSH. A conexão direta usa STUN e, quando necessário, tenta o TURN configurado. Ainda é preciso validar convidados em redes externas distintas e sessões longas. [Guia de convidados e limites](docs/GUESTS.md).
 
 ### Desempenho demonstrável
 

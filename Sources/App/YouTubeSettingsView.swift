@@ -86,7 +86,7 @@ struct LiveConfirmationView: View {
                 if latency == "normal" { Text("Esta live usa um buffer maior no YouTube. Para conversar com o chat com menos atraso, escolha latência Ultrabaixa ao preparar a live.").font(.caption).foregroundStyle(.secondary) }
             }
             if launch.youtubeAccount == nil {
-                Text("Com RTMP manual, título, capa, visibilidade e agendamento são definidos no serviço de destino. O Dante envia para a live vinculada à sua chave.").font(.callout).foregroundStyle(.secondary)
+                Text("O título e a capa acima são referências salvas neste Mac. RTMP envia áudio e vídeo, mas não publica esses dados no YouTube. Confira título, descrição, capa e visibilidade no YouTube Studio antes de iniciar; uma live agendada pode exigir também o botão Transmitir ao vivo no Studio.").font(.callout).foregroundStyle(.secondary)
             } else if let id = launch.broadcastID, let url = URL(string: "https://www.youtube.com/watch?v=\(id)") { Link("Esta transmissão usará o vídeo já criado", destination: url) }
             else { Text("A confirmação cria a live no YouTube com estes dados. Depois da preparação, o vídeo começa após a contagem de 3 segundos.").font(.callout).foregroundStyle(.secondary) }
             Label("Após a preparação, você verá a contagem 3, 2, 1 antes de o envio começar.", systemImage: "timer").font(.callout).foregroundStyle(.secondary)

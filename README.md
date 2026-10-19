@@ -21,6 +21,10 @@ Versão experimental **0.1.25**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.26
+
+Chat, destaque de comentário e alertas de likes/inscrições ganharam uma **Escala geral** de 50% a 200%. Ela aumenta cartão, ícones e letras juntos, redesenhando a textura na resolução escolhida. Largura e altura continuam independentes para ajustar a área e a quebra de linha. Novos alertas também começam com cartão e tipografia maiores, mais legíveis em cenas 4K; componentes já salvos mantêm seus valores até você alterá-los.
+
 ## Novidades da 0.1.25
 
 Ao abrir os estilos do visualizador de áudio, a versão 0.1.24 podia encerrar o aplicativo. A 0.1.25 corrige o desenho da miniatura que causava a falha. Chat, destaque e alertas de likes agora podem ter a largura ajustada pelas alças sem esticar o texto. O painel de conversa permite ocultar um comentário e tirá-lo da fila imediatamente, indicando se chegou a ir ao ar. O componente de likes ganhou seis estilos editáveis e pode mostrar o total aproximado de inscritos do canal e os novos inscritos públicos detectados durante a live.

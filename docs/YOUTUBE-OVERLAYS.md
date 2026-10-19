@@ -6,7 +6,7 @@
 2. O canvas da prévia mostra mensagens identificadas como exemplos. Elas são desenhadas somente pelo editor: nunca entram na imagem do programa, gravação ou retorno do convidado.
 3. Escolha o estilo nas Propriedades. Os seis modelos principais são YouTube Clean, Vidro, Neon, Claro, Balões e Terminal; há mais seis variações. Vidro usa transparência e brilho, sem desfocar a cena atrás dele.
 4. Ajuste separadamente nome, mensagem, espaço entre comentários, fonte, cores e opacidade. As miniaturas são renderizadas pelo mesmo desenhador dos cartões reais.
-5. Arraste as alças laterais para mudar largura ou altura. O componente reorganiza as linhas sem mudar a escala do texto. A altura mínima impede cortar a primeira linha. Posição, rotação, crop e espelhamento continuam disponíveis. Propriedades de uma fonte reutilizada afetam todas as cenas que usam essa fonte.
+5. Arraste as alças laterais para mudar largura ou altura. O componente reorganiza as linhas sem mudar a escala do texto. Use **Escala geral** nas Propriedades para ampliar ou reduzir cartão, ícones e letras juntos, de 50% a 200%, com novo desenho em resolução própria. A altura mínima impede cortar a primeira linha. Posição, rotação, crop e espelhamento continuam disponíveis. Propriedades de uma fonte reutilizada afetam todas as cenas que usam essa fonte.
 
 **Fonte** abre uma lista com busca pelas famílias instaladas neste Mac, inclusive fontes adicionadas pelo usuário. O nome escolhido é salvo no projeto. Se outra máquina não tiver essa fonte, o cartão usa a fonte do sistema e mostra um aviso nas Propriedades.
 
@@ -28,7 +28,7 @@ Mensagens removidas/moderadas não reaparecem no histórico. Tudo é limpo ao en
 
 ## Contador e alertas
 
-Adicione **Likes e novos inscritos** em Elementos. Nas Propriedades, habilite contador e/ou inscritos públicos, selecione um dos seis estilos prontos e edite cores, fonte e tamanhos do título, da contagem e dos detalhes. A largura e a altura podem ser ajustadas separadamente no canvas sem deformar o texto.
+Adicione **Likes e novos inscritos** em Elementos. Nas Propriedades, habilite contador e/ou inscritos públicos, selecione um dos seis estilos prontos e edite cores, fonte e tamanhos do título, da contagem e dos detalhes. A largura e a altura podem ser ajustadas separadamente no canvas sem deformar o texto; **Escala geral** amplia o desenho completo. Novos componentes começam em 820 × 240 com fontes maiores. Componentes existentes preservam os valores salvos.
 
 - Likes: total do vídeo realmente iniciado, consultado a cada 15 segundos. A primeira resposta inicializa o contador; aumentos seguintes animam o joinha. Atualizações agrupadas mostram o total mais recente, sem inventar nomes ou um evento por pessoa. Reduções do total são respeitadas.
 - Inscritos: consulta de inscritos públicos recentes a cada 30 segundos. A primeira resposta é referência e não gera alertas antigos. Novidades com data posterior ao início entram numa fila de cinco segundos por aviso. O ID do canal impede repetição na mesma live, inclusive após desligar/religar alertas ou após desinscrição/reinscrição observada.

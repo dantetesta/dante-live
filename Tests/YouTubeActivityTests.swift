@@ -47,5 +47,13 @@ import Foundation
         precondition(bitmap.pixelsWide==300 && bitmap.pixelsHigh==160 && bitmap.bitmapData![3]==0)
         try bitmap.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("style-\(style.id).png"))
     }
+    let normal=YouTubeActivityRaster.render(event:nil,total:1250,settings:["layoutWidth":820,"layoutHeight":240])!
+    let scaled=YouTubeActivityRaster.render(event:nil,total:1250,settings:["layoutWidth":820,"layoutHeight":240,"componentScale":1.5])!
+    precondition(normal.pixelsWide==820 && normal.pixelsHigh==240)
+    precondition(scaled.pixelsWide==1230 && scaled.pixelsHigh==360)
+    try normal.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("default-820x240.png"))
+    try scaled.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("scaled-150-percent.png"))
+    let capped=YouTubeActivityRaster.render(event:nil,total:1250,settings:["layoutWidth":1920,"layoutHeight":1600,"componentScale":2])!
+    precondition(capped.pixelsWide==2592 && capped.pixelsHigh==2160)
     print("PASS: likes, rounded channel total, public subscriber count, dedup, six editable raster styles and authenticated read-only requests")
 }

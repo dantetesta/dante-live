@@ -40,6 +40,12 @@ struct ChatStylePicker: View {
             Slider(value:number(key,fallback),in:range).accessibilityLabel(title)
         }
     }
+    private var componentScale: Binding<Double> {
+        Binding(get: {
+            let value = settings.number("componentScale", 1)
+            return value.isFinite ? min(2, max(0.5, value)) : 1
+        }, set: { settings["componentScale"] = ($0 * 20).rounded() / 20; changed() })
+    }
     var body: some View {
         VStack(alignment:.leading,spacing:16) {
             Text(lower ? "Estilo do destaque" : "Estilo do chat").font(.headline)
@@ -124,6 +130,14 @@ struct ChatStylePicker: View {
                 Slider(value:Binding(get:{settings.number("cardOpacity",selected.layout == 1 ? 0.65 : 0.96)},set:{settings["cardOpacity"]=$0;changed()}),in:0.15...1).accessibilityLabel("Opacidade do cartão")
             }
             Divider()
+            HStack { Text("Escala geral").font(.subheadline.bold()); Spacer(); Text("\(Int(componentScale.wrappedValue * 100))%").monospacedDigit().foregroundStyle(.secondary) }
+            Slider(value:componentScale,in:0.5...2,step:0.05).accessibilityLabel("Escala geral do componente")
+            HStack {
+                Text("Aumenta cartão, nome e texto juntos, redesenhados na nova resolução.").font(.caption).foregroundStyle(.secondary)
+                Spacer(minLength:8)
+                Button("100%") { componentScale.wrappedValue=1 }.disabled(componentScale.wrappedValue == 1)
+            }
+            Divider()
             Text("Área do componente").font(.subheadline.bold())
             let layout=ChatLayout(lower:lower,settings:settings)
             HStack {
@@ -132,7 +146,7 @@ struct ChatStylePicker: View {
                 Text("Altura")
                 TextField("Altura",value:number("layoutHeight",Double(layout.height)),format:.number).textFieldStyle(.roundedBorder)
             }
-            Text("Arraste as laterais no canvas para mudar largura ou altura. O texto quebra em novas linhas, sem esticar. A altura mínima preserva uma linha de leitura.").font(.caption).foregroundStyle(.secondary)
+            Text("Arraste as laterais no canvas para mudar largura ou altura e reorganizar as linhas. Use Escala geral para aumentar tudo proporcionalmente. A altura mínima preserva uma linha de leitura.").font(.caption).foregroundStyle(.secondary)
             Text("Os nomes usam cores consistentes por pessoa. O destaque usa este mesmo desenho; mensagens longas ficam em páginas na fila. A aparência acompanha esta fonte nas cenas em que é reutilizada.").font(.caption).foregroundStyle(.secondary)
         }
     }

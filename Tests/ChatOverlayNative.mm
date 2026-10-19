@@ -40,9 +40,12 @@ int main(int argc,char **argv){@autoreleasepool{
     assert(!dante_chat_frame("Overlay native QA",pixels.data(),1100,420,4400,false));
     std::vector<uint8_t> resized(640*300*4,255);assert(dante_chat_frame("Overlay native QA",resized.data(),640,300,2560,false));
     assert(obs_source_get_width(overlay)==640&&obs_source_get_height(overlay)==300);obs_source_release(overlay);
+    command(e,"source.update",R"({"name":"Overlay native QA","settings":{"componentScale":1.5}})");
+    overlay=obs_get_source_by_name("Overlay native QA");assert(obs_source_get_width(overlay)==960&&obs_source_get_height(overlay)==450);
+    assert(!dante_chat_frame("Overlay native QA",resized.data(),640,300,2560,false));obs_source_release(overlay);
     command(e,"source.add",R"({"type":"dante_youtube_alert","name":"Activity QA"})");
-    auto *activity=obs_get_source_by_name("Activity QA");assert(activity&&obs_source_get_width(activity)==620&&obs_source_get_height(activity)==180);
-    std::vector<uint8_t> alert(620*180*4,255);assert(dante_chat_frame("Activity QA",alert.data(),620,180,2480,true));
+    auto *activity=obs_get_source_by_name("Activity QA");assert(activity&&obs_source_get_width(activity)==820&&obs_source_get_height(activity)==240);
+    std::vector<uint8_t> alert(820*240*4,255);assert(dante_chat_frame("Activity QA",alert.data(),820,240,3280,true));
     assert(dante_chat_frame("Activity QA",nullptr,0,0,0,false));obs_source_release(activity);
     puts("PASS: resized native texture dimensions, old-frame rejection and activity source publish/clear");
     obs_source_release(sceneSource);obs_remove_raw_video_callback(frame,nullptr);dante_engine_destroy(e);

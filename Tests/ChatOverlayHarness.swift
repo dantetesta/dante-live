@@ -31,6 +31,11 @@ let appVersion = "Chat QA"
         }
         let feed = ChatRaster.render(messages: Array(repeating: chat.messages[0], count: 4), featured: nil, page: 0, lower: false, settings: [:])!
         try feed.representation(using: .png, properties: [:])!.write(to: directory.appendingPathComponent("chat-feed.png"))
+        let scaledFeed = ChatRaster.render(messages: chat.messages, featured: nil, page: 0, lower: false,
+                                           settings: ["layoutWidth":480,"layoutHeight":720,"componentScale":1.5])!
+        precondition(scaledFeed.pixelsWide == 720 && scaledFeed.pixelsHigh == 1080)
+        precondition(ChatRaster.pages(for: chat.featured!, settings: ["componentScale":1.5]) ==
+                     ChatRaster.pages(for: chat.featured!, settings: [:]))
         // Actual feed + highlight renders, not a mock design.
         let people=[("Marina","Boa noite, pessoal!"),("Lucas","Dante, mostra esse código?"),("Bia","Agora entendi! Muito bom.")]
         let feedMessages=people.enumerated().map { index,pair in ChatMessage(["id":"visual-\(index)","authorDetails":["displayName":pair.0],"snippet":["type":"textMessageEvent","textMessageDetails":["messageText":pair.1]]])! }

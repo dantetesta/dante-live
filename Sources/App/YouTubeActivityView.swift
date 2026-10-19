@@ -39,10 +39,17 @@ struct YouTubeActivitySettings: View {
             Slider(value: value(key, fallback: fallback, range: range), in: range).accessibilityLabel(title)
         }
     }
+    private var componentScale: Binding<Double> {
+        Binding(get: {
+            let value = settings.number("componentScale", 1)
+            return value.isFinite ? min(2, max(0.5, value)) : 1
+        }, set: { settings["componentScale"] = ($0 * 20).rounded() / 20; changed() })
+    }
     private func preview(_ style: YouTubeActivityStyle) -> NSImage? {
         guard let sample = YouTubeActivityRaster.render(event: nil, total: 1234, subscriberTotal: 8500,
                                                         newPublicSubscribers: 3,
-                                                        settings: ["style": style.id, "layoutWidth": 310, "layoutHeight": 150]) else { return nil }
+                                                        settings: ["style": style.id, "layoutWidth": 310, "layoutHeight": 150,
+                                                                   "labelSize": 14, "valueSize": 42, "detailSize": 15]) else { return nil }
         let image = NSImage(size: NSSize(width: sample.pixelsWide, height: sample.pixelsHigh))
         image.addRepresentation(sample)
         return image
@@ -83,18 +90,26 @@ struct YouTubeActivitySettings: View {
             Picker("Fonte", selection: Binding(get: { settings.string("font", selected.font) }, set: { settings["font"] = $0; changed() })) {
                 ForEach(ChatFontCatalog.availableFamilies(), id: \.self) { family in Text(family).tag(family) }
             }
-            sizeControl("Título", key: "labelSize", fallback: 14, range: 10...26)
-            sizeControl("Contagem ou nome", key: "valueSize", fallback: 42, range: 18...72)
-            sizeControl("Detalhes", key: "detailSize", fallback: 15, range: 10...28)
+            sizeControl("Título", key: "labelSize", fallback: 20, range: 10...26)
+            sizeControl("Contagem ou nome", key: "valueSize", fallback: 68, range: 18...90)
+            sizeControl("Detalhes", key: "detailSize", fallback: 22, range: 10...32)
+            Divider()
+            HStack { Text("Escala geral").font(.subheadline.bold()); Spacer(); Text("\(Int(componentScale.wrappedValue * 100))%").monospacedDigit().foregroundStyle(.secondary) }
+            Slider(value: componentScale, in: 0.5...2, step: 0.05).accessibilityLabel("Escala geral do componente")
+            HStack {
+                Text("Aumenta cartão, ícone e fontes juntos, com desenho em nova resolução.").font(.caption).foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Button("100%") { componentScale.wrappedValue = 1 }.disabled(componentScale.wrappedValue == 1)
+            }
             Divider()
             Text("Área do componente").font(.subheadline.bold())
             HStack {
                 Text("Largura")
-                TextField("Largura", value: value("layoutWidth", fallback: 620, range: 240...1920), format: .number).textFieldStyle(.roundedBorder)
+                TextField("Largura", value: value("layoutWidth", fallback: 820, range: 240...1920), format: .number).textFieldStyle(.roundedBorder)
                 Text("Altura")
-                TextField("Altura", value: value("layoutHeight", fallback: 180, range: 140...2160), format: .number).textFieldStyle(.roundedBorder)
+                TextField("Altura", value: value("layoutHeight", fallback: 240, range: 140...2160), format: .number).textFieldStyle(.roundedBorder)
             }
-            Text("Arraste as laterais no canvas para ajustar largura e altura separadamente. O texto e os ícones são redesenhados, sem distorção.").font(.caption).foregroundStyle(.secondary)
+            Text("Largura e altura mudam a área e a quebra de linha. Arraste as alças no canvas para ajustar cada eixo; use Escala geral para aumentar tudo proporcionalmente.").font(.caption).foregroundStyle(.secondary)
             Text("O total de inscritos fornecido pelo YouTube é arredondado. Novos inscritos públicos detectados são uma contagem parcial, pois o YouTube pode atrasar ou limitar a lista. Likes são consultados a cada 15 segundos; os dados de inscritos, a cada 30 segundos.").font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -104,17 +119,20 @@ struct YouTubeActivitySettings: View {
     static func render(event: YouTubeActivityEvent?, total: UInt64?, subscriberTotal: UInt64? = nil,
                        newPublicSubscribers: Int? = nil, settings: [String: Any]) -> NSBitmapImageRep? {
         guard event != nil || total != nil || subscriberTotal != nil || newPublicSubscribers != nil else { return nil }
-        let width = Int(min(1920, max(240, settings.number("layoutWidth", 620))))
-        let height = Int(min(2160, max(140, settings.number("layoutHeight", 180))))
-        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
+        let width = Int(min(1920, max(240, settings.number("layoutWidth", 820))))
+        let height = Int(min(2160, max(140, settings.number("layoutHeight", 240))))
+        let scale = OverlayComponentScale.effective(settings: settings, width: width, height: height)
+        let pixelsWide = OverlayComponentScale.pixels(width, scale: scale)
+        let pixelsHigh = OverlayComponentScale.pixels(height, scale: scale)
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh,
                                             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                                            colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: width * 4,
+                                            colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: pixelsWide * 4,
                                             bitsPerPixel: 32), let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
         NSGraphicsContext.saveGraphicsState(); defer { NSGraphicsContext.restoreGraphicsState() }
         NSGraphicsContext.current = context
         let cg = context.cgContext
-        cg.clear(CGRect(x: 0, y: 0, width: width, height: height))
-        cg.translateBy(x: 0, y: CGFloat(height)); cg.scaleBy(x: 1, y: -1)
+        cg.clear(CGRect(x: 0, y: 0, width: pixelsWide, height: pixelsHigh))
+        cg.translateBy(x: 0, y: CGFloat(pixelsHigh)); cg.scaleBy(x: scale, y: -scale)
         NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
 
         let style = YouTubeActivityStyle.selected(settings)
@@ -124,9 +142,9 @@ struct YouTubeActivitySettings: View {
         }
         let accent = paint("accent", style.accent), background = paint("background", style.background), ink = paint("ink", style.ink)
         let face = settings.string("font", style.font)
-        let labelSize = CGFloat(min(26, max(10, settings.number("labelSize", 14))))
-        let valueSize = CGFloat(min(72, max(18, settings.number("valueSize", 42))))
-        let detailSize = CGFloat(min(28, max(10, settings.number("detailSize", 15))))
+        let labelSize = CGFloat(min(26, max(10, settings.number("labelSize", 20))))
+        let valueSize = CGFloat(min(90, max(18, settings.number("valueSize", 68))))
+        let detailSize = CGFloat(min(32, max(10, settings.number("detailSize", 22))))
         let bounds = CGRect(x: 4, y: 4, width: width - 8, height: height - 8)
         let radius: CGFloat = [1, 4].contains(style.id) ? 34 : style.id == 3 ? 9 : 22
         let card = NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius)
@@ -173,17 +191,19 @@ struct YouTubeActivitySettings: View {
         let primary = subscribed ? (event?.name ?? "") : total.map(formatted) ?? subscriberTotal.map { "≈ " + formatted($0) } ?? "0"
         let footer = [subscriberTotal.map { "≈ \(formatted($0)) inscritos" },
                       newPublicSubscribers.map { "+\($0) novos públicos" }].compactMap { $0 }
-        let maxPrimary = max(18, CGFloat(height) * (footer.isEmpty ? 0.31 : 0.27))
+        let footerStep = detailSize * 1.45 + 3
+        let footerHeight = footer.isEmpty ? footerStep : CGFloat(footer.count) * footerStep
+        let maxPrimary = max(18, (CGFloat(height) - 22 - footerHeight - labelSize * 1.45 - 6) / 1.45)
         let actualPrimary = min(valueSize, maxPrimary)
-        let lineTop = max(CGFloat(12), (CGFloat(height) - CGFloat(72 + footer.count * 22)) / 2)
+        let lineTop = max(8, (CGFloat(height) - footerHeight - labelSize * 1.45 - 6 - actualPrimary * 1.45) / 2)
         text(label, y: lineTop, size: labelSize, color: accent, bold: true)
         text(primary, y: lineTop + labelSize + 6, size: actualPrimary, color: ink, bold: true)
         if footer.isEmpty {
-            text(subscribed ? "Boas-vindas ao canal!" : "Obrigado pelo apoio!", y: lineTop + labelSize + actualPrimary + 11,
+            text(subscribed ? "Boas-vindas ao canal!" : "Obrigado pelo apoio!", y: CGFloat(height) - 10 - footerHeight,
                  size: detailSize, color: ink.withAlphaComponent(0.77))
         } else {
             for (index, line) in footer.enumerated() {
-                text(line, y: CGFloat(height) - 16 - CGFloat(footer.count - index) * (detailSize + 4),
+                text(line, y: CGFloat(height) - 10 - footerHeight + CGFloat(index) * footerStep,
                      size: detailSize, color: ink.withAlphaComponent(0.82))
             }
         }

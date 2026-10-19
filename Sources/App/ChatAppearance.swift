@@ -65,18 +65,34 @@ struct ChatLayout {
     }
 }
 
+/// Layout dimensions control line wrapping; componentScale changes the physical
+/// raster size without stretching a previously rendered texture.
+enum OverlayComponentScale {
+    static func effective(settings: [String: Any], width: Int, height: Int) -> CGFloat {
+        let requested = settings.number("componentScale", 1)
+        let bounded = requested.isFinite ? min(2, max(0.5, requested)) : 1
+        return CGFloat(min(bounded, 3840 / Double(max(1, width)), 2160 / Double(max(1, height))))
+    }
+    static func pixels(_ size: Int, scale: CGFloat) -> Int {
+        Int((CGFloat(size) * scale).rounded())
+    }
+}
+
 /// Event-driven rasterization: variable-size cards on a transparent surface.
 /// No browser, avatar requests, per-video-frame layout or remote markup.
 @MainActor enum ChatRaster {
     static func render(messages: [ChatMessage], featured: ChatMessage?, page: Int, lower: Bool, settings: [String: Any]) -> NSBitmapImageRep? {
         let layout = ChatLayout(lower: lower, settings: settings)
         let width = layout.width, height = layout.height
-        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: width * 4, bitsPerPixel: 32), let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
+        let scale = OverlayComponentScale.effective(settings: settings, width: width, height: height)
+        let pixelsWide = OverlayComponentScale.pixels(width, scale: scale)
+        let pixelsHigh = OverlayComponentScale.pixels(height, scale: scale)
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: pixelsWide * 4, bitsPerPixel: 32), let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
         NSGraphicsContext.saveGraphicsState(); defer { NSGraphicsContext.restoreGraphicsState() }
         NSGraphicsContext.current = context
         let cg = context.cgContext
-        cg.clear(CGRect(x: 0, y: 0, width: width, height: height))
-        cg.translateBy(x: 0, y: CGFloat(height)); cg.scaleBy(x: 1, y: -1)
+        cg.clear(CGRect(x: 0, y: 0, width: pixelsWide, height: pixelsHigh))
+        cg.translateBy(x: 0, y: CGFloat(pixelsHigh)); cg.scaleBy(x: scale, y: -scale)
         NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
         let style = ChatStyle.selected(settings)
         func color(_ key: String, _ fallback: UInt32) -> NSColor {

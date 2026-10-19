@@ -50,7 +50,7 @@ import SwiftUI
                           ("dante_superchat", "Highlight width QA"),
                           ("dante_youtube_alert", "Likes width QA")] {
         precondition(model.command("source.add", ["scene":scene,"type":type,"name":label,
-                                                 "settings":["layoutWidth":320,"layoutHeight":180]]))
+                                                 "settings":["layoutWidth":320,"layoutHeight":180,"componentScale":1.5]]))
         let sourceID=model.items.first { $0.string("name")==label }!.sceneItemID
         precondition(model.command("item.transform",["scene":scene,"id":sourceID,"x":100,"y":90]))
         model.selectedItem=sourceID
@@ -64,10 +64,12 @@ import SwiftUI
         precondition(after.number("width") >= before.number("width")+60,
                      "\(type) must grow horizontally with the right handle: \(after)")
         precondition(after.number("height")==before.number("height"),"\(type) height must not stretch")
+        let resizedSettings=model.properties(name:label).object("settings")
+        precondition(abs(resizedSettings.number("componentScale")-1.5)<0.001,"\(type) scale must remain unchanged")
         model.selectedItem=nil
         precondition(model.command("source.remove",["scene":scene,"id":sourceID]))
     }
     print("PASS: explicit framing pans without Alt, keeps the visible box fixed, one undo and selection cleanup")
     print("PASS: actual SwiftUI top/bottom handle drag crops vertically in fixed canvas coordinates; no global input injection")
-    print("PASS: chat, featured comment and likes resize horizontally without changing height")
+    print("PASS: scaled chat, featured comment and likes resize horizontally without changing height or scale")
 }

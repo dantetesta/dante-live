@@ -21,6 +21,7 @@
 #include "DanteChatOverlay.hpp"
 #include "DanteSceneGraphics.hpp"
 #include "DanteAudioVisualizer.hpp"
+#include "DanteBrowserTabAudio.hpp"
 #include "DanteGuestName.hpp"
 
 static std::string creationError;
@@ -90,6 +91,9 @@ struct dante_engine {
     NSMutableArray *modules = [NSMutableArray array];
 };
 static bool fail(dante_engine *e, const char *message) { if(e) e->error = message; return false; }
+bool dante_browser_tab_audio_frame(const char *name, const float *samples, uint32_t frames, uint32_t sample_rate) {
+    return DanteBrowserTabAudio::output(name, samples, frames, sample_rate);
+}
 // Private scene/items keep preview transforms and editable text independent.
 // Capture sources marked DO_NOT_DUPLICATE keep a single live device/RTC track.
 static bool publishScene(dante_engine *e, obs_scene_t *scene, int duration) {
@@ -398,6 +402,7 @@ dante_engine_t *dante_engine_create_with_config(const char *bundlePath,uint32_t 
     dante_register_chat_sources();
     DanteGraphics::registerSources();
     DanteVisualizer::registerSource();
+    DanteBrowserTabAudio::registerSource();
     DanteGuestName::registerSource();
     DanteMask::registerFilter();
     e->transition=obs_source_create_private("fade_transition","Dante fade",nullptr);

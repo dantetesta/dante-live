@@ -17,6 +17,7 @@ DANTE_APP_PATH="$ROOT/$DANTE_BUILD_DIR/Dante Live.app"
 [[ "$DANTE_BUILD_DIR" != /* ]] || DANTE_APP_PATH="$DANTE_BUILD_DIR/Dante Live.app"
 DANTE_APP_PATH="$DANTE_APP_PATH" bash scripts/test-capture.sh
 DANTE_BUILD_DIR="$ROOT/build/chat-qa" DANTE_APP_PATH="$DANTE_APP_PATH" bash scripts/test-chat.sh
+DANTE_APP_PATH="$DANTE_APP_PATH" bash scripts/test-browser-tab-audio.sh
 DANTE_APP_PATH="$DANTE_APP_PATH" bash scripts/test-scene-graphics.sh
 python3 packaging/notarize.py --app "$DANTE_BUILD_DIR/Dante Live.app"
 bash scripts/package.sh

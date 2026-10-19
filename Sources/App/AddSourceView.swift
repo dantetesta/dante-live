@@ -186,6 +186,9 @@ struct AddSourceView: View {
                 if let last = model.items.last { model.selectedItem = last.sceneItemID }
                 if isCameraSource(type) { model.cameraSourceName = sourceName }
                 dismiss()
+                if type == "dante_browser_tab_audio" {
+                    Task { @MainActor in await model.browserTabAudio.select(sourceName) }
+                }
             }
         }
         model.requestPermission(for: type, completion: add)

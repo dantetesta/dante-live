@@ -17,6 +17,9 @@ dante_engine_t *dante_engine_create_with_config(const char *app_bundle_path, uin
 void dante_engine_destroy(dante_engine_t *engine);
 /* Ephemeral premultiplied RGBA overlay pixels; copied synchronously, never serialized. Main thread. */
 bool dante_chat_frame(const char *name, const uint8_t *pixels, uint32_t width, uint32_t height, uint32_t stride, bool animate);
+/* Browser-selected tab PCM. Borrowed mono float32 samples are copied by libobs.
+ * Call only on the serialized engine owner (main thread). */
+bool dante_browser_tab_audio_frame(const char *name, const float *samples, uint32_t frames, uint32_t sample_rate);
 const char *dante_engine_last_error(dante_engine_t *engine);
 const char *dante_engine_state(dante_engine_t *engine);
 /* Lightweight meter snapshot for UI polling; no full scene enumeration. */

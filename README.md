@@ -21,6 +21,16 @@ Versão experimental **0.1.27**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.28
+
+**Áudio de aba do navegador** é uma nova fonte de áudio. Ao adicioná-la, o Dante abre o seletor do Chrome: escolha a aba, marque **Compartilhar áudio** e mantenha a página de captura aberta. Somente o áudio da aba escolhida entra no mixer; o vídeo não é capturado. Após reiniciar o Dante, escolha a aba novamente. A captura antiga **Áudio do Mac → Aplicativo** continua incluindo todas as abas do Chrome.
+
+O menu **Dante Live → Créditos…** abre uma janela com a autoria de Dante Testa, site, comunidade no WhatsApp e dados para doações voluntárias por Pix e PayPal, com botões para copiar.
+
+O topo central do estúdio mostra um carrossel compacto de parceiros, com três banners de 400 × 55 pontos: convite para parcerias, Academy e Napoleon. Cada peça abre seu destino ao clicar; a rotação pausa enquanto o ponteiro está sobre o banner. Em janelas estreitas, o carrossel cede espaço aos controles de transmissão.
+
+[Como usar e limites da captura de aba](docs/BROWSER-TAB-AUDIO.md)
+
 ## Novidades da 0.1.27
 
 O componente **Likes e novos inscritos** agora permite definir o tamanho do ícone de like e inscrição separadamente das letras e da Escala geral. O controle vai de 24 a 120 px; em cartões pequenos, o desenho respeita o espaço disponível. Componentes antigos mantêm o tamanho anterior até você escolher outro valor.
@@ -41,7 +51,7 @@ O nome do convidado agora é uma camada de cena independente, com seis estilos e
 
 - **Participantes → Servidor TURN** conecta uma VPS própria por IPv4 HTTPS. O token fica no Acesso às Chaves; o app aceita importar um perfil privado e testar o serviço. Convites, sinalização e credenciais TURN temporárias passam pela VPS; o vídeo e o áudio usam WebRTC direto ou relay TURN conforme a rede.
 - **Preparar live** voltou a aceitar o modo RTMP/RTMPS sem conta YouTube. O título, a descrição e a capa ficam como preparação local; sem API, esses dados precisam ser configurados separadamente na plataforma de destino. Salvar retorna ao estúdio sem iniciar a transmissão.
-- A captura de áudio por aplicativo explica que um navegador inclui todas as abas; capturar uma janela isola a imagem, não o áudio de uma aba. Nenhum isolamento de áudio por aba é prometido.
+- A captura de áudio por aplicativo inclui todas as abas; capturar uma janela isola a imagem, não o áudio. A partir da 0.1.28, use a fonte específica de aba para o Chrome.
 
 [Receita de instalação da VPS](server/PROMPT-INSTALACAO.md) · [Limites e testes](docs/GUESTS.md). O ensaio TURN usou dois navegadores no mesmo Mac; convidados reais em redes distintas e lives longas ainda precisam de validação.
 

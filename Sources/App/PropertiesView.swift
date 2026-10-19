@@ -125,7 +125,8 @@ struct InspectorView: View {
                             CameraMaskView(model:model,item:item)
                             Divider()
                         }
-                        if item.number("width") <= 0 || item.number("height") <= 0 {
+                        if item.flag("awaitingVideo") || (item.number("width") > 0 && item.number("height") > 0) {
+                        if item.flag("awaitingVideo") {
                             Text("Esta fonte ainda não fornece imagem. Selecione o dispositivo ou arquivo. O enquadramento será preparado quando o vídeo estiver disponível.")
                                 .font(.caption).foregroundStyle(.orange)
                         } else {
@@ -153,6 +154,7 @@ struct InspectorView: View {
                         }
                         CanvasFramingControls(model:model,item:item)
                         Text("⌘F ajusta à cena. ⌥ deixa as alças laranja para recortar; por dentro, ajusta o enquadramento.").font(.caption2).foregroundStyle(.secondary)
+                        }
                         if allowsSecondarySheets { Button("Filtros (\(item.array("filters").count))") { model.showingFilters = true } }
                         if item.flag("audio") { AudioAdvancedView(model: model, item: item) }
                         if item.number("mediaDuration") > 0 || item.string("type").contains("ffmpeg") {
@@ -163,6 +165,17 @@ struct InspectorView: View {
                             GuestNameSettingsView(settings: $settings) { applyChange(immediate: $0) }
                         } else if item.string("type") == "dante_audio_visualizer" {
                             AudioVisualizerSettingsView(settings: $settings, scenes: model.scenes, onEdit: applyChange)
+                        } else if item.string("type") == "dante_browser_tab_audio" {
+                            VStack(alignment: .leading, spacing: 9) {
+                                Text("Áudio de uma aba do Chrome").font(.headline)
+                                Text(model.browserTabAudio.message(for: item.string("name")))
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Button("Escolher ou trocar aba…") {
+                                    Task { @MainActor in await model.browserTabAudio.select(item.string("name")) }
+                                }.buttonStyle(.borderedProminent)
+                                Text("No Chrome, selecione Aba do Chrome e ative Compartilhar áudio. A página de captura precisa ficar aberta; escolha novamente após reiniciar o Dante.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                         } else if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
                             ChatStylePicker(settings: $settings, lower: item.string("type") == "dante_superchat") { applyChange(immediate: true) }
                             Button("Abrir chat e fila de Super Chats") { model.showingChat = true }
@@ -174,8 +187,18 @@ struct InspectorView: View {
                             QRCodeSettingsView(settings: $settings) { applyChange(immediate: true) }
                         } else { PropertyFields(properties: properties, settings: $settings, onEdit: applyChange) }
                         if item.string("type") == "sck_audio_capture" {
-                            Text("A captura de aplicativo inclui todo o áudio desse app. No Chrome, Safari e outros navegadores, as abas são misturadas; esta opção não isola uma aba. Para música independente, prefira o aplicativo dedicado ou um arquivo de mídia na cena.")
+                            Text("A captura de aplicativo inclui todo o áudio desse app. Para isolar uma aba, adicione a fonte Áudio de aba do navegador à cena e retire esta fonte do mixer para não duplicar o som.")
                                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            Button("Adicionar áudio de uma aba do Chrome…") {
+                                let used = Set(model.scenes.flatMap { $0.array("items").map { $0.string("name") } })
+                                var name = "Aba do Chrome", suffix = 2
+                                while used.contains(name) { name = "Aba do Chrome \(suffix)"; suffix += 1 }
+                                if model.command("source.add", ["scene": model.sceneName, "type": "dante_browser_tab_audio", "name": name]) {
+                                    model.selectedItem = model.items.first(where: { $0.string("name") == name })?.sceneItemID
+                                    model.notice = "Fonte de aba criada. Desative Áudio do Mac se não quiser duplicar o som."
+                                    Task { @MainActor in await model.browserTabAudio.select(name) }
+                                }
+                            }.buttonStyle(.borderedProminent)
                         } else if item.string("type") == "screen_capture" {
                             Text("Para mostrar só uma janela do navegador, escolha o método Janela e selecione o título desejado. Isso isola a imagem da janela, mas não separa o áudio das abas; adicione áudio somente quando necessário.")
                                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

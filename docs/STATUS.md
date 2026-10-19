@@ -1,6 +1,14 @@
-## Versão 0.1.27 — tamanho independente do ícone em validação
+## Versão 0.1.28 — áudio de aba, créditos e parceiros em validação
 
-As propriedades de **Likes e novos inscritos** têm controle de 24 a 120 px para o ícone de like ou inscrição. Ele altera o selo e o símbolo juntos sem modificar as fontes, a área do cartão ou a Escala geral. O desenho limita o tamanho ao espaço disponível nos cartões menores. Fontes antigas sem `iconSize` continuam usando o cálculo anterior até o usuário ajustar o controle. Teste local de renderização e chat aprovado, com PNGs de ambos os ícones e dos extremos do controle inspecionados. Build de distribuição em andamento; live pública e Intel físico ainda não validados.
+Nova fonte `dante_browser_tab_audio`: o Chrome oferece o seletor nativo de abas e exige ação explícita do operador e a opção Compartilhar áudio. Uma página local, sem serviços externos, envia blocos PCM mono por loopback autenticado para a fonte libobs, que entra no mixer normalmente. A captura rejeita escolha de janela/tela e ausência de trilha de áudio; o vídeo selecionado é usado só para manter a permissão do navegador e não entra no Dante. A associação com a aba é temporária e precisa ser refeita após reiniciar. A captura por aplicativo do macOS permanece agregada. Testes sintéticos de JS e fonte nativa passaram. No ensaio integrado, Chrome isolado produziu tom sintético detectado no medidor (-12,0 dBFS), token inválido recebeu 403 e parar a página silenciou a fonte. Chrome físico com seletor real, sincronismo e live pública ainda pendentes.
+
+Menu nativo **Dante Live → Créditos…** abre uma janela separada com autoria, site, comunidade e doações voluntárias. Pix e e-mail PayPal são exibidos sob demanda e copiados para a área de transferência. A foto do autor é um recurso de runtime explícito; nenhum dado de pagamento é transmitido pelo aplicativo.
+
+Carrossel de parceiros no centro da barra superior: três peças locais de 400 × 55 pontos, recursos raster de 800 × 110 pixels para Retina, rotação automática de oito segundos pausada no hover e clique que abre o destino externo. Em largura insuficiente, o banner some para preservar os controles. Visual final no aplicativo e destinos dos três links ainda requerem validação manual.
+
+## Versão 0.1.27 — publicada e notarizada
+
+As propriedades de **Likes e novos inscritos** têm controle de 24 a 120 px para o ícone de like ou inscrição. Ele altera o selo e o símbolo juntos sem modificar as fontes, a área do cartão ou a Escala geral. O desenho limita o tamanho ao espaço disponível nos cartões menores. Fontes antigas sem `iconSize` continuam usando o cálculo anterior até o usuário ajustar o controle. Teste local de renderização e chat aprovado, com PNGs de ambos os ícones e dos extremos do controle inspecionados. Build Universal 2 assinada, app e DMG aceitos e notarizados pela Apple; [release publicada](https://github.com/dantetesta/dante-live/releases/tag/v0.1.27). Live pública e Intel físico ainda não validados.
 
 ## Versão 0.1.26 — publicada e notarizada
 

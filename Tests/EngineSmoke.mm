@@ -79,6 +79,11 @@ int main(int argc,char **argv) {
         [wav appendBytes:samples.data() length:bytes];[wav writeToFile:tonePath atomically:YES];
         check(command(e,"source.add",@{@"type":@"ffmpeg_source",@"name":@"Synthetic audio",@"settings":@{@"local_file":tonePath,@"is_local_file":@YES,@"looping":@YES}}),@"local synthetic WAV media source");
         check(command(e,"audio.set",@{@"name":@"Synthetic audio",@"volume":@0.5,@"monitoring":@0,@"muted":@NO}),@"mixer gain and no-monitoring configuration");
+        check(command(e,"source.add",@{@"type":@"dante_browser_tab_audio",@"name":@"Chrome tab"}),@"browser tab audio appears as native mixer source");
+        std::vector<float> tabSamples(4800,0.25f);
+        check(dante_browser_tab_audio_frame("Chrome tab",tabSamples.data(),(uint32_t)tabSamples.size(),48000),@"browser tab PCM reaches libobs source");
+        check(!dante_browser_tab_audio_frame("Synthetic audio",tabSamples.data(),(uint32_t)tabSamples.size(),48000),@"browser PCM cannot enter another source type");
+        check(!dante_browser_tab_audio_frame("Chrome tab",tabSamples.data(),9000,48000),@"oversized browser PCM packet rejected");
         check(!command(e,"source.add",@{@"type":@"color_source_v3",@"name":@"Synthetic color"}),@"duplicate source name rejected");
         size_t count=[state(e)[@"scenes"][0][@"items"] count];
         check(!command(e,"source.add",@{@"type":@"dante_missing_source",@"name":@"Unavailable"}),@"unknown source type rejected");

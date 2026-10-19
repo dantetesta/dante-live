@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     lazy var updates = AppUpdateCoordinator(model: model, enabled: model.projectDirectory == nil)
     private var projectorWindows: [NSWindow] = []
     private var preferencesWindow: NSWindow?
+    private var creditsWindow: NSWindow?
     override init() {
         let arguments = CommandLine.arguments
         let index = arguments.firstIndex(of: "--validation-directory")
@@ -82,6 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             StudioPanelController.closeAll()
             for secondary in projectorWindows { secondary.close() }
             preferencesWindow?.close()
+            creditsWindow?.close()
             return
         }
         detachPreviews(projector.contentView)
@@ -98,6 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let application = NSMenuItem(); menu.addItem(application)
         let appMenu = NSMenu(); application.submenu = appMenu
         appMenu.addItem(withTitle: "Sobre o Dante Live", action: #selector(about), keyEquivalent: "").target = self
+        add(appMenu, "Créditos…", #selector(openCredits), "")
         add(appMenu, "Preferências…", #selector(openPreferences), ",")
         let updateItem = appMenu.addItem(withTitle: "Verificar atualizações…", action: #selector(AppUpdateCoordinator.checkForUpdates(_:)), keyEquivalent: "")
         updateItem.target = updates
@@ -142,6 +145,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         preferences.title = "Preferências do Dante Live"; preferences.isReleasedWhenClosed = false
         preferences.contentView = NSHostingView(rootView: PreferencesView(agent: agent))
         preferences.center(); preferences.makeKeyAndOrderFront(nil); preferencesWindow = preferences
+    }
+    @objc func openCredits() {
+        if let creditsWindow { creditsWindow.makeKeyAndOrderFront(nil); return }
+        let credits = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 680),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        credits.title = "Créditos do Dante Live"
+        credits.minSize = NSSize(width: 610, height: 540)
+        credits.isReleasedWhenClosed = false
+        credits.contentView = NSHostingView(rootView: CreditsView())
+        credits.center()
+        credits.makeKeyAndOrderFront(nil)
+        creditsWindow = credits
     }
     @objc func openProjector() {
         guard model.engine != nil else { return }

@@ -55,6 +55,7 @@ final class StudioModel: ObservableObject {
     @Published var microphoneWarnings: [String] = []
     private var silenceWatch = MicrophoneSilenceWatch()
     lazy var guests = GuestModel(studio: self)
+    lazy var browserTabAudio = BrowserTabAudioModel(studio: self)
     lazy var liveSettings = LiveSettingsModel(model: self)
     lazy var youtube = YouTubeModel(directory: projectDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Dante Live"))
     @Published var pendingLive: LiveLaunch?
@@ -82,7 +83,11 @@ final class StudioModel: ObservableObject {
     private var guestRoomStreamLifecycle = GuestRoomStreamLifecycle()
     var preserveFailedProject = false
     let projectDirectory: URL?
-    init(projectDirectory: URL? = nil) { self.projectDirectory = projectDirectory }
+    let engineBundlePath: String
+    init(projectDirectory: URL? = nil, engineBundlePath: String = Bundle.main.bundlePath) {
+        self.projectDirectory = projectDirectory
+        self.engineBundlePath = engineBundlePath
+    }
 
     var scenes: [[String: Any]] { state.array("scenes") }
     var sceneName: String { state.string("selectedScene", scenes.first?.string("name") ?? "") }
@@ -120,8 +125,8 @@ final class StudioModel: ObservableObject {
         starting = true
         defer { starting = false }
         if let projectDirectory {
-            engine = dante_engine_create_with_config(Bundle.main.bundlePath, 1920, 1080, 30, projectDirectory.appendingPathComponent("engine").path)
-        } else { engine = dante_engine_create(Bundle.main.bundlePath, 1920, 1080, 30) }
+            engine = dante_engine_create_with_config(engineBundlePath, 1920, 1080, 30, projectDirectory.appendingPathComponent("engine").path)
+        } else { engine = dante_engine_create(engineBundlePath, 1920, 1080, 30) }
         guard let engine else { error = copied(dante_engine_last_error(nil)); return }
         blankProjectJSON = copied(dante_engine_save(engine))
         catalog = jsonObject(copied(dante_engine_catalog(engine)))
@@ -171,6 +176,8 @@ final class StudioModel: ObservableObject {
             scene.array("items").filter { $0.flag("pendingPlacement") }.map { scene.string("name") + ":" + String($0.sceneItemID) }
         })
         state = jsonObject(copied(dante_engine_state(engine)))
+        browserTabAudio.prune(validSources: Set(scenes.flatMap { $0.array("items") }
+            .filter { $0.string("type") == "dante_browser_tab_audio" }.map { $0.string("name") }))
         let closeGuestRoom = guestRoomStreamLifecycle.ended(state.object("outputs").object("stream"))
         if !pending.isEmpty {
             let resolved = scenes.contains { scene in scene.array("items").contains { item in
@@ -548,7 +555,7 @@ final class StudioModel: ObservableObject {
         if alert.runModal() == .alertFirstButtonReturn,let url=URL(string:"x-apple.systempreferences:com.apple.preference.security?"+pane) { NSWorkspace.shared.open(url) }
     }
     func shutdown() {
-        guests.stop(); countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()
+        guests.stop(); browserTabAudio.stop(); countdown.cancel(); launchTask?.cancel(); youtube.shutdown(); liveSettings.flush()
         timer?.invalidate(); timer = nil; saveTask?.cancel(); save()
         if let engine { dante_engine_destroy(engine); self.engine = nil }
     }

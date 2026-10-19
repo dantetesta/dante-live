@@ -123,6 +123,15 @@ struct StudioView: View {
                 else { model.beginLive() }
             } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive || model.updateInstalling)
         }.padding(.horizontal, 16).padding(.vertical, 12)
+        .overlay {
+            GeometryReader { geometry in
+                if geometry.size.width >= 1550 {
+                    PartnerCarouselView()
+                        .frame(width: 400, height: 55)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
+        }
     }
     private func collapsedSidebar(title: String, icon: String, action: @escaping () -> Void) -> some View {
         VStack { Button(action: action) { Image(systemName: icon) }.buttonStyle(.plain).help(title).accessibilityLabel(title).padding(.top, 14); Spacer() }

@@ -96,7 +96,7 @@ struct AudioVisualizerSettingsView: View {
     }
 }
 
-private struct VisualizerStyleThumbnail: View {
+struct VisualizerStyleThumbnail: View {
     let style: Int
     let primary: Double
     let secondary: Double
@@ -117,7 +117,8 @@ private struct VisualizerStyleThumbnail: View {
                 var path = Path()
                 for i in 0..<33 {
                     let x = CGFloat(i) / 32 * size.width
-                    let y = cy + sin(Double(i)*0.65) * (6 + values[i/2]*12)
+                    let sample = values[min(i / 2, values.count - 1)]
+                    let y = cy + sin(Double(i)*0.65) * (6 + sample*12)
                     if i == 0 { path.move(to: CGPoint(x:x,y:y)) } else { path.addLine(to: CGPoint(x:x,y:y)) }
                 }
                 context.stroke(path, with: .color(a), lineWidth: style == 6 ? 4 : 2)

@@ -2,7 +2,11 @@ import Foundation
 
 @MainActor func runYouTubeActivityTests() async throws {
     func likes(_ n:String)->[String:Any]{["items":[["statistics":["likeCount":n]]]]}
-    let activity=YouTubeActivity();activity.configure(subscribers:true,likes:true)
+    let activity=YouTubeActivity();activity.configure(subscribers:true,likes:true,channelTotal:true)
+    activity.ingestChannel(["items":[["statistics":["subscriberCount":"8500","hiddenSubscriberCount":false]]]])
+    precondition(activity.totalSubscribers==8500)
+    activity.ingestChannel(["items":[["statistics":["subscriberCount":"8500","hiddenSubscriberCount":true]]]])
+    precondition(activity.totalSubscribers==nil)
     activity.ingestLikes(likes("10"));precondition(activity.totalLikes==10 && activity.queue.isEmpty)
     activity.ingestLikes(likes("12"));activity.ingestLikes(likes("18"));precondition(activity.queue.count==1 && activity.queue[0].total==18)
     let now=Date();activity.tick(now:now);precondition(activity.current?.total==18)
@@ -12,13 +16,13 @@ import Foundation
     activity.ingestLikes(likes("-1"));precondition(activity.totalLikes==17)
     func subscriber(_ id:String,_ title:String="Marina")->[String:Any]{["subscriberSnippet":["channelId":id,"title":title],"snippet":["publishedAt":ISO8601DateFormatter().string(from:Date().addingTimeInterval(2))]]}
     activity.ingestSubscribers([subscriber("old")]);precondition(activity.queue.isEmpty)
-    activity.ingestSubscribers([subscriber("new"),subscriber("old")]);precondition(activity.queue.count==1 && activity.queue[0].name=="Marina")
+    activity.ingestSubscribers([subscriber("new"),subscriber("old")]);precondition(activity.queue.count==1 && activity.queue[0].name=="Marina" && activity.newPublicSubscribers==1)
     activity.tick(now:now.addingTimeInterval(10));precondition(activity.current?.id=="new")
     activity.ingestSubscribers([]);activity.ingestSubscribers([subscriber("new")]);precondition(activity.queue.isEmpty)
     activity.configure(subscribers:false,likes:false);precondition(activity.current==nil && activity.totalLikes==nil)
     activity.configure(subscribers:true,likes:true);activity.ingestSubscribers([subscriber("new")]);activity.ingestSubscribers([subscriber("new")]);precondition(activity.queue.isEmpty)
     activity.ingestLikes(likes("100"));precondition(activity.queue.isEmpty)
-    activity.reset();precondition(activity.seen.isEmpty && activity.current==nil && activity.totalLikes==nil)
+    activity.reset();precondition(activity.seen.isEmpty && activity.current==nil && activity.totalLikes==nil && activity.newPublicSubscribers==0)
     // Authenticated read-only endpoints. First poll is a baseline, never old alerts.
     var endpoints:[String]=[]
     let api=YouTubeAPI { request in
@@ -26,12 +30,22 @@ import Foundation
         precondition(request.httpMethod=="GET" && request.value(forHTTPHeaderField:"Authorization")=="Bearer test-activity")
         let data:Data
         if url.path.hasSuffix("videos") {data=try JSONSerialization.data(withJSONObject:likes("25"))}
+        else if url.path.hasSuffix("channels") {precondition(url.query!.contains("mine=true"));data=try JSONSerialization.data(withJSONObject:["items":[["statistics":["subscriberCount":"8530","hiddenSubscriberCount":false]]]])}
         else {precondition(url.query!.contains("myRecentSubscribers=true"));data=try JSONSerialization.data(withJSONObject:["items":[subscriber("initial")]])}
         return (data,HTTPURLResponse(url:url,statusCode:200,httpVersion:nil,headerFields:nil)!)
     }
+    activity.configure(subscribers:true,likes:true,channelTotal:true)
     activity.start(broadcast:"test-video",api:api,access:{"test-activity"},isSending:{true})
     try await Task.sleep(for:.milliseconds(100))
-    precondition(endpoints.count==2 && activity.totalLikes==25 && activity.queue.isEmpty)
+    precondition(endpoints.count==3 && activity.totalLikes==25 && activity.totalSubscribers==8530 && activity.queue.isEmpty)
     activity.reset()
-    print("PASS: aggregate likes baseline/coalescing/decrease, public-subscriber baseline/dedup/toggle, five-second queue, reset and authenticated read-only requests")
+    let previewDirectory=URL(fileURLWithPath:"build/activity-qa",isDirectory:true)
+    try FileManager.default.createDirectory(at:previewDirectory,withIntermediateDirectories:true)
+    for style in YouTubeActivityStyle.all {
+        let bitmap=YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,newPublicSubscribers:3,
+            settings:["style":style.id,"layoutWidth":300,"layoutHeight":160,"font":"Menlo","valueSize":30])!
+        precondition(bitmap.pixelsWide==300 && bitmap.pixelsHigh==160 && bitmap.bitmapData![3]==0)
+        try bitmap.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("style-\(style.id).png"))
+    }
+    print("PASS: likes, rounded channel total, public subscriber count, dedup, six editable raster styles and authenticated read-only requests")
 }

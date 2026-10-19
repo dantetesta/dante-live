@@ -232,7 +232,12 @@ struct ChatLayout {
         let sources = studio.scenes.flatMap { $0.array("items") }.filter { $0.string("type").hasPrefix("dante_") && ["dante_youtube_chat", "dante_superchat", "dante_youtube_alert"].contains($0.string("type")) }
         let alerts = sources.filter { $0.string("type") == "dante_youtube_alert" }.map { studio.properties(name:$0.string("name")).object("settings") }
         let activity=studio.youtube.activity
-        activity.configure(subscribers:alerts.contains{$0.flag("showSubscribers",true)},likes:alerts.contains{$0.flag("showLikes",true)})
+        activity.configure(
+            subscribers: alerts.contains { $0.flag("showSubscribers", true) || $0.flag("showNewSubscribers", false) },
+            likes: alerts.contains { $0.flag("showLikes", true) },
+            subscriberAlerts: alerts.contains { $0.flag("showSubscribers", true) },
+            channelTotal: alerts.contains { $0.flag("showChannelTotal", false) }
+        )
         activity.tick()
         let names = Set(sources.map { $0.string("name") })
         for name in signatures.keys where !names.contains(name) { _ = dante_chat_frame(name, nil, 0, 0, 0, false) }
@@ -245,9 +250,11 @@ struct ChatLayout {
                 var event=activity.current
                 if let candidate=event, candidate.kind == .subscriber ? !settings.flag("showSubscribers",true) : !settings.flag("showLikes",true) {event=nil}
                 let total=settings.flag("showLikes",true) ? activity.totalLikes : nil
-                let signature=(event?.id ?? "idle") + ":" + (total.map(String.init) ?? "") + ":" + jsonString(settings)
+                let subscribers=settings.flag("showChannelTotal",false) ? activity.totalSubscribers : nil
+                let newPublic=settings.flag("showNewSubscribers",false) ? activity.newPublicSubscribers : nil
+                let signature=(event?.id ?? "idle") + ":" + (total.map(String.init) ?? "") + ":" + (subscribers.map(String.init) ?? "") + ":" + (newPublic.map(String.init) ?? "") + ":" + jsonString(settings)
                 guard signatures[name] != signature else{continue};signatures[name]=signature
-                if let bitmap=YouTubeActivityRaster.render(event:event,total:total,settings:settings),let bytes=bitmap.bitmapData {
+                if let bitmap=YouTubeActivityRaster.render(event:event,total:total,subscriberTotal:subscribers,newPublicSubscribers:newPublic,settings:settings),let bytes=bitmap.bitmapData {
                     _ = dante_chat_frame(name,bytes,UInt32(bitmap.pixelsWide),UInt32(bitmap.pixelsHigh),UInt32(bitmap.bytesPerRow),event != nil)
                 } else {_ = dante_chat_frame(name,nil,0,0,0,false)}
                 continue

@@ -21,6 +21,10 @@ Versão experimental **0.1.24**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.25
+
+Ao abrir os estilos do visualizador de áudio, a versão 0.1.24 podia encerrar o aplicativo. A 0.1.25 corrige o desenho da miniatura que causava a falha. Chat, destaque e alertas de likes agora podem ter a largura ajustada pelas alças sem esticar o texto. O painel de conversa permite ocultar um comentário e tirá-lo da fila imediatamente, indicando se chegou a ir ao ar. O componente de likes ganhou seis estilos editáveis e pode mostrar o total aproximado de inscritos do canal e os novos inscritos públicos detectados durante a live.
+
 ## Novidades da 0.1.24
 
 O nome do convidado agora é uma camada de cena independente, com seis estilos e atualização durante a chamada sem reconexão. A versão também inclui visualizador de áudio com dez estilos, perfis de produção, MCP local opcional para edição de cenas, reforço de volume e suporte local a três convidados. Os testes e limites de cada recurso estão em [Estado do projeto](docs/STATUS.md). Em uma VPS própria já instalada, a página do convidado precisa ser atualizada para mostrar o botão de mudança de nome.

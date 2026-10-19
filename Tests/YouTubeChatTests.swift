@@ -8,8 +8,8 @@ import AppKit
     let chat = YouTubeChat()
     chat.ingest([fixture("normal"), fixture("paid", paid: true), fixture("paid", paid: true)])
     precondition(chat.messages.count == 1 && chat.donations.count == 1 && chat.featured == nil)
-    chat.show(chat.donations[0]); chat.hide(); precondition(chat.donations.count == 1)
-    chat.show(chat.donations[0]); chat.dismiss("paid"); chat.ingest([fixture("paid", paid: true)])
+    chat.show(chat.donations[0]); chat.hide(); precondition(chat.donations.isEmpty && chat.hiddenBeforeAirIDs.contains("paid"))
+    chat.dismiss("paid"); chat.ingest([fixture("paid", paid: true)])
     precondition(chat.donations.isEmpty && chat.featured == nil)
     let long = String(repeating: "Texto com acentuação e 👩🏽‍💻. ", count: 50)
     let message = ChatMessage(fixture("long", paid: true, text: long))!
@@ -20,10 +20,10 @@ import AppKit
     chat.advance(-10000); precondition(chat.page == 0)
     chat.ingest([fixture("del", paid: true)]); chat.show(chat.donations[0])
     chat.ingest([["id": "delete-event", "snippet": ["type": "messageDeletedEvent", "messageDeletedDetails": ["deletedMessageId": "del"]]]])
-    precondition(chat.featured == nil && chat.donations.isEmpty)
+    precondition(chat.featured == nil && chat.donations.isEmpty && !chat.wasDisplayed("del"))
     chat.ingest([fixture("banned", paid: true)]); chat.show(chat.donations[0])
     chat.ingest([["id": "ban-event", "snippet": ["type": "userBannedEvent", "userBannedDetails": ["bannedUserDetails": ["channelId": "viewer"]]]]])
-    precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil)
+    precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil && !chat.wasDisplayed("banned"))
     chat.ingest((0..<550).map { fixture("paid-\($0)", paid: true) })
     precondition(chat.donations.count == 500 && chat.overflow == 50)
     chat.ingest((0..<200).map { fixture("text-\($0)") }); precondition(chat.messages.count == 100)
@@ -45,33 +45,35 @@ import AppKit
     }
     print("PASS: paid approval, dedup, dismissal, complete pagination, moderation, bounds, reset and 12 RGBA styles")
 
-    // Selecting alone does not count. Only a program-visible highlight starts the lifecycle.
+    // An explicit Hide finishes the operator queue, but never claims that a
+    // preview-only message was actually transmitted.
     chat.reset(); chat.ingest([fixture("one",text:"Olá, Marina"),fixture("two",paid:true,text:"Outro apoio")])
     let first = chat.messages[0], second = chat.donations[0]
     chat.show(first); chat.updatePresentation(visible:false,now:0); chat.hide(); chat.updatePresentation(visible:false,now:40)
-    precondition(chat.displayed.isEmpty && chat.pendingMessages.count == 1)
+    precondition(chat.displayed == [first] && chat.pendingMessages.isEmpty && chat.hiddenBeforeAirIDs.contains("one"))
+    chat.reset(); chat.ingest([fixture("one",text:"Olá, Marina"),fixture("two",paid:true,text:"Outro apoio")])
     chat.show(first); chat.updatePresentation(visible:true,now:50)
     precondition(chat.onAirID == "one")
-    chat.hide(); chat.updatePresentation(visible:false,now:60)
+    chat.updatePresentation(visible:false,now:60) // The source eye was hidden, not the explicit Hide action.
     chat.updatePresentation(visible:false,now:89.99)
     precondition(chat.displayed.isEmpty && chat.retiringIDs.contains("one"))
     chat.updatePresentation(visible:false,now:90)
-    precondition(chat.displayed == [first] && chat.pendingMessages.isEmpty)
+    precondition(chat.displayed == [first] && chat.pendingMessages.isEmpty && !chat.hiddenBeforeAirIDs.contains("one"))
     precondition(chat.messages.count == 1) // Automatic chat feed is independent of operator queue.
     chat.show(second); chat.updatePresentation(visible:true,now:100)
     chat.updatePresentation(visible:false,now:110) // Eye/source hidden while still selected.
     chat.updatePresentation(visible:true,now:120) // Re-show cancels the old deadline.
     chat.updatePresentation(visible:true,now:145)
     precondition(chat.displayed == [first] && chat.retiringIDs.isEmpty)
-    chat.hide(); chat.updatePresentation(visible:false,now:150); chat.updatePresentation(visible:false,now:180)
+    chat.hide(); chat.updatePresentation(visible:false,now:150)
     precondition(chat.displayed.count == 2 && chat.donations.isEmpty)
     precondition(chat.entries(in:"displayed",query:"MARINA",newestFirst:true) == [first])
     precondition(chat.entries(in:"displayed",query:"canal",newestFirst:false) == [first,second])
     precondition(chat.entries(in:"displayed",query:"",newestFirst:true) == [second,first])
     chat.ingest([["id":"delete-history","snippet":["type":"messageDeletedEvent","messageDeletedDetails":["deletedMessageId":"one"]]]])
     precondition(chat.displayed == [second])
-    chat.reset(); precondition(chat.displayed.isEmpty && chat.retiringIDs.isEmpty && chat.onAirID == nil)
-    print("PASS: program-visible history, exact 30-second retirement, hidden source, re-show cancellation, search/order, moderation and session reset")
+    chat.reset(); precondition(chat.displayed.isEmpty && chat.hiddenBeforeAirIDs.isEmpty && chat.retiringIDs.isEmpty && chat.onAirID == nil)
+    print("PASS: explicit Hide archives immediately with truthful preview status, source-eye retirement waits 30 seconds, search/order, moderation and reset")
 
     // Fake transport verifies auth/query, late responses after reset, and server pacing.
     var calls = 0

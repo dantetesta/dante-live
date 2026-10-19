@@ -46,6 +46,28 @@ import SwiftUI
     precondition(model.undoCount==undoCount+1,"One framing drag must produce one undo step")
     model.selectedItem=nil
     precondition(model.framingItem==nil,"Changing selection exits framing")
+    for (type, label) in [("dante_youtube_chat", "Chat width QA"),
+                          ("dante_superchat", "Highlight width QA"),
+                          ("dante_youtube_alert", "Likes width QA")] {
+        precondition(model.command("source.add", ["scene":scene,"type":type,"name":label,
+                                                 "settings":["layoutWidth":320,"layoutHeight":180]]))
+        let sourceID=model.items.first { $0.string("name")==label }!.sceneItemID
+        precondition(model.command("item.transform",["scene":scene,"id":sourceID,"x":100,"y":90]))
+        model.selectedItem=sourceID
+        host.rootView=CanvasView(model:model,cropModifier:{false})
+        try await Task.sleep(for:.milliseconds(180));host.layoutSubtreeIfNeeded()
+        let before=model.selected!
+        let corners=before["boxCorners"] as! [[Double]]
+        let right=CGPoint(x:(corners[1][0]+corners[2][0])/2,y:(corners[1][1]+corners[2][1])/2)
+        try await drag(from:right,to:CGPoint(x:right.x+70,y:right.y))
+        let after=model.selected!
+        precondition(after.number("width") >= before.number("width")+60,
+                     "\(type) must grow horizontally with the right handle: \(after)")
+        precondition(after.number("height")==before.number("height"),"\(type) height must not stretch")
+        model.selectedItem=nil
+        precondition(model.command("source.remove",["scene":scene,"id":sourceID]))
+    }
     print("PASS: explicit framing pans without Alt, keeps the visible box fixed, one undo and selection cleanup")
     print("PASS: actual SwiftUI top/bottom handle drag crops vertically in fixed canvas coordinates; no global input injection")
+    print("PASS: chat, featured comment and likes resize horizontally without changing height")
 }

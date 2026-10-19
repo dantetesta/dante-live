@@ -13,12 +13,16 @@ struct YouTubeActivityEvent: Equatable {
 /// Session-only deduplication: toggling alerts never replays a person in this live.
 @MainActor final class YouTubeActivity: ObservableObject {
     @Published private(set) var totalLikes: UInt64?
+    @Published private(set) var totalSubscribers: UInt64?
+    @Published private(set) var newPublicSubscribers = 0
     @Published private(set) var current: YouTubeActivityEvent?
     @Published private(set) var status = "Ative os alertas em uma fonte da cena."
     private(set) var queue: [YouTubeActivityEvent] = []
     private(set) var seen = Set<String>()
     private(set) var subscribersEnabled = false
     private(set) var likesEnabled = false
+    private var subscriberAlertsEnabled = true
+    private var channelTotalEnabled = false
     private var subscribersReady = false
     private var startedAt = Date()
     private var displayedAt: Date?
@@ -28,17 +32,19 @@ struct YouTubeActivityEvent: Equatable {
     private var stoppedByQuota = false
     private var subscribersUnavailable = false
     private var likesUnavailable = false
-    func configure(subscribers: Bool, likes: Bool) {
-        guard subscribersEnabled != subscribers || likesEnabled != likes else{return}
+    private var channelUnavailable = false
+    func configure(subscribers: Bool, likes: Bool, subscriberAlerts: Bool = true, channelTotal: Bool = false) {
+        guard subscribersEnabled != subscribers || likesEnabled != likes || subscriberAlertsEnabled != subscriberAlerts || channelTotalEnabled != channelTotal else{return}
         if subscribersEnabled != subscribers { subscribersReady=false }
         if likesEnabled != likes {totalLikes=nil}
-        subscribersEnabled=subscribers;likesEnabled=likes
-        queue.removeAll { $0.kind == .subscriber ? !subscribers : !likes }
-        if let event=current, event.kind == .subscriber ? !subscribers : !likes { current=nil;displayedAt=nil }
+        if !channelTotal { totalSubscribers=nil }
+        subscribersEnabled=subscribers;likesEnabled=likes;subscriberAlertsEnabled=subscriberAlerts;channelTotalEnabled=channelTotal
+        queue.removeAll { $0.kind == .subscriber ? (!subscribers || !subscriberAlerts) : !likes }
+        if let event=current, event.kind == .subscriber ? (!subscribers || !subscriberAlerts) : !likes { current=nil;displayedAt=nil }
     }
     func reset() {
-        task?.cancel();task=nil;generation=UUID();current=nil;totalLikes=nil
-        queue.removeAll();seen.removeAll();subscribersReady=false;displayedAt=nil;pollTurn=0;stoppedByQuota=false;subscribersUnavailable=false;likesUnavailable=false
+        task?.cancel();task=nil;generation=UUID();current=nil;totalLikes=nil;totalSubscribers=nil;newPublicSubscribers=0
+        queue.removeAll();seen.removeAll();subscribersReady=false;displayedAt=nil;pollTurn=0;stoppedByQuota=false;subscribersUnavailable=false;likesUnavailable=false;channelUnavailable=false
         status="Alertas aguardando uma live do YouTube."
     }
     func ingestLikes(_ response:[String:Any]) {
@@ -53,6 +59,14 @@ struct YouTubeActivityEvent: Equatable {
             if current?.kind == .likes {current=nil;displayedAt=nil}
         }
     }
+    func ingestChannel(_ response:[String:Any]) {
+        guard channelTotalEnabled else{return}
+        let statistics=response.array("items").first?.object("statistics") ?? [:]
+        guard !statistics.flag("hiddenSubscriberCount"),
+              let raw=statistics["subscriberCount"] as? String,
+              let count=UInt64(raw) else {totalSubscribers=nil;return}
+        totalSubscribers=count
+    }
     func ingestSubscribers(_ items:[[String:Any]]) {
         guard subscribersEnabled else{return}
         let baseline = !subscribersReady
@@ -63,7 +77,9 @@ struct YouTubeActivityEvent: Equatable {
             guard seen.count<10000 else {status="Limite de alertas de inscritos atingido nesta live.";return}
             seen.insert(id)
             guard !baseline,let date=Self.date(item.object("snippet").string("publishedAt")),date>=startedAt else{continue}
+            newPublicSubscribers += 1
             let name=String(person.string("title","Novo inscrito").prefix(100))
+            if !subscriberAlertsEnabled {continue}
             if queue.count<200 {queue.append(.init(id:id,kind:.subscriber,name:name,total:nil))}
             else {status="Fila de alertas cheia. Alguns inscritos não serão exibidos."}
         }
@@ -78,11 +94,12 @@ struct YouTubeActivityEvent: Equatable {
         if let displayedAt,now.timeIntervalSince(displayedAt)<5 {return}
         current=queue.isEmpty ? nil:queue.removeFirst();displayedAt=current == nil ? nil:now
     }
-    private func handle(_ error:Error,subscribers:Bool) {
+    private func handle(_ error:Error,subscribers:Bool,channel:Bool=false) {
         guard let error=error as? YouTubeAPIError else{return}
         if ["quotaExceeded","dailyLimitExceeded","unauthorized","invalid_grant"].contains(error.reason){stoppedByQuota=true}
         else if ["forbidden","insufficientPermissions","subscriptionForbidden"].contains(error.reason){
-            if subscribers{subscribersUnavailable=true}else{likesUnavailable=true}
+            if channel {channelUnavailable=true}
+            else if subscribers{subscribersUnavailable=true}else{likesUnavailable=true}
         }
     }
     func start(broadcast:String,api:YouTubeAPI,access:@escaping @MainActor () async throws -> String,isSending:@escaping @MainActor () -> Bool) {
@@ -91,7 +108,7 @@ struct YouTubeActivityEvent: Equatable {
             while !Task.isCancelled {
                 guard let self,self.generation==session else{return}
                 guard isSending() else{self.reset();return}
-                if (self.subscribersEnabled || self.likesEnabled) && !self.stoppedByQuota {
+                if (self.subscribersEnabled || self.likesEnabled || self.channelTotalEnabled) && !self.stoppedByQuota {
                     do {
                         let token=try await access()
                         var failure:Error?
@@ -117,10 +134,17 @@ struct YouTubeActivityEvent: Equatable {
                             } catch {failure=error;self.handle(error,subscribers:true)}
                         }
                         try Task.checkCancellation()
+                        if self.channelTotalEnabled && !self.channelUnavailable && !self.stoppedByQuota && self.pollTurn%2 == 0 {
+                            do {
+                                let response=try await api.call("channels",token:token,query:["part":"statistics","mine":"true"])
+                                try Task.checkCancellation();guard self.generation==session else{return};self.ingestChannel(response)
+                            } catch {failure=error;self.handle(error,subscribers:false,channel:true)}
+                        }
+                        try Task.checkCancellation()
                         if let failure {self.status="Alertas: \(failure.localizedDescription)"}
                         else if self.subscribersUnavailable {self.status="Inscritos indisponíveis pela API. O contador de likes continua ativo."}
                         else if self.likesUnavailable {self.status="Likes indisponíveis pela API. Alertas de inscritos continuam ativos."}
-                        else {self.status="Likes: consulta a cada 15 s • inscritos públicos: 30 s"}
+                        else {self.status="Likes: consulta a cada 15 s • inscritos públicos e total do canal: 30 s"}
                     } catch is CancellationError {return}
                     catch {
                         guard self.generation==session,!Task.isCancelled else{return}

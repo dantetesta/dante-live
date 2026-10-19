@@ -176,14 +176,15 @@ struct CanvasView: View {
                 }
                 return
             }
-            if ["dante_youtube_chat", "dante_superchat"].contains(origin.string("type")) {
+            if ["dante_youtube_chat", "dante_superchat", "dante_youtube_alert"].contains(origin.string("type")) {
                 let settings = model.properties(name: origin.string("name")).object("settings")
                 var minimumSettings = settings; minimumSettings["layoutHeight"] = 0
-                let minimumLayout = ChatLayout(lower: origin.string("type") == "dante_superchat", settings: minimumSettings)
+                let minimumHeight = origin.string("type") == "dante_youtube_alert" ? 140 :
+                    ChatLayout(lower: origin.string("type") == "dante_superchat", settings: minimumSettings).height
                 if let edit = box.resizeContent(handle: handle, translation: translation,
                     sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), crop: cropFor(origin),
                     position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment",5)),
-                    minimum: CGSize(width:240,height:minimumLayout.height), maximum:CGSize(width:1920,height:2160)) {
+                    minimum: CGSize(width:240,height:minimumHeight), maximum:CGSize(width:1920,height:2160)) {
                     if model.command("source.update", ["name":origin.string("name"),"settings":["layoutWidth":edit.size.width,"layoutHeight":edit.size.height]],undo:false) {
                         _ = model.command("item.transform",["scene":model.sceneName,"id":origin.sceneItemID,"x":edit.position.x,"y":edit.position.y],undo:false)
                     }

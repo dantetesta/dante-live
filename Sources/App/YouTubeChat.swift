@@ -57,6 +57,7 @@ struct ChatMessage: Identifiable, Equatable {
     @Published private(set) var featured: ChatMessage?
     @Published private(set) var page = 0
     @Published private(set) var displayed: [ChatMessage] = []
+    @Published private(set) var hiddenBeforeAirIDs = Set<String>()
     @Published private(set) var onAirID: String?
     @Published private(set) var retiringIDs = Set<String>()
     private var onAir: ChatMessage?
@@ -73,13 +74,7 @@ struct ChatMessage: Identifiable, Equatable {
             if let current { retirements[current.id] = nil }
         }
         let completed = retirements.values.filter { $0.deadline <= now }.sorted { $0.deadline < $1.deadline }
-        for entry in completed {
-            displayed.removeAll { $0.id == entry.message.id }
-            displayed.append(entry.message)
-            donations.removeAll { $0.id == entry.message.id }
-            retirements[entry.message.id] = nil
-        }
-        if displayed.count > 500 { displayed.removeFirst(displayed.count - 500) }
+        for entry in completed { archive(entry.message, aired: true) }
         let ids = Set(retirements.keys)
         if retiringIDs != ids { retiringIDs = ids }
     }
@@ -104,7 +99,33 @@ struct ChatMessage: Identifiable, Equatable {
     private var resumeCursor = ""
     var featureText: String { featured.map { $0.pages[min(page, $0.pages.count - 1)] } ?? "" }
     func show(_ message: ChatMessage) { featured = message; page = 0; revision += 1 }
-    func hide() { featured = nil; page = 0; revision += 1 }
+    private func archive(_ message: ChatMessage, aired: Bool) {
+        displayed.removeAll { $0.id == message.id }
+        displayed.append(message)
+        donations.removeAll { $0.id == message.id }
+        retirements[message.id] = nil
+        retiringIDs.remove(message.id)
+        if aired { hiddenBeforeAirIDs.remove(message.id) }
+        else { hiddenBeforeAirIDs.insert(message.id) }
+        if displayed.count > 500 {
+            let expired = displayed.prefix(displayed.count - 500)
+            for entry in expired { hiddenBeforeAirIDs.remove(entry.id) }
+            displayed.removeFirst(displayed.count - 500)
+        }
+    }
+    /// Hiding a row finishes its operator queue immediately. Keep a truthful
+    /// label when it was reviewed in preview but never reached the program.
+    func hide(_ message: ChatMessage) {
+        let aired = onAirID == message.id || (wasDisplayed(message.id) && !hiddenBeforeAirIDs.contains(message.id))
+        archive(message, aired: aired)
+        if featured?.id == message.id { featured = nil; page = 0 }
+        if onAirID == message.id { onAir = nil; onAirID = nil }
+        revision += 1
+    }
+    func hide() {
+        guard let featured else { return }
+        hide(featured)
+    }
     func advance(_ direction: Int, pageCount: Int? = nil) {
         guard let featured else { return }; let count = max(1, pageCount ?? featured.pages.count)
         page = min(count - 1, max(0, min(page, count - 1) + direction)); revision += 1
@@ -112,7 +133,7 @@ struct ChatMessage: Identifiable, Equatable {
     func dismiss(_ id: String) { removeMessage(id) }
     func reset() {
         task?.cancel(); task = nil; generation = UUID(); running = false; sessionActive = false; resumeCursor = ""
-        displayed.removeAll(); retirements.removeAll(); retiringIDs.removeAll(); onAir = nil; onAirID = nil
+        displayed.removeAll(); hiddenBeforeAirIDs.removeAll(); retirements.removeAll(); retiringIDs.removeAll(); onAir = nil; onAirID = nil
         messages.removeAll(); donations.removeAll(); seen.removeAll(); seenOrder.removeAll(); featured = nil; page = 0; overflow = 0; revision += 1
         status = "O chat será conectado quando a live do YouTube começar."
     }
@@ -145,10 +166,10 @@ struct ChatMessage: Identifiable, Equatable {
         revision += 1
     }
     private func removeMessage(_ id: String) {
-        messages.removeAll { $0.id == id }; donations.removeAll { $0.id == id }; displayed.removeAll { $0.id == id }
+        messages.removeAll { $0.id == id }; donations.removeAll { $0.id == id }; displayed.removeAll { $0.id == id }; hiddenBeforeAirIDs.remove(id)
         retirements[id] = nil; retiringIDs.remove(id)
         if onAir?.id == id { onAir = nil; onAirID = nil }
-        if featured?.id == id { hide() }
+        if featured?.id == id { featured = nil; page = 0; revision += 1 }
     }
     func start(broadcast: String, api: YouTubeAPI, access: @escaping @MainActor () async throws -> String, isSending: @escaping @MainActor () -> Bool, preserveQueue: Bool = false) {
         if preserveQueue { task?.cancel(); generation = UUID() } else { reset() }

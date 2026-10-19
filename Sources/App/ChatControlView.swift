@@ -180,7 +180,7 @@ struct ChatControlView: View {
                             Text("Mais antigos").tag(false)
                         }.labelsHidden().frame(width: 145)
                     }
-                    Text("Após sair do destaque da live, a mensagem vai para Já exibidos em 30 segundos.").font(.caption).foregroundStyle(.secondary)
+                    Text("Ocultar tira a mensagem da fila imediatamente. Se ela não foi ao ar, o histórico indica isso. Destaques retirados pelo olho da fonte entram no histórico após 30 segundos.").font(.caption).foregroundStyle(.secondary)
                     if chat.overflow > 0 {
                         Label("Fila cheia. \(chat.overflow) novos apoios não foram guardados. Consulte o YouTube Studio.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
@@ -207,7 +207,7 @@ struct ChatControlView: View {
                                 Button { chat.advance(1,pageCount:featuredPages.count); studio.refresh() } label: { Image(systemName: "chevron.right") }.disabled(chat.page >= featuredPages.count - 1).help("Próxima página")
                             }
                         }
-                        Button("Ocultar destaque", systemImage: "eye.slash") { chat.hide(); studio.refresh() }
+                        Button("Ocultar e concluir", systemImage: "eye.slash") { chat.hide(); studio.refresh() }
                         Text("Permanece até você ocultar ou escolher outra mensagem. A visibilidade da fonte e a cena em programa determinam se ela vai ao ar.").font(.caption).foregroundStyle(.secondary)
                     } else {
                         Text("Revise a mensagem e clique em Mostrar. Nada da fila de Super Chats aparece automaticamente.").foregroundStyle(.secondary)
@@ -237,15 +237,21 @@ struct ChatControlView: View {
             } else if chat.retiringIDs.contains(message.id) {
                 badge("Exibido • aguardando arquivamento", icon: "clock", color: .orange)
             } else if chat.wasDisplayed(message.id) {
-                badge("Já exibido", icon: "checkmark.circle.fill", color: .purple)
+                badge(chat.hiddenBeforeAirIDs.contains(message.id) ? "Ocultado sem ir ao ar" : "Já exibido", icon: "checkmark.circle.fill", color: .purple)
             }
             Text(message.text.isEmpty ? "Apoio sem mensagem" : message.text).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             HStack {
                 Button(chat.featured?.id == message.id ? "Selecionado" : "Mostrar", systemImage: "eye") {
                     if !studio.items.contains(where: { $0.string("type") == "dante_superchat" }) { add("dante_superchat", base: "Destaque do YouTube") }
                     chat.show(message); studio.refresh()
-                }.buttonStyle(.borderedProminent)
-                if message.paid || section == "displayed" { Button("Remover da fila", systemImage: "trash") { chat.dismiss(message.id); studio.refresh() }.help("Remove apenas desta fila. Não altera a doação no YouTube.") }
+                }.buttonStyle(.borderedProminent).disabled(chat.featured?.id == message.id)
+                if section != "displayed" {
+                    Button("Ocultar", systemImage: "eye.slash") { chat.hide(message); studio.refresh() }
+                        .help("Sai da fila e vai para Já exibidos. O histórico informa se não foi ao ar.")
+                } else {
+                    Button("Remover do histórico", systemImage: "trash") { chat.dismiss(message.id); studio.refresh() }
+                        .help("Remove somente deste Mac, sem alterar o YouTube.")
+                }
             }
         }.padding(16).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(chat.featured?.id == message.id ? Color.teal : Color.secondary.opacity(0.15)))

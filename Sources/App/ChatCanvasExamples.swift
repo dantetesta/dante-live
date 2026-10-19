@@ -51,7 +51,9 @@ private struct ChatExampleItem:View {
         }
         let bitmap:NSBitmapImageRep?
         if type=="dante_youtube_alert" {
-            bitmap=YouTubeActivityRaster.render(event:.init(id:"example",kind:.subscriber,name:"Exemplo • Marina",total:nil),total:nil,settings:settings)
+            bitmap=YouTubeActivityRaster.render(event:.init(id:"example",kind:.subscriber,name:"Exemplo • Marina",total:nil),total:nil,
+                subscriberTotal:settings.flag("showChannelTotal",false) ? 8500 : nil,
+                newPublicSubscribers:settings.flag("showNewSubscribers",false) ? 3 : nil,settings:settings)
         } else {
             let examples=[message("sample-1","Exemplo • Marina","Boa noite, pessoal!"),message("sample-2","Exemplo • Lucas","Como você preparou essa cena?"),message("sample-3","Exemplo • Bia","Gostei! Obrigada por compartilhar.")]
             bitmap=ChatRaster.render(messages:examples,featured:message("sample-paid","Exemplo • Rafael","Prévia de Super Chat para ajustar o estilo. Não vai ao ar.",paid:true),page:0,lower:type=="dante_superchat",settings:settings)

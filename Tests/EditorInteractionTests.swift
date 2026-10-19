@@ -7,6 +7,29 @@ var appVersion: String { "test" }
 @main enum EditorInteractionTests {
     @MainActor static func main() async throws {
         NSApplication.shared.setActivationPolicy(.prohibited)
+        // SwiftUI can finish scheduled rendering after a cacheDisplay call. Keep
+        // preview windows alive through the test process to avoid tearing down
+        // their view graphs while those jobs still reference them.
+        var thumbnailWindows: [NSWindow] = []
+        for style in 0..<10 {
+            let thumbnail = NSHostingView(rootView: VisualizerStyleThumbnail(
+                style: style, primary: 0x48D8E8, secondary: 0x986BFF
+            ).frame(width: 144, height: 54))
+            thumbnail.frame = NSRect(x: 0, y: 0, width: 144, height: 54)
+            let window = NSWindow(contentRect: NSRect(x: -2000, y: -2000, width: 144, height: 54),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = thumbnail
+            window.orderBack(nil)
+            try await Task.sleep(for: .milliseconds(30))
+            let bitmap = thumbnail.bitmapImageRepForCachingDisplay(in: thumbnail.bounds)!
+            thumbnail.cacheDisplay(in: thumbnail.bounds, to: bitmap)
+            precondition(bitmap.pixelsWide > 0 && bitmap.pixelsHigh > 0)
+            window.orderOut(nil)
+            thumbnailWindows.append(window)
+        }
+        print("PASS: all ten audio visualizer thumbnails render without crashing")
+        fflush(stdout)
         let queue = PropertyEditQueue()
         var edits: [String] = []
         queue.submit(immediate: false) { edits.append("old") }

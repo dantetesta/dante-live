@@ -1,6 +1,8 @@
-## Versão 0.1.23 — preparação para distribuição
+## Versão 0.1.23 — publicada e notarizada
 
-VPS própria de convidados por IPv4 HTTPS, gateway autenticado, Coturn com credenciais temporárias, guia Servidor TURN, importação de perfil protegido, preparação RTMP sem API e clareza dos limites de captura por aplicativo. Build e testes locais passaram; dois Chrome sintéticos no mesmo Mac conectaram pela VPS com relay TURN selecionado, mídia, mix-minus, reconexão e revogação. Renovação Certbot/webroot passou em dry-run. Publicação, notarização do novo artefato, teste físico entre redes distintas, live longa e primeira renovação real ainda precisam de confirmação. [Prompt de instalação](../server/PROMPT-INSTALACAO.md).
+VPS própria de convidados por IPv4 HTTPS, gateway autenticado, Coturn com credenciais temporárias, guia Servidor TURN, importação de perfil protegido, preparação RTMP sem API e clareza dos limites de captura por aplicativo. Dois Chrome sintéticos no mesmo Mac conectaram pela VPS com relay TURN selecionado, mídia, mix-minus, reconexão e revogação. Renovação Certbot/webroot passou em dry-run. Aplicativo e DMG receberam `Apple Accepted`, ticket anexado e aprovação do Gatekeeper. O DMG Universal 2 passou em suíte local, leitura de volta com 1.147 entradas idênticas ao app e varredura de arquivos internos. Upload do DMG e fontes teve SHA-256 remoto igual ao local; download público e prompt retornaram HTTP 200. [Release](https://github.com/dantetesta/dante-live/releases/tag/v0.1.23) · [Prompt de instalação](../server/PROMPT-INSTALACAO.md).
+
+O teste nativo da faixa falhou inicialmente no modo Accurate do OCR do macOS com `TextRecognition.CRImageReaderError`; o PNG renderizado estava correto. O teste passou ao ler o PNG no modo Fast, mantendo OCR de texto e leitura do QR no frame real. Convidados reais em redes externas distintas, live longa, primeira renovação real, Intel físico e macOS 14 físico ainda precisam de confirmação. Não há garantia de zero quedas ou de capacidade para mais de dois convidados.
 
 ## Alterações locais após 0.1.22 — preparação RTMP e clareza da captura
 

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.23",
+  "build": 24,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.23/Dante-Live-0.1.23-macOS-universal.dmg",
+  "length": 93451468,
+  "sha256": "9ebd83e5cc6c7c47179faf73f5e123931110b14a5368c86c25d00d946c8a5c4f",
+  "signature": "FkpoWRLuGWIJ3FMjOBMZlT9eTLzViaWt8h7EnXOULsj2I3I8gxpSZAVIAgmdmUhc3LMCO83NhENwQBqILDcBAg==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-19T14:29:12.900090+00:00",
+  "changelog": "DANTE LIVE 0.1.23 — NOVIDADES\n\n• Convidados por VPS própria: nova guia Servidor TURN, importação de perfil protegido e teste de conexão. O token fica no Acesso às Chaves do Mac; o Dante Live não pede SSH.\n• Convites pelo HTTPS do IPv4 da VPS, com credenciais TURN temporárias. A câmera, tela e voz continuam via WebRTC, direto quando possível e por relay TURN quando necessário.\n• Preparação de live via RTMP/RTMPS sem conectar a API do YouTube: título, descrição e capa como referência local. O serviço de destino ainda precisa receber esses metadados em seu próprio painel.\n• Salvar a preparação volta ao estúdio sem abrir a biblioteca nem iniciar transmissão.\n• Captura por aplicativo agora esclarece que o áudio de um navegador inclui suas abas; não há isolamento de áudio por aba.\n\nGuia e prompt para instalar a VPS: https://github.com/dantetesta/dante-live/blob/main/server/PROMPT-INSTALACAO.md\n\nVALIDAÇÃO: dois navegadores sintéticos no mesmo Mac conectaram pela VPS com TURN relay efetivamente selecionado, vídeo, tela, áudio, retorno sem a própria voz, reconexão e revogação. Renovação do certificado passou na simulação do Certbot. Ainda faltam testes com convidados reais em redes diferentes e live longa; não há promessa de zero quedas, latência fixa ou capacidade além de dois convidados nesta versão.\n\nInstalador: https://github.com/dantetesta/dante-live/releases/tag/v0.1.23\n",
+  "notarized": true
+}

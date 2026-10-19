@@ -1,3 +1,9 @@
+## Versão 0.1.24 — publicada e notarizada
+
+Build Universal 2 para macOS 14+ assinado com Developer ID. Aplicativo e DMG receberam `Apple Accepted`, tickets anexados e aprovação do Gatekeeper. A suíte do app, os testes de captura, chat e gráficos e três convidados sintéticos no mesmo Mac passaram. A imagem montada teve 1.324 entradas do app idênticas à pasta de distribuição, incluindo hashes de arquivos e alvos de links. DMG e fontes correspondentes foram baixados anonimamente do GitHub e seus SHA-256 coincidiram com os arquivos locais; o catálogo público do atualizador contém a 0.1.24 e sua assinatura. [Release](https://github.com/dantetesta/dante-live/releases/tag/v0.1.24).
+
+A página estática de uma VPS instalada antes desta versão ainda precisa ser atualizada para mostrar o botão de mudança de nome; o aplicativo publicado não altera arquivos da VPS automaticamente. Testes com convidados reais em redes distintas, Intel físico, macOS 14 em hardware dedicado e live prolongada seguem pendentes.
+
 ## Versão 0.1.24 — nome dinâmico do convidado
 
 Ao inserir um convidado, o Dante cria uma camada própria para o nome. Ela começa junto à webcam, pode ser movida, redimensionada e ocultada sem alterar a câmera e tem seis estilos, fontes instaladas no Mac, tamanho e cores. O convidado conectado altera o nome na página do convite; uma chamada autenticada de controle atualiza a mesma fonte, sem recarregar a página ou renegociar o WebRTC. A camada acompanha a mudança de cena e é removida com o convite. Teste nativo confirmou pixels, seis estilos, troca de texto e persistência; três Chrome sintéticos no mesmo Mac confirmaram o mesmo peer e as mesmas trilhas após a troca. Não houve teste de convidado real em redes externas nem transmissão pública. VPS já instalada precisa receber os arquivos atualizados de `Sources/GuestWeb` para exibir o botão de alterar nome; o protocolo `/status` já é compatível.

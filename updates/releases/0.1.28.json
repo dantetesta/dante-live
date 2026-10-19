@@ -1,0 +1,16 @@
+{
+  "version": "0.1.28",
+  "build": 29,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.28/Dante-Live-0.1.28-macOS-universal.dmg",
+  "length": 97319824,
+  "sha256": "cc1b0c829467b88e4716750ac2427f66444bf569a38be1d83549d86bbf0d6f0e",
+  "signature": "G+stGxBTwEPrjmJDbdP8AS4Yz/3jHdW7bx6/CIKztWyzS3Wx5N7fyUgJM1/0bDdurYO8DQg+ovPJQDTbXLi3BQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-19T23:57:23.022131+00:00",
+  "changelog": "Dante Live 0.1.28 — áudio de uma aba do Chrome e créditos\n\n- Nova fonte “Áudio de aba do navegador”: escolha uma aba no seletor do Google Chrome, ative Compartilhar áudio e ajuste o som no mixer do Dante Live. As demais abas não entram nessa fonte; o vídeo da aba não é adicionado à cena.\n- Atalho nas propriedades de “Áudio do Mac” para adicionar a fonte de aba. Se mantiver as duas fontes ativas, silencie ou remova a captura do aplicativo inteiro para evitar áudio duplicado.\n- Fontes somente de áudio deixam de exibir o aviso e os controles de enquadramento de imagem.\n- Nova janela Créditos no menu Dante Live, com foto e autoria de Dante Testa, site, comunidade no WhatsApp e opção de copiar a chave Pix ou o e-mail PayPal para apoio voluntário.\n- Carrossel discreto no topo central, com banners de parceiros de 400 × 55: anúncio de parceria Dante Live, Academy e Napoleon. Cada peça abre o link correspondente; a rotação pausa quando o ponteiro está sobre ela.\n\nÉ preciso manter a página local de captura aberta e escolher a aba novamente depois de reiniciar o Dante Live. A fonte antiga “Áudio do Mac → Capturar áudio de aplicativo” continua capturando todo o áudio do Chrome.\n\nValidação: testes de interface e motor, Chrome isolado com áudio sintético chegando ao medidor, recusa de token inválido e silêncio ao parar. Captura manual de uma aba real, transmissão pública prolongada e hardware Intel físico ainda não foram validados.\n",
+  "notarized": true
+}

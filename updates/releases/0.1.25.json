@@ -1,0 +1,16 @@
+{
+  "version": "0.1.25",
+  "build": 26,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.25/Dante-Live-0.1.25-macOS-universal.dmg",
+  "length": 94540281,
+  "sha256": "894675fcaa8f1508cb6120cbc6b0a4f67efff4e8705b2d347ec628a8a9bdb938",
+  "signature": "cGsOsXSNjvpRBWWDmfGNke4Zjwr+KIQBdWsMM61cbuADzPxOJY2p3gVu430adVbzAsbhXQi9BPhiMJKYKem1CQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-19T20:26:49.265552+00:00",
+  "changelog": "DANTE LIVE 0.1.25 — NOVIDADES\n\n• Corrigido o encerramento do aplicativo ao abrir os estilos do visualizador de áudio. A miniatura da onda acessava uma amostra além do limite.\n• Chat, comentário em destaque e componente de likes/inscrições podem ser redimensionados horizontalmente no canvas sem esticar o texto nem alterar a altura.\n• O componente de likes/inscrições ganhou seis estilos prontos. Cores, família da fonte e tamanhos do título, contagem e detalhes podem ser editados.\n• O mesmo componente pode mostrar o total aproximado de inscritos do canal e a quantidade de novos inscritos públicos detectados durante a live.\n• A fila de comentários tem ações Mostrar e Ocultar. Ocultar retira da fila imediatamente; o histórico informa quando a mensagem não foi ao ar.\n\nLIMITES DOS DADOS DO YOUTUBE\nO YouTube arredonda o total de inscritos do canal. A lista de novos inscritos pode atrasar, ser limitada e não inclui inscrições privadas. O Dante Live identifica esses números na interface e não os apresenta como contagem exata de ganhos da live.\n\nVALIDAÇÃO\nBuild Universal 2 assinado com Developer ID e testes locais de interface, chat e motor aprovados. Não foi feita uma live pública nem validação em hardware Intel físico.\n",
+  "notarized": true
+}

@@ -6,6 +6,29 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.25</title>
+      <pubDate>Mon, 19 Oct 2026 20:26:49 +0000</pubDate>
+      <sparkle:version>26</sparkle:version>
+      <sparkle:shortVersionString>0.1.25</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">DANTE LIVE 0.1.25 — NOVIDADES
+
+• Corrigido o encerramento do aplicativo ao abrir os estilos do visualizador de áudio. A miniatura da onda acessava uma amostra além do limite.
+• Chat, comentário em destaque e componente de likes/inscrições podem ser redimensionados horizontalmente no canvas sem esticar o texto nem alterar a altura.
+• O componente de likes/inscrições ganhou seis estilos prontos. Cores, família da fonte e tamanhos do título, contagem e detalhes podem ser editados.
+• O mesmo componente pode mostrar o total aproximado de inscritos do canal e a quantidade de novos inscritos públicos detectados durante a live.
+• A fila de comentários tem ações Mostrar e Ocultar. Ocultar retira da fila imediatamente; o histórico informa quando a mensagem não foi ao ar.
+
+LIMITES DOS DADOS DO YOUTUBE
+O YouTube arredonda o total de inscritos do canal. A lista de novos inscritos pode atrasar, ser limitada e não inclui inscrições privadas. O Dante Live identifica esses números na interface e não os apresenta como contagem exata de ganhos da live.
+
+VALIDAÇÃO
+Build Universal 2 assinado com Developer ID e testes locais de interface, chat e motor aprovados. Não foi feita uma live pública nem validação em hardware Intel físico.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.25/Dante-Live-0.1.25-macOS-universal.dmg" length="94540281" type="application/octet-stream" sparkle:edSignature="cGsOsXSNjvpRBWWDmfGNke4Zjwr+KIQBdWsMM61cbuADzPxOJY2p3gVu430adVbzAsbhXQi9BPhiMJKYKem1CQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.24</title>
       <pubDate>Mon, 19 Oct 2026 19:26:53 +0000</pubDate>
       <sparkle:version>25</sparkle:version>
@@ -432,6 +455,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 1l+l2XGjDB8CTbZN9bAzQopNwyU09zENHDR4+99rGWbeLf1adFvg3rxh7HwDGQpKth7d05aoeGZWYwneMPWcAA==
-length: 40185
+edSignature: jjpiXlzygWphVWYL4mPnFM5434XOxn/ndwBWO/AhYb4v7H7ZS644zJczOHIdkmmqrKSq1JJi9a/OcFhHYh3jAg==
+length: 42238
 -->

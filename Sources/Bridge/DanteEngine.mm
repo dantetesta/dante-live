@@ -20,6 +20,8 @@
 #include "DanteCameraMask.hpp"
 #include "DanteChatOverlay.hpp"
 #include "DanteSceneGraphics.hpp"
+#include "DanteAudioVisualizer.hpp"
+#include "DanteGuestName.hpp"
 
 static std::string creationError;
 static NSString *S(const char *s) { return s ? [NSString stringWithUTF8String:s] ?: @"" : @""; }
@@ -119,6 +121,65 @@ static bool registeredType(NSString *name,enum obs_source_type expected) {
     for(size_t i=0;expected==OBS_SOURCE_TYPE_FILTER ? obs_enum_filter_types(i,&id) : obs_enum_input_types(i,&id);++i)
         if([name isEqual:S(id)])return true;
     return false;
+}
+static constexpr const char *voiceGainName="Dante • Reforço de volume";
+static constexpr const char *voiceLimiterName="Dante • Proteção de pico";
+static float effectiveSourceVolume(obs_source_t *source) {
+    float volume=obs_source_get_volume(source);
+    auto *gain=obs_source_get_filter_by_name(source,voiceGainName);
+    if(gain) {
+        if(obs_source_enabled(gain) && strcmp(obs_source_get_unversioned_id(gain),"gain_filter")==0) {
+            auto *data=obs_source_get_settings(gain);
+            volume*=std::pow(10.f,(float)obs_data_get_double(data,"db")/20.f);
+            obs_data_release(data);
+        }
+        obs_source_release(gain);
+    }
+    return volume;
+}
+static bool setProtectedSourceVolume(dante_engine *e,obs_source_t *source,float volume) {
+    if(!std::isfinite(volume))return fail(e,"Informe um volume válido.");
+    volume=std::clamp(volume,0.f,20.f);
+    auto *gain=obs_source_get_filter_by_name(source,voiceGainName);
+    auto *limiter=obs_source_get_filter_by_name(source,voiceLimiterName);
+    const bool gainPresent=gain!=nullptr,limiterPresent=limiter!=nullptr;
+    if((gain&&strcmp(obs_source_get_unversioned_id(gain),"gain_filter")!=0) ||
+       (limiter&&strcmp(obs_source_get_unversioned_id(limiter),"limiter_filter")!=0)) {
+        obs_source_release(gain);obs_source_release(limiter);
+        return fail(e,"Um filtro já usa o nome reservado para o reforço de volume.");
+    }
+    if(volume<=1.f || !(obs_source_get_output_flags(source)&OBS_SOURCE_AUDIO)) {
+        if(limiter)obs_source_filter_remove(source,limiter);
+        if(gain)obs_source_filter_remove(source,gain);
+        obs_source_release(limiter);obs_source_release(gain);
+        obs_source_set_volume(source,volume);return true;
+    }
+    if(!registeredType(@"gain_filter",OBS_SOURCE_TYPE_FILTER) || !registeredType(@"limiter_filter",OBS_SOURCE_TYPE_FILTER)) {
+        obs_source_release(limiter);obs_source_release(gain);
+        return fail(e,"O reforço de volume não está disponível neste motor.");
+    }
+    // The source fader runs after audio filters. Apply gain inside the filter
+    // chain, then limit peaks before the unity fader and the stream mix.
+    auto *gainData=settings(@{@"db":@(20.0*std::log10(volume))});
+    auto *limiterData=settings(@{@"threshold":@(-1.0),@"release_time":@60});
+    if(!gain)gain=obs_source_create_private("gain_filter",voiceGainName,gainData);
+    if(!limiter)limiter=obs_source_create_private("limiter_filter",voiceLimiterName,limiterData);
+    if(!gain || !limiter) {
+        obs_data_release(gainData);obs_data_release(limiterData);
+        obs_source_release(limiter);obs_source_release(gain);
+        return fail(e,"Não foi possível preparar o reforço de volume.");
+    }
+    if(!gainPresent)obs_source_filter_add(source,gain);
+    if(!limiterPresent)obs_source_filter_add(source,limiter);
+    obs_source_update(gain,gainData);obs_source_update(limiter,limiterData);
+    obs_source_set_enabled(gain,true);obs_source_set_enabled(limiter,true);
+    // OBS executes filters from the highest index down to zero. Bottom is
+    // index zero, so the limiter runs after gain even if users reorder filters.
+    obs_source_filter_set_order(source,limiter,OBS_ORDER_MOVE_BOTTOM);
+    obs_source_set_volume(source,1.f);
+    obs_data_release(gainData);obs_data_release(limiterData);
+    obs_source_release(limiter);obs_source_release(gain);
+    return true;
 }
 static void meterCallback(void *data, const float *magnitude, const float *peak, const float *inputPeak) {
     auto *m = static_cast<Meter *>(data);
@@ -336,6 +397,8 @@ dante_engine_t *dante_engine_create_with_config(const char *bundlePath,uint32_t 
     dante_register_guest_sources();
     dante_register_chat_sources();
     DanteGraphics::registerSources();
+    DanteVisualizer::registerSource();
+    DanteGuestName::registerSource();
     DanteMask::registerFilter();
     e->transition=obs_source_create_private("fade_transition","Dante fade",nullptr);
     if (!e->transition) { creationError="Módulo de transição ausente."; obs_shutdown(); delete e; return nullptr; }
@@ -526,7 +589,7 @@ static bool itemState(obs_scene_t *,obs_sceneitem_t *item,void *data) {
         @"cropLeft":@(crop.left),@"cropRight":@(crop.right),@"cropTop":@(crop.top),@"cropBottom":@(crop.bottom),
         @"sourceUUID":S(obs_source_get_uuid(source)),@"sourceActive":@(obs_source_active(source)),
         @"signalAge":@(lastSignal ? double(os_gettime_ns()-lastSignal)/1e9 : -1.0),
-        @"volume":@(obs_source_get_volume(source)),@"muted":@(obs_source_muted(source)),@"audio":@((obs_source_get_output_flags(source)&OBS_SOURCE_AUDIO)!=0),
+        @"volume":@(effectiveSourceVolume(source)),@"muted":@(obs_source_muted(source)),@"audio":@((obs_source_get_output_flags(source)&OBS_SOURCE_AUDIO)!=0),
         @"level":@(meter ? meter->level.load() : -96.f),@"syncMS":@(obs_source_get_sync_offset(source)/1000000),
         @"tracks":@(obs_source_get_audio_mixers(source)),@"monitoring":@(obs_source_get_monitoring_type(source)),@"filters":filters,
         @"mediaState":@(obs_source_media_get_state(source)),@"mediaTime":@(obs_source_media_get_time(source)),@"mediaDuration":@(obs_source_media_get_duration(source))}];
@@ -700,12 +763,12 @@ bool dante_engine_command(dante_engine_t *e,const char *operation,const char *js
         }
         else if([op isEqual:@"source.rename"]) {if(!uniqueName(a[@"newName"]))result=fail(e,"Escolha um nome exclusivo.");else obs_source_set_name(source,[a[@"newName"] UTF8String]);}
         else if([op isEqual:@"audio.set"]) {
-            if(a[@"volume"])obs_source_set_volume(source,std::clamp([a[@"volume"] floatValue],0.f,20.f));
+            if(a[@"volume"] && !setProtectedSourceVolume(e,source,[a[@"volume"] floatValue]))result=false;
             if(a[@"muted"])obs_source_set_muted(source,[a[@"muted"] boolValue]);
             if(a[@"syncMS"])obs_source_set_sync_offset(source,[a[@"syncMS"] longLongValue]*1000000);
             if(a[@"tracks"]) {
                 uint32_t tracks=[a[@"tracks"] unsignedIntValue]&63;
-                if(strcmp(obs_source_get_unversioned_id(source),"dante_guest_audio")==0){auto *data=obs_source_get_settings(source);int slot=(int)obs_data_get_int(data,"return_slot");obs_data_release(data);if(slot>=0&&slot<2)tracks&=~(1<<(4+slot));}
+                if(strcmp(obs_source_get_unversioned_id(source),"dante_guest_audio")==0){auto *data=obs_source_get_settings(source);int slot=(int)obs_data_get_int(data,"return_slot");obs_data_release(data);if(slot>=0&&slot<3)tracks&=~(1<<(slot==2?3:4+slot));}
                 obs_source_set_audio_mixers(source,tracks);
             }
             if(a[@"monitoring"])obs_source_set_monitoring_type(source,(obs_monitoring_type)std::clamp([a[@"monitoring"] intValue],0,2));

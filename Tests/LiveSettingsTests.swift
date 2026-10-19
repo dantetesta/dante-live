@@ -2,6 +2,9 @@ import Foundation
 
 @MainActor func runLiveSettingsTests(model: StudioModel, directory: URL) async throws {
     func verify(_ condition: @autoclosure () throws -> Bool) throws { let result = try condition(); precondition(result) }
+    try verify(AudioBoostScale.position(for: 1) == AudioBoostScale.normalPosition)
+    try verify(abs(AudioBoostScale.volume(for: AudioBoostScale.position(for: 2.5)) - 2.5) < 0.0001)
+    try verify(AudioBoostScale.volume(for: 1) == AudioBoostScale.maximumVolume)
     let savedEngine = copied(dante_engine_save(model.engine))
     model.catalog = jsonObject(copied(dante_engine_catalog(model.engine)))
     model.outputConfiguration.encoder = model.catalog.string("defaultEncoder")
@@ -120,6 +123,26 @@ import Foundation
     let peaks = meter["peak"] as! [Double], rms = meter["rms"] as! [Double], hold = meter["hold"] as! [Double]
     try verify(peaks.count == 2 && peaks[0] > -20 && peaks[0]-peaks[1] > 10 && peaks[0]-peaks[1] < 14)
     try verify(rms[0] < peaks[0] && hold[0] >= peaks[0]-0.1)
+    try verify(model.command("audio.set",["name":"Signal fixture","volume":2.5]))
+    model.refresh()
+    let boosted=model.items.first { $0.string("name") == "Signal fixture" }!
+    try verify(abs(boosted.number("volume")-2.5)<0.02)
+    try verify(boosted.array("filters").contains { $0.string("type")=="gain_filter" && $0.string("name")=="Dante • Reforço de volume" })
+    try verify(boosted.array("filters").contains { $0.string("type")=="limiter_filter" && $0.string("name")=="Dante • Proteção de pico" })
+    let boostFilters=boosted.array("filters")
+    try verify(boostFilters.firstIndex(where:{ $0.string("type")=="gain_filter" })! < boostFilters.firstIndex(where:{ $0.string("type")=="limiter_filter" })!)
+    var boostedPeak = -96.0
+    for _ in 0..<15 {
+        try await Task.sleep(for: .milliseconds(100))
+        let boostedMeter = jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")
+        boostedPeak = (boostedMeter["peak"] as? [Double])?.first ?? -96
+        if boostedPeak > peaks[0] + 5 { break }
+    }
+    try verify(boostedPeak > peaks[0] + 5 && boostedPeak <= 0)
+    try verify(model.command("audio.set",["name":"Signal fixture","volume":1]))
+    model.refresh()
+    let normal=model.items.first { $0.string("name") == "Signal fixture" }!
+    try verify(abs(normal.number("volume")-1)<0.001 && !normal.array("filters").contains { $0.string("name")=="Dante • Reforço de volume" || $0.string("name")=="Dante • Proteção de pico" })
     try verify(model.command("audio.set",["name":"Signal fixture","muted":true]))
     try verify((jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")["peak"] as! [Double]).allSatisfy { $0 == -96 })
     try verify(model.command("audio.set",["name":"Signal fixture","muted":false]))
@@ -127,11 +150,23 @@ import Foundation
     try await Task.sleep(for: .milliseconds(1300)); model.refresh()
     try verify(model.items.first { $0.string("name") == "Signal fixture" }!.number("signalAge") > 0.5)
     try verify((jsonObject(copied(dante_engine_audio_levels(model.engine))).object("Signal fixture")["peak"] as! [Double]).allSatisfy { $0 == -96 })
+    try verify(model.command("audio.set",["name":"Signal fixture","volume":2.5]))
+    let boostedEngine=copied(dante_engine_save(model.engine))
+    guard dante_engine_load(model.engine,boostedEngine) else { throw StudioError.message("Boost QA: projeto não reabriu.") }
+    model.refresh()
+    guard let restoredBoost=model.items.first(where:{ $0.string("name") == "Signal fixture" }) else { throw StudioError.message("Boost QA: fonte não voltou.") }
+    guard abs(restoredBoost.number("volume")-2.5)<0.02 else { throw StudioError.message("Boost QA: volume não persistiu.") }
+    guard restoredBoost.array("filters").contains(where:{ $0.string("type")=="limiter_filter" }) else { throw StudioError.message("Boost QA: limitador não persistiu.") }
+    let restoredFilters=restoredBoost.array("filters")
+    guard let gainIndex=restoredFilters.firstIndex(where:{ $0.string("type")=="gain_filter" }),let limiterIndex=restoredFilters.firstIndex(where:{ $0.string("type")=="limiter_filter" }),gainIndex<limiterIndex else { throw StudioError.message("Boost QA: ordem dos filtros incorreta.") }
     try verify(dante_engine_load(model.engine, savedEngine)); model.refresh()
     print("PASS: real libobs synthetic PCM updates signal timestamp; stopped media ages out without stale-level false recovery")
     print("PASS: stereo peak/RMS/hold from real PCM, independent channel levels, mute and stopped-source meters clear")
 
     var watch = MicrophoneSilenceWatch()
+    let unpluggedLapel: [String: Any] = ["sourceUUID": "lapel", "name": "Lapela", "sourceActive": false]
+    try verify(microphoneOnAir(unpluggedLapel, programAudioIDs: ["lapel"]))
+    try verify(!microphoneOnAir(unpluggedLapel, programAudioIDs: []))
     func mic(_ age: Double?, enabled: Bool = true) -> [MicrophoneSample] { [MicrophoneSample(id: "mic", name: "Microfone", enabled: enabled, signalAge: age)] }
     try verify(watch.update(mic(nil), live: true, now: 0).isEmpty)
     try verify(watch.update(mic(nil), live: true, now: 29.9).isEmpty)

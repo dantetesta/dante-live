@@ -21,6 +21,10 @@ Versão experimental **0.1.23**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.24
+
+O nome do convidado agora é uma camada de cena independente, com seis estilos e atualização durante a chamada sem reconexão. A versão também inclui visualizador de áudio com dez estilos, perfis de produção, MCP local opcional para edição de cenas, reforço de volume e suporte local a três convidados. Os testes e limites de cada recurso estão em [Estado do projeto](docs/STATUS.md). Em uma VPS própria já instalada, a página do convidado precisa ser atualizada para mostrar o botão de mudança de nome.
+
 ## Convidados por VPS e preparação RTMP — 0.1.23
 
 - **Participantes → Servidor TURN** conecta uma VPS própria por IPv4 HTTPS. O token fica no Acesso às Chaves; o app aceita importar um perfil privado e testar o serviço. Convites, sinalização e credenciais TURN temporárias passam pela VPS; o vídeo e o áudio usam WebRTC direto ou relay TURN conforme a rede.

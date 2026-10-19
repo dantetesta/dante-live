@@ -24,7 +24,8 @@ import Sparkle
     }
     @objc func checkForUpdates(_ sender: Any?) {
         guard enabled else { show("Atualizações desativadas nesta cópia de validação."); return }
-        guard model?.liveOperationInProgress == false else { show("Finalize a transmissão ou a preparação da live antes de atualizar. Sua live continuará funcionando."); return }
+        model?.refresh()
+        guard model?.updateCheckBlocked == false else { show("Finalize a transmissão ou a preparação da live antes de verificar atualizações. Sua live continuará funcionando."); return }
         if gate.pending {
             let alert = NSAlert(); alert.messageText = "Instalar a atualização baixada?"
             alert.informativeText = "O Dante salvará o projeto, encerrará e abrirá novamente na versão atualizada."
@@ -37,8 +38,9 @@ import Sparkle
     }
     private func show(_ text: String) { let alert = NSAlert(); alert.messageText = "Atualizações do Dante Live"; alert.informativeText = text; alert.runModal() }
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
-        guard enabled, model?.liveOperationInProgress == false else {
-            throw NSError(domain: "DanteLive.Update", code: 1, userInfo: [NSLocalizedDescriptionKey: "Atualização adiada enquanto há uma live ativa ou sendo preparada."])
+        model?.refresh()
+        guard enabled, model?.updateCheckBlocked == false else {
+            throw NSError(domain: "DanteLive.Update", code: 1, userInfo: [NSLocalizedDescriptionKey: "Verificação adiada enquanto há uma live ativa ou sendo preparada."])
         }
     }
     func updater(_ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem, untilInvokingBlock installHandler: @escaping () -> Void) -> Bool {

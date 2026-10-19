@@ -32,6 +32,22 @@ func chatColor(_ hex: UInt32) -> NSColor {
     NSColor(srgbRed: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: 1)
 }
 
+@MainActor enum ChatFontCatalog {
+    static func availableFamilies() -> [String] {
+        Array(Set(NSFontManager.shared.availableFontFamilies)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    static func isInstalled(_ name: String) -> Bool {
+        NSFontManager.shared.availableFontFamilies.contains(name) || NSFont(name: name, size: 12) != nil
+    }
+
+    static func font(named name: String, size: CGFloat) -> NSFont {
+        NSFontManager.shared.font(withFamily: name, traits: [], weight: 5, size: size)
+            ?? NSFont(name: name, size: size)
+            ?? .systemFont(ofSize: size)
+    }
+}
+
 struct ChatLayout {
     let width: Int, height: Int
     let bodySize: CGFloat, nameSize: CGFloat, gap: CGFloat
@@ -75,7 +91,7 @@ struct ChatLayout {
             let paragraph = NSMutableParagraphStyle()
             paragraph.lineBreakMode = single ? .byTruncatingTail : .byWordWrapping
             paragraph.lineSpacing = 2
-            let font = NSFont(name: face, size: size) ?? .systemFont(ofSize: size)
+            let font = ChatFontCatalog.font(named: face, size: size)
             return [.font: bold ? NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask) : font, .foregroundColor: color, .paragraphStyle: paragraph]
         }
         func measure(_ value: String, width: CGFloat, size: CGFloat) -> CGFloat {

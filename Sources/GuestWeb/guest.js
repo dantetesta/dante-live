@@ -112,6 +112,7 @@ async function shareScreen(){
 }
 function closeConnection(){
  const previous=peer;peer=null;
+ $('nameActions').hidden=true;
  if(heartbeat)clearInterval(heartbeat);heartbeat=null;
  if(connectionDeadline)clearTimeout(connectionDeadline);connectionDeadline=null;
  if(reconnectTimer)clearTimeout(reconnectTimer);reconnectTimer=null;
@@ -147,7 +148,7 @@ async function join(){
   preferH264(screenTransceiver);screenSender=screenTransceiver.sender;
   pc.ontrack=event=>{if(pc!==peer)return;if(event.track.kind==='video'){$('programVideo').srcObject=new MediaStream([event.track]);$('programReturn').hidden=false;$('programVideo').play().catch(()=>{});}if(event.track.kind==='audio'){$('returnAudio').srcObject=new MediaStream([event.track]);$('returnAudio').play().catch(()=>{$('listen').hidden=false;});}};
   pc.onconnectionstatechange=()=>{if(pc!==peer)return;const state=pc.connectionState;
-   if(state==='connected'){clearTimeout(connectionDeadline);connectionDeadline=null;if(reconnectTimer)clearTimeout(reconnectTimer);reconnectTimer=null;reconnectAttempts=0;status('Conectado. Aguarde o apresentador inserir você na cena.');$('join').hidden=true;}
+   if(state==='connected'){clearTimeout(connectionDeadline);connectionDeadline=null;if(reconnectTimer)clearTimeout(reconnectTimer);reconnectTimer=null;reconnectAttempts=0;status('Conectado. Aguarde o apresentador inserir você na cena.');$('join').hidden=true;$('nameActions').hidden=false;}
    if(state==='disconnected')scheduleReconnect('A conexão oscilou.',5000);
    if(state==='failed')scheduleReconnect('A conexão de áudio e vídeo caiu.');
   };
@@ -200,6 +201,15 @@ async function leave(){
  updateControls();api('/leave').catch(()=>{});status('Você saiu. Câmera e microfone foram desligados.');
 }
 $('devices').onclick=prepare;$('camera').onchange=prepare;$('microphone').onchange=prepare;$('screen').onclick=shareScreen;$('join').onclick=join;$('leave').onclick=leave;
+$('saveName').onclick=async()=>{
+ const name=$('name').value.trim();
+ if(!peer||peer.connectionState!=='connected'){$('nameStatus').textContent='Conecte-se ao estúdio para alterar o nome.';return;}
+ if(!name||name.length>60){$('nameStatus').textContent='Informe um nome com até 60 caracteres.';return;}
+ $('saveName').disabled=true;$('nameStatus').textContent='Atualizando nome…';
+ try{const result=await api('/status',{name});$('name').value=result.name;$('nameStatus').textContent='Nome atualizado na cena. Sua câmera e seu áudio continuam conectados.';}
+ catch(error){$('nameStatus').textContent=error.message||'Não foi possível atualizar o nome.';}
+ finally{$('saveName').disabled=false;}
+};
 $('toggleCamera').onclick=()=>{const track=media?.getVideoTracks()[0];if(track){track.enabled=!track.enabled;$('toggleCamera').textContent=track.enabled?'Desligar câmera':'Ligar câmera';updateControls();}};
 $('toggleMic').onclick=()=>{const track=media?.getAudioTracks()[0];if(track){track.enabled=!track.enabled;$('toggleMic').textContent=track.enabled?'Silenciar microfone':'Ligar microfone';updateControls();}};
 $('listen').onclick=()=>{$('returnAudio').play().then(()=>{$('listen').hidden=true;}).catch(failure);};

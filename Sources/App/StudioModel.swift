@@ -4,6 +4,24 @@ import AVFoundation
 import CoreGraphics
 import ScreenCaptureKit
 
+/// A reconnecting or stopping output still belongs to the current live. Only
+/// a fully idle output ends the guest room and invalidates its invitations.
+struct GuestRoomStreamLifecycle {
+    private var awaitingEnd = false
+
+    mutating func stopRequested() { awaitingEnd = true }
+
+    mutating func ended(_ output: [String: Any]) -> Bool {
+        if output.flag("started") { awaitingEnd = true }
+        guard awaitingEnd,
+              !output.flag("busy"), !output.flag("active"),
+              !output.flag("starting"), !output.flag("stopping"),
+              !output.flag("reconnecting"), !output.flag("started") else { return false }
+        awaitingEnd = false
+        return true
+    }
+}
+
 @MainActor
 final class StudioModel: ObservableObject {
     @Published var state: [String: Any] = [:]
@@ -17,6 +35,9 @@ final class StudioModel: ObservableObject {
     @Published var notice = "Pronto para criar"
     @Published var studioMode = false
     @Published var showingAdd = false
+    @Published var showingProfiles = false
+    @Published private(set) var profiles: [ProductionProfile] = []
+    @Published private(set) var selectedProfileID = "default"
     @Published var showingChat = false
     let chatRenderer = ChatOverlayRenderer()
     @Published var showingGuests = false
@@ -42,17 +63,23 @@ final class StudioModel: ObservableObject {
     @Published var preparingLive = false
     @Published var updateInstalling = false
     @Published var pendingUpdateMessage: String?
-    var liveOperationInProgress: Bool { guests.inUse || active || preparingLive || countdown.remaining != nil || pendingLive != nil || showingLiveLibrary || continueAfterLiveLibrary || youtube.busy }
+    // An open guest room must postpone installation, but it does not prevent
+    // checking whether an update exists after the stream has ended.
+    var updateCheckBlocked: Bool { active || preparingLive || countdown.remaining != nil || pendingLive != nil || showingLiveLibrary || continueAfterLiveLibrary || youtube.busy }
+    var liveOperationInProgress: Bool { guests.inUse || updateCheckBlocked }
     private var launchTask: Task<Void, Never>?
     var engine: OpaquePointer?
     private var timer: Timer?
     private var saveTask: Task<Void, Never>?
     private var store: ProjectStore?
+    private var profileIndex: ProductionProfiles?
+    private var blankProjectJSON = ""
     private var undoStack: [String] = []
     private var redoStack: [String] = []
     private var starting = false
     private var reportedOutputFailures: [String: Int] = [:]
     private var outputStartedAt: [String: Date] = [:]
+    private var guestRoomStreamLifecycle = GuestRoomStreamLifecycle()
     var preserveFailedProject = false
     let projectDirectory: URL?
     init(projectDirectory: URL? = nil) { self.projectDirectory = projectDirectory }
@@ -85,6 +112,8 @@ final class StudioModel: ObservableObject {
     }
     var canvasWidth: Double { state.number("width", 1280) }
     var canvasHeight: Double { state.number("height", 720) }
+    var selectedProfileName: String { profiles.first(where: { $0.id == selectedProfileID })?.name ?? "Meu estúdio" }
+    var canSwitchProfile: Bool { engine != nil && !liveOperationInProgress && !updateInstalling && !preserveFailedProject }
 
     func start() {
         guard engine == nil, !starting else { return }
@@ -94,12 +123,31 @@ final class StudioModel: ObservableObject {
             engine = dante_engine_create_with_config(Bundle.main.bundlePath, 1920, 1080, 30, projectDirectory.appendingPathComponent("engine").path)
         } else { engine = dante_engine_create(Bundle.main.bundlePath, 1920, 1080, 30) }
         guard let engine else { error = copied(dante_engine_last_error(nil)); return }
+        blankProjectJSON = copied(dante_engine_save(engine))
         catalog = jsonObject(copied(dante_engine_catalog(engine)))
         if !catalog.array("encoders").contains(where: { $0.string("id") == outputConfiguration.encoder }) {
             outputConfiguration.encoder = catalog.string("defaultEncoder")
         }
+        restoreProfile()
+        refresh()
+        if scenes.isEmpty { _ = command("scene.create", ["name": "Cena principal"], undo: false) }
+        _ = liveSettings
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refresh() }
+        }
+    }
+
+    func restoreProfile() {
+        guard let engine else { return }
+        if blankProjectJSON.isEmpty { blankProjectJSON = copied(dante_engine_save(engine)) }
         do {
-            store = try ProjectStore(directory: projectDirectory)
+            let base = projectDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Dante Live", isDirectory: true)
+            let index = try ProductionProfiles(directory: base)
+            guard let directory = index.directory(for: index.selectedID) else { throw StudioError.message("Perfil ativo não encontrado.") }
+            profileIndex = index
+            profiles = index.profiles
+            selectedProfileID = index.selectedID
+            store = try ProjectStore(directory: directory)
             if let saved = try store?.load() {
                 try validateNoInlineSecrets(jsonObject(saved.json))
                 if dante_engine_load(engine, saved.json) {
@@ -111,14 +159,10 @@ final class StudioModel: ObservableObject {
                     try store?.preserveRejectedCurrent()
                     notice = "Projeto recuperado; arquivo inválido preservado"
                 } else { throw StudioError.message(copied(dante_engine_last_error(engine))) }
+            } else if index.selectedID != "default" {
+                throw StudioError.message("O projeto deste perfil está ausente. Os demais perfis foram preservados.")
             }
         } catch { preserveFailedProject = true; self.error = error.localizedDescription }
-        refresh()
-        if scenes.isEmpty { _ = command("scene.create", ["name": "Cena principal"], undo: false) }
-        _ = liveSettings
-        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refresh() }
-        }
     }
 
     func refresh() {
@@ -127,6 +171,7 @@ final class StudioModel: ObservableObject {
             scene.array("items").filter { $0.flag("pendingPlacement") }.map { scene.string("name") + ":" + String($0.sceneItemID) }
         })
         state = jsonObject(copied(dante_engine_state(engine)))
+        let closeGuestRoom = guestRoomStreamLifecycle.ended(state.object("outputs").object("stream"))
         if !pending.isEmpty {
             let resolved = scenes.contains { scene in scene.array("items").contains { item in
                 !item.flag("pendingPlacement") && pending.contains(scene.string("name") + ":" + String(item.sceneItemID))
@@ -145,9 +190,16 @@ final class StudioModel: ObservableObject {
                 error = "\(label) interrompida (código \(code)). " + (message.isEmpty ? "Verifique disco, encoder e conexão nas configurações de saída." : message)
             } else if code == 0 { reportedOutputFailures[key] = nil }
         }
+        let programScene = state.string("programScene")
+        let programAudio = scenes.first(where: { $0.string("name") == programScene })?.array("items").filter { $0.flag("visible") && $0.flag("audio") } ?? []
+        let programAudioIDs = Set(programAudio.map { $0.string("sourceUUID", $0.string("name")) })
         let uniqueAudio = Dictionary(scenes.flatMap { $0.array("items") }.filter { $0.flag("audio") }.map { ($0.string("sourceUUID", $0.string("name")), $0) }, uniquingKeysWith: { first, _ in first })
         let samples = uniqueAudio.map { id, source in
-            MicrophoneSample(id: id, name: source.string("name"), enabled: liveSettings.document.microphoneAlerts && watchesMicrophone(source) && source.flag("sourceActive") && !source.flag("muted") && source.number("volume", 1) > 0 && Int(source.number("tracks", 1)) & 1 != 0 && Int(source.number("monitoring")) != 1, signalAge: source.number("signalAge", -1) >= 0 ? source.number("signalAge") : nil)
+            // A disconnected input may report sourceActive=false. Keep watching
+            // it while its visible scene is on air, or silence will reset the
+            // timer precisely when the lapel microphone dies.
+            let onAir = microphoneOnAir(source, programAudioIDs: programAudioIDs)
+            return MicrophoneSample(id: id, name: source.string("name"), enabled: liveSettings.document.microphoneAlerts && watchesMicrophone(source) && onAir && !source.flag("muted") && source.number("volume", 1) > 0 && Int(source.number("tracks", 1)) & 1 != 0 && Int(source.number("monitoring")) != 1, signalAge: source.number("signalAge", -1) >= 0 ? source.number("signalAge") : nil)
         }
         let warnings = silenceWatch.update(samples, live: state.object("outputs").object("stream").flag("started"), now: ProcessInfo.processInfo.systemUptime)
         if warnings != microphoneWarnings { microphoneWarnings = warnings }
@@ -155,6 +207,10 @@ final class StudioModel: ObservableObject {
         if youtube.chat.sessionActive && !streaming && !streamOutput.flag("starting") && !streamOutput.flag("reconnecting") && !streamOutput.flag("busy") { youtube.chat.reset() }
         chatRenderer.update(studio: self)
         if let id = selectedItem, !items.contains(where: { $0.sceneItemID == id }) { selectedItem = nil }
+        if closeGuestRoom {
+            guests.stop()
+            notice = "Transmissão encerrada • convites revogados"
+        }
     }
     func watchesMicrophone(_ source: [String: Any]) -> Bool {
         liveSettings.document.audioWatchOverrides[source.string("sourceUUID", source.string("name"))] ?? source.string("type").contains("coreaudio_input")
@@ -231,7 +287,10 @@ final class StudioModel: ObservableObject {
         }
     }
     func endLive() {
+        let previousLifecycle = guestRoomStreamLifecycle
+        guestRoomStreamLifecycle.stopRequested()
         if command("stream.stop", undo: false) { youtube.endActive() }
+        else { guestRoomStreamLifecycle = previousLifecycle }
     }
     var streamStatus: String {
         let output = state.object("outputs").object("stream")
@@ -293,7 +352,7 @@ final class StudioModel: ObservableObject {
     }
     func prepareForApplicationUpdate() throws {
         refresh()
-        guard !liveOperationInProgress else { throw StudioError.message("Finalize a live antes de atualizar.") }
+        guard !liveOperationInProgress else { throw StudioError.message("Finalize a transmissão, a preparação da live ou a sala de convidados antes de atualizar.") }
         liveSettings.flush(); try youtube.prepareForApplicationUpdate()
         if let problem = liveSettings.problem { throw StudioError.message(problem) }
         guard let engine, let store, !preserveFailedProject else { throw StudioError.message("Recupere ou exporte o projeto antes de atualizar.") }
@@ -303,6 +362,75 @@ final class StudioModel: ObservableObject {
         guard let engine, !preserveFailedProject else { return }
         do { try store?.save(copied(dante_engine_save(engine))) }
         catch { self.error = "Falha ao salvar: \(error.localizedDescription)" }
+    }
+    private func requireProfileSwitch() throws -> OpaquePointer {
+        refresh()
+        guard canSwitchProfile, let engine else {
+            throw StudioError.message("Para trocar de perfil, encerre a live e a sala de convidados e conclua a preparação em andamento.")
+        }
+        guard let store else { throw StudioError.message("O projeto atual não está disponível para salvar.") }
+        saveTask?.cancel(); saveTask = nil
+        try store.save(copied(dante_engine_save(engine)))
+        return engine
+    }
+    private func finishProfileChange(_ index: ProductionProfiles, store: ProjectStore) {
+        profileIndex = index
+        self.store = store
+        profiles = index.profiles
+        selectedProfileID = index.selectedID
+        selectedItem = nil
+        framingItem = nil
+        undoStack.removeAll(); redoStack.removeAll(); updateHistory()
+        chatRenderer.invalidate()
+        inspectorRevision += 1
+        refresh()
+        notice = "Perfil carregado: \(index.selected.name)"
+    }
+    func createProfile(name: String) {
+        do {
+            let engine = try requireProfileSwitch()
+            guard var index = profileIndex else { throw StudioError.message("Catálogo de perfis indisponível.") }
+            let previous = copied(dante_engine_save(engine))
+            guard dante_engine_load(engine, blankProjectJSON) else { throw StudioError.message(copied(dante_engine_last_error(engine))) }
+            do {
+                let profile = try index.create(name: name, project: copied(dante_engine_save(engine)))
+                guard let directory = index.directory(for: profile.id) else { throw StudioError.message("Pasta do perfil indisponível.") }
+                finishProfileChange(index, store: try ProjectStore(directory: directory))
+            } catch {
+                _ = dante_engine_load(engine, previous)
+                refresh()
+                throw error
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+    func selectProfile(_ id: String) {
+        guard id != selectedProfileID else { return }
+        do {
+            let engine = try requireProfileSwitch()
+            guard var index = profileIndex, let directory = index.directory(for: id) else { throw StudioError.message("Perfil não encontrado.") }
+            let targetStore = try ProjectStore(directory: directory)
+            guard let saved = try targetStore.load() else { throw StudioError.message("Este perfil não contém um projeto salvo.") }
+            try validateNoInlineSecrets(jsonObject(saved.json))
+            let previous = copied(dante_engine_save(engine))
+            guard dante_engine_load(engine, saved.json) else { throw StudioError.message(copied(dante_engine_last_error(engine))) }
+            do {
+                if saved.recovered { try targetStore.preserveRejectedCurrent() }
+                try index.select(id)
+                finishProfileChange(index, store: targetStore)
+            } catch {
+                _ = dante_engine_load(engine, previous)
+                refresh()
+                throw error
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+    func renameProfile(_ id: String, to name: String) {
+        do {
+            guard var index = profileIndex else { throw StudioError.message("Catálogo de perfis indisponível.") }
+            try index.rename(id, to: name)
+            profileIndex = index
+            profiles = index.profiles
+        } catch { self.error = error.localizedDescription }
     }
     func properties(name: String? = nil, type: String? = nil) -> [String: Any] {
         guard let engine else { return [:] }

@@ -59,10 +59,16 @@ for ARCH in $ARCHS; do
     -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
     -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
     -o "$BUILD/objects/DanteLive-$ARCH"
+  xcrun swiftc Sources/App/AgentWire.swift Sources/MCP/main.swift \
+    -O -target "$ARCH-apple-macos14.0" -sdk "$SDK" \
+    -o "$BUILD/objects/DanteLiveMCP-$ARCH"
 done
 BINARIES=()
 for ARCH in $ARCHS; do BINARIES+=("$BUILD/objects/DanteLive-$ARCH"); done
 xcrun lipo -create "${BINARIES[@]}" -output "$APP/Contents/MacOS/DanteLive"
+MCP_BINARIES=()
+for ARCH in $ARCHS; do MCP_BINARIES+=("$BUILD/objects/DanteLiveMCP-$ARCH"); done
+xcrun lipo -create "${MCP_BINARIES[@]}" -output "$APP/Contents/MacOS/DanteLiveMCP"
 SERVICES=()
 for ARCH in $ARCHS; do SERVICES+=("$BUILD/objects/rtmp-services-$ARCH"); done
 xcrun lipo -create "${SERVICES[@]}" -output "$APP/Contents/PlugIns/rtmp-services.plugin/Contents/MacOS/rtmp-services"

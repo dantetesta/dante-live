@@ -66,6 +66,7 @@ struct StudioView: View {
         .studioPanel(isPresented: $model.showingAdd, title: "Adicionar à cena", onDismiss: {
             if !model.cameraSourceName.isEmpty { model.showingCamera = true }
         }) { AddSourceView(model: model) }
+        .studioPanel(isPresented: $model.showingProfiles, title: "Perfis de produção") { ProductionProfilesView(model: model) }
         .studioPanel(isPresented: $model.showingCamera, title: "Configurar câmera", onDismiss: {
             model.cameraSourceName = ""; model.inspectorRevision += 1
         }) { CameraSetupView(model: model, sourceName: model.cameraSourceName) }
@@ -90,6 +91,25 @@ struct StudioView: View {
         HStack(spacing: 14) {
             Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage()).resizable().interpolation(.high).scaledToFit().frame(width: 40, height: 40).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) { Text("DANTE LIVE").font(.headline.weight(.heavy)); Text("Estúdio de produção • \(appVersion)").font(.caption2).foregroundStyle(.secondary) }
+            Menu {
+                ForEach(model.profiles.sorted(by: { $0.lastOpened > $1.lastOpened })) { profile in
+                    Button {
+                        model.selectProfile(profile.id)
+                    } label: {
+                        if profile.id == model.selectedProfileID { Label(profile.name, systemImage: "checkmark") }
+                        else { Text(profile.name) }
+                    }
+                }
+                Divider()
+                Button("Novo perfil…", systemImage: "plus") { model.askName(title: "Novo perfil de produção") { model.createProfile(name: $0) } }
+                Button("Gerenciar perfis…", systemImage: "square.stack.3d.up") { model.showingProfiles = true }
+            } label: {
+                Label(model.selectedProfileName, systemImage: "square.stack.3d.up")
+                    .lineLimit(1)
+                    .frame(maxWidth: 190)
+            }
+            .disabled(!model.canSwitchProfile)
+            .help("Trocar o conjunto de cenas. O último perfil usado abre automaticamente.")
             Spacer()
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active || model.guests.inUse).help("Desfazer ⌘Z")

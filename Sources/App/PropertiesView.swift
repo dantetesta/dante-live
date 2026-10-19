@@ -159,7 +159,11 @@ struct InspectorView: View {
                             HStack { Button("Reproduzir") { _ = model.command("media.play", ["name": model.selectedName], undo: false) }; Button("Pausar") { _ = model.command("media.pause", ["name": model.selectedName], undo: false) }; Button { _ = model.command("media.restart", ["name": model.selectedName], undo: false) } label: { Image(systemName: "backward.end") } }.controlSize(.small)
                         }
                         Divider()
-                        if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
+                        if item.string("type") == "dante_guest_name" {
+                            GuestNameSettingsView(settings: $settings) { applyChange(immediate: $0) }
+                        } else if item.string("type") == "dante_audio_visualizer" {
+                            AudioVisualizerSettingsView(settings: $settings, scenes: model.scenes, onEdit: applyChange)
+                        } else if ["dante_youtube_chat", "dante_superchat"].contains(item.string("type")) {
                             ChatStylePicker(settings: $settings, lower: item.string("type") == "dante_superchat") { applyChange(immediate: true) }
                             Button("Abrir chat e fila de Super Chats") { model.showingChat = true }
                         } else if item.string("type") == "dante_youtube_alert" {

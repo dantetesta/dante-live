@@ -1,3 +1,45 @@
+## Versão 0.1.24 — nome dinâmico do convidado
+
+Ao inserir um convidado, o Dante cria uma camada própria para o nome. Ela começa junto à webcam, pode ser movida, redimensionada e ocultada sem alterar a câmera e tem seis estilos, fontes instaladas no Mac, tamanho e cores. O convidado conectado altera o nome na página do convite; uma chamada autenticada de controle atualiza a mesma fonte, sem recarregar a página ou renegociar o WebRTC. A camada acompanha a mudança de cena e é removida com o convite. Teste nativo confirmou pixels, seis estilos, troca de texto e persistência; três Chrome sintéticos no mesmo Mac confirmaram o mesmo peer e as mesmas trilhas após a troca. Não houve teste de convidado real em redes externas nem transmissão pública. VPS já instalada precisa receber os arquivos atualizados de `Sources/GuestWeb` para exibir o botão de alterar nome; o protocolo `/status` já é compatível.
+
+## Versão 0.1.24 — cena dos convidados
+
+A cena `05 · Cena dos convidados` usa o monitor 2 no centro, o microfone de lapela compartilhado e três espaços quadrados arredondados à direita. Cada convidado recebe câmera, microfone, nome dinâmico e uma tela separada que pode ser exibida pelo controle de visibilidade. As três telas são posicionadas na mesma área central. O motor agora reserva as trilhas internas 5, 6 e 4 para retornos individuais de até três convidados. Três navegadores sintéticos conectaram simultaneamente no mesmo Mac: seis fontes de vídeo, três medidores de microfone, retorno de programa para todos e exclusão da própria voz em cada retorno passaram. Redes externas, dispositivos físicos e transmissão longa permanecem sem validação.
+
+## Versão 0.1.24 — alerta de silêncio após desconexão
+
+O monitor agora continua acompanhando um microfone habilitado no mixer quando a fonte ainda está visível na cena em programa, mesmo que o dispositivo desligado passe a informar `sourceActive=false`. Antes esse estado removia a fonte da observação e zerava o tempo de silêncio. O aviso continua restrito a uma live em andamento e aparece como banner na interface após 30 segundos sem sinal. Testes locais passaram com estado de desconexão simulado e limiar temporal; desligamento de lapela real ainda pendente.
+
+## Versão 0.1.24 — perfis de produção
+
+Cada perfil mantém seu próprio projeto de cenas e fontes. O projeto legado `studio.json` permanece no lugar como perfil inicial; novos perfis têm arquivos separados e o catálogo salva qual foi aberto por último. Há seleção rápida no topo do estúdio e uma janela para criar, carregar e renomear. A troca salva o projeto atual e é bloqueada durante live, preparação ou sala de convidados. Configurações de transmissão e contas continuam globais. Testes de persistência e troca no motor passaram no build Universal 2 da versão.
+
+## Versão 0.1.24 — MCP para cenas
+
+Uma ponte MCP nativa por stdio, compatível com a revisão 2025-11-25, expõe ferramentas de leitura do canvas/cenas/fontes e edições restritas de cenas e elementos visuais. O app usa um socket Unix privado 0600 dentro de uma pasta 0700 do usuário; a opção fica desligada por padrão nas Preferências. As chamadas do motor são serializadas na thread principal. Transmissão, convidados, configurações sensíveis e comandos arbitrários não são expostos; edições são recusadas enquanto há saída ou preparação ativa. [Uso e limites](AGENT-MCP.md). Suíte local e teste de protocolo passaram; ponte incluída no build Universal 2 desta versão.
+
+## Próxima versão — ajuste solicitado na preparação da live
+
+- Reorganizar o seletor de modo de transmissão em **Preparar live**. Na interface atual, o rótulo “Modo de transmissão” e as opções “RTMP / RTMPS” e “Conta YouTube” ficam apertados lado a lado. Dar espaço e hierarquia visual claros, inclusive em janelas menores, sem alterar o comportamento dos dois fluxos. Validar visualmente em modo claro e escuro antes da distribuição.
+
+## Versão 0.1.24 — estado do servidor de convidados
+
+Após salvar ou importar a configuração, a guia Servidor TURN mostra um resumo sem campos de credenciais, com estado verde apenas depois que `/api/health` e `/api/turn` respondem corretamente. Testa ao abrir a guia, após salvar/importar e a cada 30 segundos enquanto ela está aberta. Falha, ponte reconectando e verificação antiga têm estados distintos; há botões para testar novamente e editar IP, porta ou token. Editar sem preencher outro token conserva o item no Acesso às Chaves. O teste de API não comprova mídia WebRTC entre redes reais. A suíte local `test-app.sh` e o typecheck x86_64/macOS 14 passaram; validação visual e em redes externas permanece pendente.
+
+## Versão 0.1.24 — reforço de volume
+
+O controle de volume do participante marca 100% como nível normal e reserva o trecho final do slider para reforço até 300%. O mixer alcança o mesmo teto em dB. Acima de 100%, o motor usa um filtro de ganho seguido por um limitador de pico antes do fader da fonte, mantendo a leitura unificada do volume e a configuração no projeto. Isso pode tornar fontes fracas audíveis; não corrige microfone ruim nem garante que a soma de todas as fontes ou o serviço de destino não distorça. Teste com fonte PCM sintética cobriu aumento medido no medidor, ordem ganho → limitador, ativação/remoção dos filtros e persistência após reabrir o projeto; transmissão real e escuta subjetiva ainda pendentes.
+
+## Versão 0.1.24 — verificação de atualizações após a live
+
+Convites que permaneceram abertos no app instalado após a transmissão podiam bloquear até a consulta por atualizações e gerar um aviso incorreto de live ativa. A consulta agora considera somente transmissão/preparação em andamento; uma sala de convidados aberta por outros motivos continua adiando a instalação e o reinício até ser encerrada. Regressão de estado com convite aberto e saída inativa passou em `test-app.sh`. A atualização instalada pelo Sparkle e a interface real ainda não foram exercitadas nesta alteração.
+
+## Versão 0.1.24 — encerramento da sala e fontes instaladas
+
+Ao confirmar o fim da transmissão, o Dante espera a saída ficar totalmente inativa e então fecha a sala: desconecta os peers, invalida os convites locais, desliga a ponte e remove as fontes temporárias dos convidados. O mesmo vale para um encerramento inesperado depois de a saída ter iniciado; a fase de reconexão ou parada ainda ocupada não fecha a sala antecipadamente. Testes sintéticos cobrem reconexão, parada e revogação dos convites; redes externas e uma live real ainda não foram exercitadas nessa mudança.
+
+O seletor de fonte do chat e do destaque agora lista as famílias instaladas no Mac com busca, incluindo fontes adicionadas pelo usuário. A fonte escolhida permanece nas propriedades da fonte de cena. Caso o projeto seja aberto em outro Mac sem essa fonte, o desenho usa a fonte do sistema e a interface avisa. Catálogo, resolução e fallback passaram em testes; inspeção visual do controle fechado em tema escuro passou no harness local, e a janela de busca aberta ainda precisa de verificação visual.
+
 ## Versão 0.1.23 — publicada e notarizada
 
 VPS própria de convidados por IPv4 HTTPS, gateway autenticado, Coturn com credenciais temporárias, guia Servidor TURN, importação de perfil protegido, preparação RTMP sem API e clareza dos limites de captura por aplicativo. Dois Chrome sintéticos no mesmo Mac conectaram pela VPS com relay TURN selecionado, mídia, mix-minus, reconexão e revogação. Renovação Certbot/webroot passou em dry-run. Aplicativo e DMG receberam `Apple Accepted`, ticket anexado e aprovação do Gatekeeper. O DMG Universal 2 passou em suíte local, leitura de volta com 1.147 entradas idênticas ao app e varredura de arquivos internos. Upload do DMG e fontes teve SHA-256 remoto igual ao local; download público e prompt retornaram HTTP 200. [Release](https://github.com/dantetesta/dante-live/releases/tag/v0.1.23) · [Prompt de instalação](../server/PROMPT-INSTALACAO.md).
@@ -227,3 +269,6 @@ O botão de preparação foi simplificado para **Salvar**. Após `saveDraftForLa
 ## VPS de convidados por IPv4 — validação em curso
 
 O servidor dedicado Ubuntu 24.04 foi configurado com HTTPS por IP, Coturn, renovação automática, firewall e gateway Python de convites. O app agora tem guia Servidor TURN, guarda token no Acesso às Chaves, aceita importação de perfil e prepara convites no endereço da VPS. Compilação universal e suíte local passaram. Dois navegadores Chrome sintéticos neste Mac atravessaram o HTTPS da VPS e completaram mídia WebRTC, retorno sem a própria voz, reconexão e revogação; um segundo teste forçou e confirmou candidato TURN relay para ambos. A simulação de renovação do certificado com Certbot/webroot passou; a primeira renovação real ainda não ocorreu. Convidados reais em redes externas distintas e duração prolongada continuam pendentes. Não há garantia de zero quedas ou de capacidade para mais de dois convidados. O executável frpc detectado/removido pelo macOS foi retirado do projeto e do VPS; o gateway usa código Python/Swift próprio.
+## Versão 0.1.24 — visualizador de áudio na cena
+
+Fonte de vídeo nativa e transparente vinculada por UUID a uma fonte de áudio do projeto. O PCM capturado por callback alimenta onda e análise FFT de 48 bandas, com dez desenhos, duas cores e sensibilidade. O componente não injeta nem modifica som; redimensionar pelas alças recalcula o desenho na resolução escolhida. Fontes silenciosas ficam em repouso. O vínculo e o estilo são salvos no projeto. Teste nativo com WAV sintético confirmou pixels reativos nos dez estilos, mute/repouso, redimensionamento e restauração. Build Universal 2 com Developer ID passou. Não há validação em live real.

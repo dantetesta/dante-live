@@ -64,8 +64,9 @@ private struct AudioChannelStrip: View {
             }
             Text(model.guests.displayName(for: name)).font(.callout.weight(.semibold)).lineLimit(2).frame(height: 32).frame(maxWidth: .infinity, alignment: .leading).help(name)
             Text(channel.number("volume",1) <= 0 ? "−∞ dB" : String(format:"%.1f dB",gain)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            if channel.number("volume",1)>1.01 { Text("Reforço com proteção de pico").font(.system(size:9)).foregroundStyle(.orange).lineLimit(1) }
             HStack(spacing: 10) {
-                VerticalGainSlider(value: Binding(get: { max(-60,min(6,gain)) }, set: { value in
+                VerticalGainSlider(value: Binding(get: { max(-60,min(AudioBoostScale.maximumDecibels,gain)) }, set: { value in
                     _ = model.command("audio.set", ["name": name, "volume": value <= -60 ? 0 : pow(10,value/20)], undo: false)
                 }), name: name).frame(width: 26)
                 AudioLevelBars(levels: meters.levels.object(name), muted: muted).frame(width: 77)
@@ -119,7 +120,7 @@ private struct VerticalGainSlider: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSSlider {
         let slider = NSSlider(frame: NSRect(x:0,y:0,width:26,height:180))
-        slider.minValue = -60; slider.maxValue = 6; slider.isContinuous = true
+        slider.minValue = -60; slider.maxValue = AudioBoostScale.maximumDecibels; slider.isContinuous = true
         slider.target = context.coordinator; slider.action = #selector(Coordinator.changed(_:))
         slider.setAccessibilityLabel("Volume de \(name)"); return slider
     }

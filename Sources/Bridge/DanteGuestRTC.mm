@@ -31,6 +31,9 @@ struct ReturnRing {
         std::fill(p+n,p+count,0);read.store(r+n,std::memory_order_release);}
 };
 static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->push((const int16_t*)data->data[0],data->frames*2);}
+// libobs has six mixes. Tracks 5/6 remain assigned to the first two guests;
+// track 4 provides a separate mix-minus return for the third guest.
+static int guestReturnMix(NSInteger slot){return slot==2 ? 3 : 4+(int)slot;}
 @interface DanteGuestAudioDevice:NSObject<LKRTCAudioDevice> {
     ReturnRing _ring;dispatch_queue_t _queue;dispatch_source_t _timer;
     id<LKRTCAudioDeviceDelegate> _delegate;
@@ -54,7 +57,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (BOOL)initializeWithDelegate:(id<LKRTCAudioDeviceDelegate>)delegate {
     if(_initialized)return YES;_delegate=delegate;
     audio_convert_info info={};info.format=AUDIO_FORMAT_16BIT;info.speakers=SPEAKERS_STEREO;info.samples_per_sec=48000;
-    _connected=audio_output_connect(obs_get_audio(),4+_slot,&info,returnAudio,&_ring);
+    _connected=audio_output_connect(obs_get_audio(),guestReturnMix(_slot),&info,returnAudio,&_ring);
     if(!_connected){_delegate=nil;return NO;}
     _initialized=true;_timer=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,_queue);
     __weak DanteGuestAudioDevice *weak=self;
@@ -83,7 +86,7 @@ static void returnAudio(void *raw,size_t,audio_data *data){((ReturnRing*)raw)->p
 - (NSDictionary*)diagnostics{return @{@"playing":@(_playing.load()),@"recording":@(_recording.load()),@"samplesReceived":@(_ring.written.load()),@"samplesRead":@(_ring.read.load()),@"returnPeak":@(_ring.peak.load()),@"echoReferencePeak":@(_referencePeak.load())};}
 - (void)disconnect {
     _playing=false;_recording=false;
-    if(_connected){audio_output_disconnect(obs_get_audio(),4+_slot,returnAudio,&_ring);_connected=false;}
+    if(_connected){audio_output_disconnect(obs_get_audio(),guestReturnMix(_slot),returnAudio,&_ring);_connected=false;}
     if(_timer){dispatch_source_cancel(_timer);_timer=nil;dispatch_sync(_queue,^{});}
     _delegate=nil;_initialized=false;
 }
@@ -186,7 +189,7 @@ static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgr
 @end
 @implementation DanteGuestPeer
 - (instancetype)initWithCamera:(NSString*)camera screen:(NSString*)screen microphone:(NSString*)microphone slot:(NSInteger)slot iceJSON:(NSString*)iceJSON {
-    if(!(self=[super init]))return nil;if(slot<0||slot>1){_closed=true;return nil;}
+    if(!(self=[super init]))return nil;if(slot<0||slot>2){_closed=true;return nil;}
     LKRTCInitializeSSL();_connectionStatus=@"Aguardando conexão";
     _localCandidates=[NSMutableArray array];_remoteCandidates=[NSMutableSet set];
     auto source=[](NSString *name,const char *type){auto *s=obs_get_source_by_name(name.UTF8String);if(s&&strcmp(obs_source_get_unversioned_id(s),type)){obs_source_release(s);return (obs_source_t*)nullptr;}return s?:obs_source_create(type,name.UTF8String,nullptr,nullptr);};
@@ -196,7 +199,7 @@ static void programFrame(void *raw,video_data *frame){[(__bridge DanteGuestProgr
     // video queue in OBS can make the canvas lag behind the conversation.
     obs_source_set_async_unbuffered(_camera,true);
     obs_source_set_async_unbuffered(_screen,true);
-    obs_source_set_audio_mixers(_microphone,63&~(1<<(4+slot)));
+    obs_source_set_audio_mixers(_microphone,63&~(1<<guestReturnMix(slot)));
     auto *guestSettings=obs_source_get_settings(_microphone);obs_data_set_int(guestSettings,"return_slot",slot);obs_source_update(_microphone,guestSettings);obs_data_release(guestSettings);
     _cameraSink=[[DanteGuestVideoSink alloc]initWithSource:_camera];_screenSink=[[DanteGuestVideoSink alloc]initWithSource:_screen];_audioSink=[[DanteGuestAudioSink alloc]initWithSource:_microphone];
     _device=[[DanteGuestAudioDevice alloc]initWithSlot:slot];

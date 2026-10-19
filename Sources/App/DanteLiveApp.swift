@@ -15,6 +15,7 @@ enum DanteLiveApplication {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model: StudioModel
+    lazy var agent = AgentSocket(model: model)
     var window: NSWindow?
     lazy var updates = AppUpdateCoordinator(model: model, enabled: model.projectDirectory == nil)
     private var projectorWindows: [NSWindow] = []
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center(); window.makeKeyAndOrderFront(nil); self.window = window
         NSApp.activate(ignoringOtherApps: true)
         model.start()
+        agent.applyPreference()
         updates.start()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -61,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         projectorWindows.removeAll()
         detachPreviews(window?.contentView)
         window?.contentView = nil
+        agent.stop()
         model.shutdown()
         return .terminateNow
     }
@@ -135,9 +138,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     @objc func openPreferences() {
         if let preferencesWindow { preferencesWindow.makeKeyAndOrderFront(nil); return }
-        let preferences = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 566, height: 370), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let preferences = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 566, height: 560), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         preferences.title = "Preferências do Dante Live"; preferences.isReleasedWhenClosed = false
-        preferences.contentView = NSHostingView(rootView: PreferencesView())
+        preferences.contentView = NSHostingView(rootView: PreferencesView(agent: agent))
         preferences.center(); preferences.makeKeyAndOrderFront(nil); preferencesWindow = preferences
     }
     @objc func openProjector() {

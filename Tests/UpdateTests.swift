@@ -38,16 +38,31 @@ import Sparkle
     precondition(comparator.compareVersion("9", toVersion: "10") == .orderedAscending)
     precondition(comparator.compareVersion("8", toVersion: "8") == .orderedSame)
     model.state["streaming"] = true
-    precondition(model.liveOperationInProgress)
+    precondition(model.liveOperationInProgress && model.updateCheckBlocked)
     // Refresh reads the real idle engine; use start/countdown flags for the actual guard.
     model.preparingLive = true
     precondition(model.liveOperationInProgress)
     do { try model.prepareForApplicationUpdate(); preconditionFailure("Should block preparing live") } catch { }
     model.preparingLive = false
     model.countdown.start(interval: .seconds(60)) { }
-    precondition(model.liveOperationInProgress); model.countdown.cancel()
-    // This engine-only fixture has no ProjectStore; fail closed instead of installing.
-    do { try model.prepareForApplicationUpdate(); preconditionFailure("Expected unavailable store rejection") } catch { }
+    precondition(model.liveOperationInProgress && model.updateCheckBlocked); model.countdown.cancel()
+    model.state["streaming"] = false
+    let openInvite = try model.guests.makeInvite()
+    precondition(model.guests.invites.contains(where: { $0.id == openInvite.id }))
+    precondition(model.liveOperationInProgress && !model.updateCheckBlocked,
+                 "An open guest invite must not block checking after the stream ends")
+    var guestLifecycle = GuestRoomStreamLifecycle()
+    precondition(!guestLifecycle.ended(["started": true, "busy": true]))
+    precondition(!guestLifecycle.ended(["started": false, "busy": true, "reconnecting": true]))
+    precondition(guestLifecycle.ended(["started": false, "busy": false]))
+    precondition(!guestLifecycle.ended(["started": false, "busy": false]))
+    model.endLive()
+    precondition(model.guests.invites.isEmpty, "Ending the stream must revoke invitations and close the guest room")
+    precondition(!model.liveOperationInProgress && !model.updateCheckBlocked)
+    // The profile fixture has a real project store; update preparation must
+    // flush the currently selected profile before installation.
+    try model.prepareForApplicationUpdate()
+    precondition(FileManager.default.fileExists(atPath: model.projectDirectory!.appendingPathComponent("studio.json").path))
     model.updateInstalling = true; model.beginLive()
     precondition(model.pendingLive == nil && !model.preparingLive)
     model.updateInstalling = false

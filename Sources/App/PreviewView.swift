@@ -164,6 +164,18 @@ struct CanvasView: View {
                 }
                 return
             }
+            if ["dante_audio_visualizer", "dante_guest_name"].contains(origin.string("type")) {
+                if let edit = box.resizeContent(handle: handle, translation: translation,
+                    sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), crop: cropFor(origin),
+                    position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment", 5)),
+                    minimum: origin.string("type") == "dante_guest_name" ? CGSize(width: 180, height: 55) : CGSize(width: 240, height: 80),
+                    maximum: origin.string("type") == "dante_guest_name" ? CGSize(width: 1600, height: 320) : CGSize(width: 1920, height: 1080)) {
+                    if model.command("source.update", ["name": origin.string("name"), "settings": ["layoutWidth": edit.size.width, "layoutHeight": edit.size.height]], undo: false) {
+                        _ = model.command("item.transform", ["scene": model.sceneName, "id": origin.sceneItemID, "x": edit.position.x, "y": edit.position.y], undo: false)
+                    }
+                }
+                return
+            }
             if ["dante_youtube_chat", "dante_superchat"].contains(origin.string("type")) {
                 let settings = model.properties(name: origin.string("name")).object("settings")
                 var minimumSettings = settings; minimumSettings["layoutHeight"] = 0

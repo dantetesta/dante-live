@@ -55,6 +55,18 @@ private struct ParticipantCard: View {
             }
             if let scene {
                 component("Câmera", source: guest.camera, icon: "video", scene: scene, available: guest.cameraEnabled, screen: false)
+                if let label = guests.item(guest.nameOverlay, in: scene) {
+                    HStack {
+                        Button { guests.select(guest.nameOverlay, guest: guest) } label: { Label("Nome na cena", systemImage: "textformat") }.buttonStyle(.plain)
+                        Spacer()
+                        Button { guests.toggleName(guest.id) } label: {
+                            Image(systemName: label.flag("visible") ? "eye" : "eye.slash")
+                                .foregroundStyle(label.flag("visible") ? Color.teal : .secondary)
+                        }.buttonStyle(.plain).help(label.flag("visible") ? "Ocultar nome na cena" : "Mostrar nome na cena")
+                            .accessibilityLabel("\(label.flag("visible") ? "Ocultar" : "Mostrar") nome de \(guest.name)")
+                    }.font(.caption)
+                    Text("Selecione para mover e estilizar nas Propriedades.").font(.caption2).foregroundStyle(.secondary)
+                }
                 component("Tela", source: guest.screen, icon: "display", scene: scene, available: guest.screenEnabled, screen: true)
                 if let mic = guests.item(guest.microphone, in: scene) {
                     HStack {
@@ -67,10 +79,17 @@ private struct ParticipantCard: View {
                     }.font(.caption)
                     HStack(spacing: 6) {
                         Image(systemName:"speaker.wave.1").font(.caption2).foregroundStyle(.secondary)
-                        Slider(value:Binding(get:{mic.number("volume",1)},set:{_ = studio.command("audio.set",["name":guest.microphone,"volume":$0],undo:false)}),in:0...2)
+                        Slider(value:Binding(get:{AudioBoostScale.position(for:mic.number("volume",1))},set:{_ = studio.command("audio.set",["name":guest.microphone,"volume":AudioBoostScale.volume(for:$0)],undo:false)}),in:0...1)
+                            .tint(mic.number("volume",1)>1.01 ? .orange : .teal)
                             .accessibilityLabel("Volume de \(guest.name)")
-                        Text("\(Int(mic.number("volume",1)*100))%").font(.caption2.monospacedDigit()).frame(width:34)
+                            .accessibilityValue("\(Int((mic.number("volume",1)*100).rounded())) por cento\(mic.number("volume",1)>1.01 ? ", reforço ativo" : "")")
+                        VStack(alignment:.trailing,spacing:0) {
+                            Text("\(Int((mic.number("volume",1)*100).rounded()))%").font(.caption2.monospacedDigit())
+                            if mic.number("volume",1)>1.01 { Text("Reforço").font(.system(size:9,weight:.semibold)).foregroundStyle(.orange) }
+                        }.frame(width:48,alignment:.trailing)
                     }
+                    Text("100% é o nível normal; acima disso, o reforço aumenta a voz com proteção de pico. Se soar áspero, reduza.")
+                        .font(.caption2).foregroundStyle(.secondary)
                     Toggle("Ouvir neste Mac",isOn:Binding(get:{mic.number("monitoring")==2},set:{_ = studio.command("audio.set",["name":guest.microphone,"monitoring":$0 ? 2 : 0],undo:false)})).font(.caption2).toggleStyle(.checkbox)
                     Button { showingAudio = true } label: { Label("Tratamento da voz", systemImage: "waveform") }.font(.caption2)
                         .popover(isPresented: $showingAudio) { GuestVoiceControls(studio: studio, guest: guest) }

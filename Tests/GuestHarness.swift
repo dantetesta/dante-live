@@ -12,6 +12,7 @@ let appVersion = "0.1.9 QA"
         let guests = CommandLine.arguments.contains("--blocked-stun")
             ? GuestModel(studio:studio, discoveryServers:["stun:192.0.2.1:3478"])
             : studio.guests
+        let guestCount=CommandLine.arguments.contains("--three") ? 3 : 2
         Task { @MainActor in
             var echoFixture: UnsafeMutableRawPointer?
             do {
@@ -24,14 +25,13 @@ let appVersion = "0.1.9 QA"
                 } else { try await guests.startServer(resources: resources) }
                 let publicTest=CommandLine.arguments.contains("--public") || vpsIndex != nil
                 if publicTest {
-                    for _ in 0..<2 {
+                    for _ in 0..<guestCount {
                         guests.createInvite()
                         while guests.busy { try await Task.sleep(for:.milliseconds(200)) }
                     }
-                    guard guests.invites.count==2,guests.publicURL != nil else { throw StudioError.message(guests.message ?? "Public tunnel failed") }
-                } else { _=try guests.makeInvite();_=try guests.makeInvite() }
-                let a=guests.invites[0],b=guests.invites[1]
-                let data=try JSONSerialization.data(withJSONObject:["base":(publicTest ? guests.publicURL! : guests.localURL!).absoluteString,"tokens":[a.token,b.token]])
+                    guard guests.invites.count==guestCount,guests.publicURL != nil else { throw StudioError.message(guests.message ?? "Public tunnel failed") }
+                } else { for _ in 0..<guestCount { _=try guests.makeInvite() } }
+                let data=try JSONSerialization.data(withJSONObject:["base":(publicTest ? guests.publicURL! : guests.localURL!).absoluteString,"tokens":guests.invites.map(\.token)])
                 let config=root.appendingPathComponent("connection.json");try data.write(to:config,options:.atomic);try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:config.path)
                 print("READY: isolated synthetic guest test");fflush(stdout)
                 while !FileManager.default.fileExists(atPath:root.appendingPathComponent("stop").path) {
@@ -58,7 +58,7 @@ let appVersion = "0.1.9 QA"
                         guests.revoke(guests.invites[index].id);try? FileManager.default.removeItem(at:root.appendingPathComponent("revoke"))
                     }
                     let panelRequest=root.appendingPathComponent("panel-checks")
-                    if FileManager.default.fileExists(atPath:panelRequest.path),guests === studio.guests,let guest=guests.invites.first,guests.invites.count==2 {
+                    if FileManager.default.fileExists(atPath:panelRequest.path),guests === studio.guests,let guest=guests.invites.first,guests.invites.count>=2 {
                         try FileManager.default.removeItem(at:panelRequest)
                         let filterName = "Dante • Redução de ruído"
                         let microphoneBefore = guests.item(guest.microphone, in: studio.sceneName)!
@@ -80,12 +80,14 @@ let appVersion = "0.1.9 QA"
                         let original=studio.sceneName
                         precondition(studio.listedSources.isEmpty)
                         precondition(guests.displayName(for:guest.camera).hasPrefix(guest.firstName))
+                        precondition(guests.item(guest.nameOverlay,in:original) != nil)
                         precondition(guests.participantSlot(for:guest.camera) != guests.participantSlot(for:guests.invites[1].camera))
                         guests.toggleMicrophone(guest.id);guests.toggleVideo(guest.id,screen:false)
                         precondition(studio.command("scene.create",["name":"Participantes QA"]))
                         guests.admit(guest.id,to:"Participantes QA")
                         precondition(guests.scene(for:guest)=="Participantes QA")
                         precondition(guests.item(guest.microphone,in:"Participantes QA")!.flag("muted"))
+                        precondition(guests.item(guest.nameOverlay,in:"Participantes QA") != nil)
                         precondition(!guests.item(guest.camera,in:"Participantes QA")!.flag("visible"))
                         precondition(studio.command("scene.rename",["scene":"Participantes QA","name":"Renomeada QA"]))
                         precondition(guests.scene(for:guest)=="Renomeada QA")
@@ -103,7 +105,8 @@ let appVersion = "0.1.9 QA"
                         try Data("passed".utf8).write(to:root.appendingPathComponent("panel-checks-passed"))
                     }
                     let state=studio.state;let levels=jsonObject(copied(dante_engine_audio_levels(studio.engine)))
-                    let snapshot:[String:Any]=["state":state,"levels":levels,"guests":guests.invites.map{["name":$0.name,"status":$0.status,"media":$0.peer?.mediaDiagnostics ?? [:]]}]
+                    let snapshot:[String:Any]=["state":state,"levels":levels,"guests":guests.invites.map{["name":$0.name,"status":$0.status,"media":$0.peer?.mediaDiagnostics ?? [:]]},
+                        "labels":guests.invites.map{studio.properties(name:$0.nameOverlay).object("settings")}]
                     try JSONSerialization.data(withJSONObject:snapshot).write(to:root.appendingPathComponent("state.json"),options:.atomic)
                     try await Task.sleep(for:.milliseconds(200))
                 }

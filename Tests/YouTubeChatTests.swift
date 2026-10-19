@@ -28,6 +28,12 @@ import AppKit
     precondition(chat.donations.count == 500 && chat.overflow == 50)
     chat.ingest((0..<200).map { fixture("text-\($0)") }); precondition(chat.messages.count == 100)
     chat.reset(); precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil && chat.overflow == 0)
+    let installedFonts = ChatFontCatalog.availableFamilies()
+    precondition(installedFonts.contains("Menlo") && installedFonts.count > 6)
+    precondition(ChatFontCatalog.isInstalled("Menlo"))
+    precondition(ChatFontCatalog.font(named: "Menlo", size: 24).familyName == "Menlo")
+    precondition(!ChatFontCatalog.isInstalled("Dante Missing Font Fixture"))
+    precondition(ChatFontCatalog.font(named: "Dante Missing Font Fixture", size: 24).familyName == NSFont.systemFont(ofSize: 24).familyName)
     // Remote HTML remains literal, and empty paid comments remain valid.
     precondition(ChatMessage(fixture("html", text: "<script>alert(1)</script>"))?.text == "<script>alert(1)</script>")
     precondition(ChatMessage(fixture("empty", paid: true, text: ""))?.pages == ["Obrigado pelo apoio!"])

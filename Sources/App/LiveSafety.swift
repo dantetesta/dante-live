@@ -8,6 +8,9 @@ struct MicrophoneSample {
     /// Monotonic age from the last non-silent audio callback; nil means no signal yet.
     let signalAge: Double?
 }
+func microphoneOnAir(_ source: [String: Any], programAudioIDs: Set<String>) -> Bool {
+    source.flag("sourceActive") || programAudioIDs.contains(source.string("sourceUUID", source.string("name")))
+}
 struct MicrophoneSilenceWatch {
     private var watchingSince: [String: TimeInterval] = [:]
     mutating func update(_ samples: [MicrophoneSample], live: Bool, now: TimeInterval) -> [String] {

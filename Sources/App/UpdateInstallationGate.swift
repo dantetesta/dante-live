@@ -20,7 +20,7 @@ import Foundation
     func resume() {
         guard !installing, let callback = handler else { return }
         guard !isBusy() else {
-            changed(true, false, "Atualização pronta. Finalize a live e use Dante Live → Verificar atualizações para instalar e reiniciar.")
+            changed(true, false, "Atualização pronta. Finalize a transmissão, a preparação da live ou a sala de convidados e use Dante Live → Verificar atualizações para instalar e reiniciar.")
             return
         }
         do { try prepare() }

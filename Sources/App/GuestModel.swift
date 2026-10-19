@@ -24,15 +24,19 @@ private final class GuestVPSNoRedirect: NSObject, URLSessionTaskDelegate {
     var cameraEnabled = true
     var screenEnabled = false
     var microphoneEnabled = true
+    var pendingNamePosition: CGPoint?
     var savedNames: [String] = []
     var names: [String] { let current=peer?.sourceNames ?? [];return current.count==3 ? current : savedNames }
     var camera: String { names.count==3 ? names[0] : "\(firstName) • câmera · \(id.uuidString.prefix(6))" }
     var screen: String { names.count==3 ? names[1] : "\(firstName) • tela · \(id.uuidString.prefix(6))" }
     var microphone: String { names.count==3 ? names[2] : "\(firstName) • microfone · \(id.uuidString.prefix(6))" }
+    var nameOverlay: String { "Nome do convidado · \(id.uuidString.prefix(8))" }
 }
 
 @MainActor
 final class GuestModel: ObservableObject {
+    static let maximumGuests = 3
+    private static let guestScene = "05 · Cena dos convidados"
     @Published private(set) var invites: [GuestInvite] = []
     @Published private(set) var busy = false
     @Published private(set) var publicURL: URL?
@@ -42,6 +46,11 @@ final class GuestModel: ObservableObject {
     @Published var vpsPort = UserDefaults.standard.integer(forKey: "guestVPSPort") == 0 ? 443 : UserDefaults.standard.integer(forKey: "guestVPSPort")
     @Published var vpsEnabled = UserDefaults.standard.bool(forKey: "guestVPSEnabled")
     @Published var vpsStatus: String?
+    @Published private(set) var vpsChecking = false
+    @Published private(set) var vpsReachable = false
+    @Published private(set) var vpsBridgeDegraded = false
+    @Published private(set) var vpsHasChecked = false
+    @Published private(set) var vpsLastCheckedAt: Date?
     @Published var showing = false
     private weak var studio: StudioModel?
     private let discoveryServers: [String]
@@ -52,8 +61,11 @@ final class GuestModel: ObservableObject {
     private var timer: Timer?
     private var generation = UUID()
     private var relayTask: Task<Void,Never>?
+    private var vpsHealthGeneration = UUID()
     private let vpsSession = URLSession(configuration: .ephemeral, delegate: GuestVPSNoRedirect(), delegateQueue: nil)
     private var remoteICE: [[String: Any]] = []
+    private var positionedCameras = Set<UUID>()
+    private var positionedScreens = Set<UUID>()
     var hasVPSConfiguration: Bool { !vpsAddress.isEmpty && (try? SecretStore.read(account: "guest-vps-token"))?.isEmpty == false }
     var inUse: Bool { busy || !invites.isEmpty }
     var hasTURN: Bool { !remoteICE.isEmpty || (try? iceServers()).map { $0.count > 1 } ?? false }
@@ -83,7 +95,7 @@ final class GuestModel: ObservableObject {
         return ice
     }
     func createInvite() {
-        guard !busy, invites.count < 2, studio?.engine != nil, studio?.updateInstalling == false else { return }
+        guard !busy, invites.count < Self.maximumGuests, studio?.engine != nil, studio?.updateInstalling == false else { return }
         busy=true;message=nil
         Task { @MainActor in
             defer { busy=false }
@@ -97,7 +109,7 @@ final class GuestModel: ObservableObject {
         }
     }
     @discardableResult func makeInvite() throws -> GuestInvite {
-        guard let slot=(0...1).first(where:{value in !invites.contains{$0.slot==value}}) else { throw StudioError.message("A sala aceita até dois convidados.") }
+        guard let slot=(0..<Self.maximumGuests).first(where:{value in !invites.contains{$0.slot==value}}) else { throw StudioError.message("A sala aceita até três convidados.") }
         let invite=GuestInvite(token:try Self.token(),slot:slot,name:"Convidado \(slot+1)");invites.append(invite)
         if timer == nil { timer=Timer.scheduledTimer(withTimeInterval:1,repeats:true) { [weak self] _ in Task { @MainActor [weak self] in self?.refresh() } } }
         return invite
@@ -119,12 +131,23 @@ final class GuestModel: ObservableObject {
     }
     func saveVPS(token: String) throws {
         _ = try vpsURL("/api/health")
-        guard token.count >= 32,token.count <= 256,!token.contains("\n") else { throw StudioError.message("O token da VPS é inválido.") }
-        try SecretStore.save(token,account:"guest-vps-token")
+        if token.isEmpty {
+            guard !(try SecretStore.read(account:"guest-vps-token")).isEmpty else { throw StudioError.message("Informe o token de conexão da VPS.") }
+        } else {
+            guard token.count >= 32,token.count <= 256,!token.contains("\n") else { throw StudioError.message("O token da VPS é inválido.") }
+            try SecretStore.save(token,account:"guest-vps-token")
+        }
         UserDefaults.standard.set(vpsAddress,forKey:"guestVPSAddress")
         UserDefaults.standard.set(vpsPort,forKey:"guestVPSPort")
         UserDefaults.standard.set(true,forKey:"guestVPSEnabled")
-        vpsEnabled=true;vpsStatus="Configuração salva no Acesso às Chaves. Teste a conexão antes de convidar."
+        vpsEnabled=true;remoteICE=[];vpsHealthGeneration=UUID();vpsChecking=false;vpsReachable=false;vpsBridgeDegraded=false;vpsHasChecked=false;vpsLastCheckedAt=nil
+        vpsStatus="Configuração salva. Aguardando verificação do servidor."
+    }
+    func saveVPS(address: String,port: Int,token: String) throws {
+        let previousAddress=vpsAddress,previousPort=vpsPort
+        vpsAddress=address;vpsPort=port
+        do { try saveVPS(token:token) }
+        catch { vpsAddress=previousAddress;vpsPort=previousPort;throw error }
     }
     func importVPSProfile(_ data: Data) throws {
         guard data.count < 4096,
@@ -133,13 +156,13 @@ final class GuestModel: ObservableObject {
               let server=value["server"] as? String,
               let url=URL(string:server),url.scheme=="https",let host=url.host,
               let token=value["connectionToken"] as? String else { throw StudioError.message("Este arquivo não é um perfil Dante Live compatível.") }
-        vpsAddress=host;vpsPort=value["httpsPort"] as? Int ?? 443
-        try saveVPS(token:token)
+        try saveVPS(address:host,port:value["httpsPort"] as? Int ?? 443,token:token)
     }
     func removeVPS() throws {
         guard !inUse else { throw StudioError.message("Encerre a sala antes de remover o servidor.") }
         try SecretStore.delete(account:"guest-vps-token")
         vpsAddress="";vpsEnabled=false;remoteICE=[];vpsStatus=nil
+        vpsHealthGeneration=UUID();vpsChecking=false;vpsReachable=false;vpsBridgeDegraded=false;vpsHasChecked=false;vpsLastCheckedAt=nil
         UserDefaults.standard.removeObject(forKey:"guestVPSAddress")
         UserDefaults.standard.set(false,forKey:"guestVPSEnabled")
     }
@@ -155,16 +178,32 @@ final class GuestModel: ObservableObject {
         return object
     }
     func testVPS() async {
-        do { let health=try await vpsData("/api/health");guard health["status"] as? String=="ready",health["protocol"] as? Int==2 else { throw StudioError.message("A versão do serviço da VPS não é compatível.") };try await refreshVPSICE();vpsStatus="Servidor conectado. TURN e ponte de convites disponíveis." }
-        catch { vpsStatus="Não foi possível conectar: \(error.localizedDescription)" }
+        guard hasVPSConfiguration,!vpsChecking else { return }
+        let generation=vpsHealthGeneration
+        vpsChecking=true;vpsStatus="Verificando servidor e TURN…"
+        defer { if vpsHealthGeneration==generation { vpsChecking=false } }
+        do {
+            let health=try await vpsData("/api/health")
+            guard health["status"] as? String=="ready",health["protocol"] as? Int==2 else { throw StudioError.message("A versão do serviço da VPS não é compatível.") }
+            try await refreshVPSICE()
+            guard vpsHealthGeneration==generation else { return }
+            vpsReachable=true;vpsHasChecked=true;vpsLastCheckedAt=Date()
+            vpsStatus="Servidor conectado. API de convites e credenciais TURN disponíveis."
+        } catch {
+            guard vpsHealthGeneration==generation else { return }
+            vpsReachable=false;vpsHasChecked=true;vpsLastCheckedAt=Date()
+            vpsStatus="Não foi possível conectar: \(error.localizedDescription)"
+        }
     }
     private func refreshVPSICE() async throws {
+        let generation=vpsHealthGeneration
         let value=try await vpsData("/api/turn")
         guard let entries=value["iceServers"] as? [[String:Any]],entries.count==1,
               let entry=entries.first,let urls=entry["urls"] as? [String],!urls.isEmpty,
               urls.allSatisfy({$0.hasPrefix("turn:") || $0.hasPrefix("turns:")}),
               let user=entry["username"] as? String,!user.isEmpty,
               let credential=entry["credential"] as? String,!credential.isEmpty else { throw StudioError.message("A VPS não forneceu credenciais TURN válidas.") }
+        guard vpsHealthGeneration==generation else { throw StudioError.message("A configuração da VPS mudou durante a verificação.") }
         remoteICE=entries
     }
     private func startVPSBridge() async throws {
@@ -178,8 +217,12 @@ final class GuestModel: ObservableObject {
                 guard let self,self.generation==id else { return }
                 do {
                     let result=try await self.vpsData("/api/poll")
+                    guard !Task.isCancelled,self.generation==id else { return }
+                    if self.vpsBridgeDegraded { self.vpsBridgeDegraded=false;await self.testVPS() }
                     if let request=result["request"] as? [String:Any] { self.relay(request) }
                 } catch {
+                    guard !Task.isCancelled,self.generation==id else { return }
+                    self.vpsBridgeDegraded=true;self.vpsReachable=false;self.vpsHasChecked=true;self.vpsLastCheckedAt=Date()
                     self.vpsStatus="Ponte de convites reconectando à VPS…"
                     try? await Task.sleep(for:.seconds(2))
                 }
@@ -202,7 +245,10 @@ final class GuestModel: ObservableObject {
                     post.httpBody=try JSONSerialization.data(withJSONObject:["id":id,"status":status,"body":body.base64EncodedString()])
                     post.timeoutInterval=10
                     _ = try await self.vpsSession.data(for:post)
-                } catch { self.vpsStatus="Falha ao responder ao convite. A ponte tentará reconectar." }
+                } catch {
+                    self.vpsBridgeDegraded=true;self.vpsReachable=false;self.vpsHasChecked=true;self.vpsLastCheckedAt=Date()
+                    self.vpsStatus="Falha ao responder ao convite. A ponte tentará reconectar."
+                }
             }
         }
     }
@@ -242,14 +288,14 @@ final class GuestModel: ObservableObject {
     func link(_ invite: GuestInvite) -> String? { publicURL.map { $0.absoluteString+"/#"+invite.token } }
     func copy(_ invite: GuestInvite) { guard let link=link(invite) else { return };NSPasteboard.general.clearContents();NSPasteboard.general.setString(link,forType:.string);message="Convite copiado. Envie somente para a pessoa convidada." }
     var managedSourceNames: Set<String> {
-        Set(invites.flatMap { [$0.camera, $0.screen, $0.microphone] })
+        Set(invites.flatMap { [$0.camera, $0.screen, $0.microphone, $0.nameOverlay] })
     }
     func participantSlot(for source: String) -> Int? {
-        invites.first { [$0.camera,$0.screen,$0.microphone].contains(source) }?.slot
+        invites.first { [$0.camera,$0.screen,$0.microphone,$0.nameOverlay].contains(source) }?.slot
     }
     func displayName(for source: String) -> String {
-        guard let guest = invites.first(where: { [$0.camera,$0.screen,$0.microphone].contains(source) }) else { return source }
-        return guest.firstName + " • " + (source == guest.camera ? "câmera" : source == guest.screen ? "tela" : "microfone")
+        guard let guest = invites.first(where: { [$0.camera,$0.screen,$0.microphone,$0.nameOverlay].contains(source) }) else { return source }
+        return guest.firstName + " • " + (source == guest.camera ? "câmera" : source == guest.screen ? "tela" : source == guest.nameOverlay ? "nome" : "microfone")
     }
     func scene(for guest: GuestInvite) -> String? {
         studio?.scenes.first { scene in scene.array("items").contains { $0.string("name") == guest.camera || $0.string("name") == guest.microphone } }?.string("name")
@@ -257,13 +303,48 @@ final class GuestModel: ObservableObject {
     func item(_ source: String, in scene: String) -> [String:Any]? {
         studio?.scenes.first { $0.string("name") == scene }?.array("items").first { $0.string("name") == source }
     }
+    private func placeGuestVideo(_ source: String, guest: GuestInvite, screen: Bool) {
+        guard let studio,scene(for:guest)==Self.guestScene,
+              let component=item(source,in:Self.guestScene),
+              component.number("width")>0,component.number("height")>0 else { return }
+        guard !(screen ? positionedScreens : positionedCameras).contains(guest.id) else { return }
+        let canvasX=studio.canvasWidth/3840,canvasY=studio.canvasHeight/2160
+        let sourceWidth=component.number("width"),sourceHeight=component.number("height")
+        let areaX=screen ? 97.0 : 3169.0
+        let areaY=screen ? 260.0 : Double([148,828,1508][guest.slot])
+        let areaWidth=screen ? 2882.0 : 496.0
+        let areaHeight=screen ? 1620.0 : 496.0
+        let scale=screen
+            ? min(areaWidth*canvasX/sourceWidth,areaHeight*canvasY/sourceHeight)
+            : 496.0*canvasX/min(sourceWidth,sourceHeight)
+        guard scale.isFinite,scale>0 else { return }
+        if !screen {
+            _=studio.command("source.cameraMask",["name":source,"settings":["shape":4,"aspect":1,"roundness":0.16,"zoom":1,"panX":0,"panY":0]],undo:false)
+        }
+        let x=areaX*canvasX+(areaWidth*canvasX-sourceWidth*scale)/2
+        let y=areaY*canvasY+(areaHeight*canvasY-sourceHeight*scale)/2
+        guard studio.command("item.transform",["scene":Self.guestScene,"id":component.sceneItemID,"x":x,"y":y,"scaleX":scale,"scaleY":scale],undo:false) else { return }
+        if screen { positionedScreens.insert(guest.id) } else { positionedCameras.insert(guest.id) }
+    }
+    private func placeGuestName(_ guest: GuestInvite, applyDefaultAppearance: Bool) {
+        guard let studio,let label=item(guest.nameOverlay,in:Self.guestScene) else { return }
+        let n=guest.slot
+        if applyDefaultAppearance {
+            _=studio.command("source.update",["name":guest.nameOverlay,"settings":["layoutWidth":560,"layoutHeight":71,"fontSize":48,"accent":0xD81624,"background":0x262C3C]],undo:false)
+        }
+        _=studio.command("item.transform",["scene":Self.guestScene,"id":label.sceneItemID,"x":3137*studio.canvasWidth/3840,"y":Double([678,1358,2038][n])*studio.canvasHeight/2160,"scaleX":1,"scaleY":1],undo:false)
+        if let placeholder=item("Nome · convidado \(n+1)",in:Self.guestScene) {
+            _=studio.command("item.visible",["scene":Self.guestScene,"id":placeholder.sceneItemID,"value":false],undo:false)
+        }
+    }
     func admit(_ id: UUID, to destination: String? = nil) {
         guard let i=invites.firstIndex(where:{$0.id==id}),invites[i].peer != nil,let studio else { return }
         let guest=invites[i], target=destination ?? scene(for:guest) ?? studio.sceneName
         guard studio.scenes.contains(where:{$0.string("name")==target}) else { return }
+        let wasInTarget=item(guest.camera,in:target) != nil
         let oldScenes = studio.scenes
         let hadScreen = oldScenes.contains { $0.array("items").contains { $0.string("name") == guest.screen } }
-        for name in [guest.camera,guest.microphone] + (hadScreen ? [guest.screen] : []) {
+        for name in [guest.camera,guest.microphone] + (hadScreen ? [guest.screen] : []) + (oldScenes.contains { $0.array("items").contains { $0.string("name") == guest.nameOverlay } } ? [guest.nameOverlay] : []) {
             if item(name,in:target) == nil {
                 guard studio.command("source.reuse",["scene":target,"name":name]) else { return }
                 if let inserted=item(name,in:target) {
@@ -279,34 +360,85 @@ final class GuestModel: ObservableObject {
                 }
             }
         }
+        if item(guest.nameOverlay,in:target) == nil {
+            let alreadyExists=oldScenes.contains { $0.array("items").contains { $0.string("name") == guest.nameOverlay } }
+            let command=alreadyExists ? "source.reuse" : "source.add"
+            let args:[String:Any]=alreadyExists
+                ? ["scene":target,"name":guest.nameOverlay]
+                : ["scene":target,"name":guest.nameOverlay,"type":"dante_guest_name","settings":["guestName":guest.name]]
+            if studio.command(command,args,undo:false),!alreadyExists,
+               let label=item(guest.nameOverlay,in:target),let camera=item(guest.camera,in:target) {
+                placeName(label,over:camera,in:target,studio:studio)
+                if target != Self.guestScene && (camera.number("width") <= 0 || camera.number("height") <= 0),
+                   let provisional=item(guest.nameOverlay,in:target) {
+                    invites[i].pendingNamePosition=CGPoint(x:provisional.number("x"),y:provisional.number("y"))
+                }
+            }
+        }
         // Move only after the new membership exists. Volume/mute are source state
         // and must survive scene changes and reconnects.
         for old in oldScenes where old.string("name") != target {
-            for component in old.array("items") where [guest.camera,guest.microphone,guest.screen].contains(component.string("name")) {
+            for component in old.array("items") where [guest.camera,guest.microphone,guest.screen,guest.nameOverlay].contains(component.string("name")) {
                 _=studio.command("source.remove",["scene":old.string("name"),"id":component.sceneItemID],undo:false)
             }
         }
         if !guest.admitted { _=studio.command("audio.set",["name":guest.microphone,"monitoring":2],undo:false) }
-        invites[i].admitted=true;message="\(guest.name) adicionado à cena \(target). Controle câmera, tela e microfone no painel Participantes."
+        invites[i].admitted=true
+        if !wasInTarget { positionedCameras.remove(id);positionedScreens.remove(id) }
+        if target==Self.guestScene {
+            invites[i].pendingNamePosition=nil
+            insertScreen(id)
+            placeGuestVideo(guest.camera,guest:guest,screen:false)
+            placeGuestVideo(guest.screen,guest:guest,screen:true)
+            if !wasInTarget { placeGuestName(guest,applyDefaultAppearance:!oldScenes.contains { $0.array("items").contains { $0.string("name") == guest.nameOverlay } }) }
+        }
+        message="\(guest.name) adicionado à cena \(target). Controle câmera, tela e microfone no painel Participantes."
+    }
+    private func placeName(_ label:[String:Any],over camera:[String:Any],in scene:String,studio:StudioModel) {
+        let cameraWidth=max(180,camera.number("width")*abs(camera.number("scaleX",1)))
+        let cameraHeight=max(104,camera.number("height")*abs(camera.number("scaleY",1)))
+        let scale=min(1,max(0.42,cameraWidth/570))
+        _=studio.command("item.transform",["scene":scene,"id":label.sceneItemID,
+            "x":camera.number("x")+12,"y":camera.number("y")+cameraHeight-104*scale-12,
+            "scaleX":scale,"scaleY":scale],undo:false)
     }
     func insertScreen(_ id: UUID) {
         guard let guest=invites.first(where:{$0.id==id}),guest.peer != nil,let studio else { return }
         let target=scene(for:guest) ?? studio.sceneName
         if item(guest.screen,in:target) == nil {
             guard studio.command("source.reuse",["scene":target,"name":guest.screen]) else {return}
-            if let added=item(guest.screen,in:target) { _=studio.command("item.fit",["scene":target,"id":added.sceneItemID],undo:false) }
+            if let added=item(guest.screen,in:target) {
+                if target==Self.guestScene { _=studio.command("item.visible",["scene":target,"id":added.sceneItemID,"value":false],undo:false) }
+                else { _=studio.command("item.fit",["scene":target,"id":added.sceneItemID],undo:false) }
+            }
         }
+        if target==Self.guestScene { placeGuestVideo(guest.screen,guest:guest,screen:true) }
     }
     func toggleVideo(_ id: UUID, screen: Bool) {
         guard let guest=invites.first(where:{$0.id==id}),let studio,let target=scene(for:guest) else {return}
         let name=screen ? guest.screen : guest.camera
         if let current=item(name,in:target) {
             _=studio.command("item.visible",["scene":target,"id":current.sceneItemID,"value":!current.flag("visible")])
-        } else if screen { insertScreen(id) }
+        } else if screen {
+            insertScreen(id)
+            if let inserted=item(name,in:target) { _=studio.command("item.visible",["scene":target,"id":inserted.sceneItemID,"value":true],undo:false) }
+        }
     }
     func toggleMicrophone(_ id: UUID) {
         guard let guest=invites.first(where:{$0.id==id}),let target=scene(for:guest),let current=item(guest.microphone,in:target),let studio else {return}
         _=studio.command("audio.set",["name":guest.microphone,"muted":!current.flag("muted")],undo:false)
+    }
+    func toggleName(_ id: UUID) {
+        guard let guest=invites.first(where:{$0.id==id}),let target=scene(for:guest),let label=item(guest.nameOverlay,in:target),let studio else { return }
+        _=studio.command("item.visible",["scene":target,"id":label.sceneItemID,"value":!label.flag("visible")])
+    }
+    private func updateName(_ name: String, at index: Int) -> Bool {
+        if let studio,studio.scenes.contains(where:{$0.array("items").contains(where:{$0.string("name")==invites[index].nameOverlay})}) {
+            guard studio.command("source.update",["name":invites[index].nameOverlay,"settings":["guestName":name]],undo:false) else { return false }
+            if studio.selectedName == invites[index].nameOverlay { studio.inspectorRevision += 1 }
+        }
+        invites[index].name=name
+        return true
     }
     func select(_ source: String, guest: GuestInvite) {
         guard let studio,let target=scene(for:guest),let selected=item(source,in:target) else {return}
@@ -316,11 +448,16 @@ final class GuestModel: ObservableObject {
         guard let i=invites.firstIndex(where:{$0.id==id}),let studio else {return}
         let guest=invites[i]
         for scene in studio.scenes {
-            for component in scene.array("items") where [guest.camera,guest.screen,guest.microphone].contains(component.string("name")) {
+            for component in scene.array("items") where [guest.camera,guest.screen,guest.microphone,guest.nameOverlay].contains(component.string("name")) {
                 _=studio.command("source.remove",["scene":scene.string("name"),"id":component.sceneItemID],undo:false)
             }
         }
         invites[i].admitted=false
+        invites[i].pendingNamePosition=nil
+        positionedCameras.remove(id);positionedScreens.remove(id)
+        if let placeholder=item("Nome · convidado \(guest.slot+1)",in:Self.guestScene) {
+            _=studio.command("item.visible",["scene":Self.guestScene,"id":placeholder.sceneItemID,"value":true],undo:false)
+        }
     }
     func revoke(_ id: UUID) {
         guard let i=invites.firstIndex(where:{$0.id==id}) else { return }
@@ -328,17 +465,32 @@ final class GuestModel: ObservableObject {
     }
     func stop() {
         generation=UUID();timer?.invalidate();timer=nil
+        positionedCameras.removeAll();positionedScreens.removeAll()
         for guest in invites { removeFromScene(guest.id);guest.peer?.close() };invites=[]
         pipe?.fileHandleForReading.readabilityHandler=nil
         tunnel?.terminationHandler=nil;if tunnel?.isRunning == true { tunnel?.terminate() }
         tunnel=nil;pipe=nil;publicURL=nil;tunnelOutput="";server?.stop();server=nil
         relayTask?.cancel();relayTask=nil;remoteICE=[]
+        if vpsBridgeDegraded { vpsBridgeDegraded=false;vpsReachable=false;vpsHasChecked=false;vpsLastCheckedAt=nil;vpsStatus="Sala encerrada. Aguardando nova verificação da VPS." }
     }
     private func refresh() {
         for i in invites.indices {
+            if let provisional=invites[i].pendingNamePosition,let studio,
+               let target=scene(for:invites[i]),let camera=item(invites[i].camera,in:target),
+               let label=item(invites[i].nameOverlay,in:target),
+               camera.number("width")>0,camera.number("height")>0 {
+                invites[i].pendingNamePosition=nil
+                if abs(label.number("x")-provisional.x)<1 && abs(label.number("y")-provisional.y)<1 {
+                    placeName(label,over:camera,in:target,studio:studio)
+                }
+            }
             if invites[i].peer != nil,Date().timeIntervalSince(invites[i].lastSeen)>20 {
                 invites[i].savedNames=invites[i].names;invites[i].peer?.close();invites[i].peer=nil;invites[i].negotiating=false;invites[i].status="Desconectado • aguardando retorno"
             } else if let peer=invites[i].peer { invites[i].status=peer.connectionStatus }
+            if invites[i].admitted,scene(for:invites[i])==Self.guestScene {
+                placeGuestVideo(invites[i].camera,guest:invites[i],screen:false)
+                placeGuestVideo(invites[i].screen,guest:invites[i],screen:true)
+            }
         }
     }
     private func handle(_ path: String,_ token: String,_ payload: [String:Any],_ reply: @escaping GuestHTTPServer.Reply) {
@@ -366,13 +518,19 @@ final class GuestModel: ObservableObject {
             respond(200,["candidates":peer.localCandidates,"status":peer.connectionStatus,"admitted":invites[i].admitted]);return
         }
         if path=="/status" {
+            if let proposed=payload["name"] as? String {
+                let name=proposed.trimmingCharacters(in:.whitespacesAndNewlines)
+                guard invites[i].peer != nil,!name.isEmpty,name.count<=60,name.utf8.count<=240,
+                      !name.unicodeScalars.contains(where:{CharacterSet.controlCharacters.contains($0)}) else { respond(400,["error":"Informe um nome válido, com até 60 caracteres, enquanto estiver conectado."]);return }
+                guard updateName(name,at:i) else { respond(500,["error":"Não foi possível atualizar a tarja do nome."]);return }
+            }
             if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool { invites[i].peer?.setCameraEnabled(camera,screenEnabled:screen) }
-            respond(200,["status":invites[i].status,"admitted":invites[i].admitted]);return
+            respond(200,["status":invites[i].status,"admitted":invites[i].admitted,"name":invites[i].name]);return
         }
         if path=="/join" {
             let name=(payload["name"] as? String ?? "").trimmingCharacters(in:.whitespacesAndNewlines)
-            guard !name.isEmpty,name.count<=60,!name.unicodeScalars.contains(where:{CharacterSet.controlCharacters.contains($0)}) else { respond(400,["error":"Informe seu nome, com até 60 caracteres."]);return }
-            do { let ice=try iceServers();invites[i].name=name;respond(200,["iceServers":ice,"name":name,"trickleICE":true]) }
+            guard !name.isEmpty,name.count<=60,name.utf8.count<=240,!name.unicodeScalars.contains(where:{CharacterSet.controlCharacters.contains($0)}) else { respond(400,["error":"Informe seu nome, com até 60 caracteres."]);return }
+            do { let ice=try iceServers();guard updateName(name,at:i) else { respond(500,["error":"Não foi possível atualizar a tarja do nome."]);return };respond(200,["iceServers":ice,"name":name,"trickleICE":true]) }
             catch { respond(503,["error":"O apresentador precisa revisar a configuração TURN."]) };return
         }
         guard path=="/offer",!invites[i].negotiating,let negotiation=payload["negotiation"] as? String,UUID(uuidString:negotiation) != nil,

@@ -1,13 +1,15 @@
 # Convidados por convite — experimental, 0.1.14
 
+Na 0.1.24, a sala aceita três convidados. O retorno individual usa as trilhas internas 5, 6 e 4 para os convidados 1, 2 e 3, respectivamente, excluindo a voz de cada pessoa do próprio retorno. Fontes do apresentador devem participar das três trilhas. Na cena `05 · Cena dos convidados`, a câmera de cada pessoa é enquadrada como quadrado arredondado na coluna direita, sua tela entra oculta e ocupa a área central quando o operador liga o olho. O nome dinâmico ocupa a faixa sob cada câmera; o texto de reserva da cena também é editável. Três navegadores sintéticos passaram no mesmo Mac; isso não comprova estabilidade com convidados reais em redes diferentes.
+
 ## Como usar
 
 1. No topo do estúdio, clique no ícone de convidar participantes e em Convidar.
-2. Copie o link e envie apenas à pessoa convidada. São dois convidados simultâneos, além do apresentador.
-3. No navegador, a pessoa informa o nome, clica em Ativar câmera e microfone, permite o acesso no navegador e escolhe os dispositivos e, se quiser, compartilha uma tela. Depois clica em Entrar no estúdio.
-4. No painel Participantes, abaixo de Cenas, escolha a cena e clique em Adicionar à cena. Cada pessoa tem uma cor e controles agrupados de câmera, tela, microfone e volume. Clique no componente para enquadrá-lo no canvas; use o olho para mostrar/ocultar e o microfone para silenciar.
-5. Use fones. O retorno contém o áudio do estúdio e do outro convidado, excluindo a própria voz. As trilhas internas 5/6 são reservadas ao retorno de convidados; fontes do apresentador precisam participar dessas trilhas para serem ouvidas.
-6. Revogar desconecta um convite. Encerrar sala invalida todos os links. Reabrir o aplicativo exige novos convites; os componentes dos convites atuais são removidos das cenas. Fontes órfãs de versões anteriores podem ser removidas manualmente.
+2. Copie o link e envie apenas à pessoa convidada. São até três convidados simultâneos, além do apresentador.
+3. No navegador, a pessoa informa o nome, clica em Ativar câmera e microfone, permite o acesso no navegador e escolhe os dispositivos e, se quiser, compartilha uma tela. Depois clica em Entrar no estúdio. Enquanto estiver conectada, pode mudar **Seu nome** e clicar em **Atualizar meu nome na live**; a mídia continua conectada.
+4. No painel Participantes, abaixo de Cenas, escolha a cena e clique em Adicionar à cena. Cada pessoa tem controles de câmera, nome, tela, microfone e volume. O nome é uma camada própria: clique nela para mover/redimensionar no canvas e escolher entre seis estilos nas Propriedades; use o olho para exibir ou ocultar.
+5. Use fones. O retorno contém o áudio do estúdio e dos outros convidados, excluindo a própria voz. As trilhas internas 5, 6 e 4 são reservadas ao retorno dos três convidados; fontes do apresentador precisam participar dessas trilhas para serem ouvidas.
+6. Revogar desconecta um convite. Encerrar sala invalida todos os links. No próximo build, encerrar a transmissão também fecha a sala após a saída parar por completo. Reabrir o aplicativo exige novos convites; os componentes dos convites atuais são removidos das cenas. Fontes órfãs de versões anteriores podem ser removidas manualmente.
 
 ## Conexão e segurança
 
@@ -25,7 +27,7 @@ O instalador de referência em `server/install-ubuntu.sh` prepara Ubuntu 24.04 c
 
 ## Limites e validação
 
-Dois convidados, câmera até 1080p/30 e tela até 1080p/30 solicitados ao navegador. O navegador/rede podem negociar menos. Compartilhamento de áudio da tela não está implementado. Não há limite de horas no código, mas sessão de duas horas, redes externas distintas, relay TURN, Safari/Firefox, rotação de câmera móvel, Intel físico e macOS 14 real ainda precisam de validação. Use Chrome atualizado no primeiro teste.
+Até três convidados, câmera até 1080p/30 e tela até 1080p/30 solicitados ao navegador. O navegador/rede podem negociar menos. Compartilhamento de áudio da tela não está implementado. Não há limite de horas no código, mas sessão de duas horas, redes externas distintas, Safari/Firefox, rotação de câmera móvel, Intel físico e macOS 14 real ainda precisam de validação. Use Chrome atualizado no primeiro teste.
 
 Trocar dispositivos é uma ação do convidado. A partir da 0.1.22, uma conexão de mídia que falhou, oscilou por mais de cinco segundos ou teve a negociação encerrada tenta se refazer automaticamente com o mesmo convite e as trilhas de câmera, microfone e tela já autorizadas. Há espera crescente de até 15 segundos entre tentativas e um botão para reconectar imediatamente. O navegador precisa permanecer aberto, as trilhas ativas e o token válido. Não há ICE restart da mesma conexão: um novo peer substitui o antigo. Uma falha do Quick Tunnel que encerre a sala ainda pede nova sala/links. Desfazer/refazer e importar projeto ficam bloqueados enquanto há convites para preservar as referências de mídia. Revogar remove os componentes desse participante das cenas.
 

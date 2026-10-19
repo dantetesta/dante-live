@@ -14,6 +14,8 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
 struct PreferencesView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance = AppAppearance.system.rawValue
+    @AppStorage(AgentSocket.enabledKey) private var localMCPEnabled = false
+    let agent: AgentSocket
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 6) {
@@ -38,8 +40,30 @@ struct PreferencesView: View {
                 Text("Automático acompanha o modo claro ou escuro do macOS, inclusive quando ele muda ao longo do dia.").font(.callout).foregroundStyle(.secondary)
             }
             Divider()
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("Permitir edição local por IA (MCP)", isOn: $localMCPEnabled).font(.headline)
+                Text("Com o Dante Live aberto, uma IA configurada neste Mac pode ler e editar cenas e elementos. A edição pausa durante a transmissão; iniciar uma live, acessar convidados e ler credenciais não são ferramentas MCP.")
+                    .font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Label(localMCPEnabled && agent.running ? "Conexão local ativa" : "Conexão local desativada",
+                          systemImage: localMCPEnabled && agent.running ? "checkmark.circle.fill" : "circle.dashed")
+                        .foregroundStyle(localMCPEnabled && agent.running ? .green : .secondary)
+                    Spacer()
+                    Button("Copiar configuração MCP") { copyMCPConfiguration() }.disabled(!agent.running)
+                }
+                if let problem = agent.problem { Text(problem).font(.caption).foregroundStyle(.orange) }
+            }
+            Divider()
             Label("Sua preferência é salva automaticamente neste Mac.", systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary)
         }.padding(28).frame(width: 510).background(Color(nsColor: .windowBackgroundColor))
             .onChange(of: appearance) { _, _ in AppAppearance.restore() }
+            .onChange(of: localMCPEnabled) { _, _ in agent.applyPreference() }
+    }
+
+    private func copyMCPConfiguration() {
+        let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/DanteLiveMCP").path
+        let json = jsonString(["mcpServers": ["dante-live": ["command": helper]]])
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(json, forType: .string)
     }
 }

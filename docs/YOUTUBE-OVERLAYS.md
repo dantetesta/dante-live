@@ -8,6 +8,8 @@
 4. Ajuste separadamente nome, mensagem, espaço entre comentários, fonte, cores e opacidade. As miniaturas são renderizadas pelo mesmo desenhador dos cartões reais.
 5. Arraste as alças laterais para mudar largura ou altura. O componente reorganiza as linhas sem mudar a escala do texto. A altura mínima impede cortar a primeira linha. Posição, rotação, crop e espelhamento continuam disponíveis. Propriedades de uma fonte reutilizada afetam todas as cenas que usam essa fonte.
 
+No próximo build, **Fonte** abre uma lista com busca pelas famílias instaladas neste Mac, inclusive fontes adicionadas pelo usuário. O nome escolhido é salvo no projeto. Se outra máquina não tiver essa fonte, o cartão usa a fonte do sistema e mostra um aviso nas Propriedades.
+
 ## Durante a live
 
 O chat conectado recebe as mensagens comuns automaticamente. Mostra os cartões mais recentes que cabem na área, com até aproximadamente cinco linhas por comentário. O painel mantém o texto completo. Cada pessoa recebe uma cor consistente de identificação e uma inicial, sem baixar a foto de perfil.

@@ -6,7 +6,9 @@ import Foundation
     defer {guests.stop()}
     let first=try guests.makeInvite(),second=try guests.makeInvite()
     precondition(first.token.count==64 && first.token != second.token)
-    do {_=try guests.makeInvite();preconditionFailure("third slot accepted")} catch {}
+    let third=try guests.makeInvite()
+    precondition(third.token != first.token && third.token != second.token)
+    do {_=try guests.makeInvite();preconditionFailure("fourth slot accepted")} catch {}
     let base=guests.localURL!,client=UUID().uuidString
     func request(_ path:String,token:String,client:String,origin:String?=nil,extra:[String:Any]=[:]) async throws -> Int {
         var request=URLRequest(url:base.appendingPathComponent(path));request.httpMethod="POST"
@@ -33,5 +35,5 @@ import Foundation
     guests.turnJSON="[{\"urls\":[\"https://invalid\"],\"username\":\"x\",\"credential\":\"x\"}]"
     do {_=try guests.iceServers();preconditionFailure("invalid TURN accepted")}catch{}
     guests.turnJSON="";let ice=try guests.iceServers();precondition(ice.count==1)
-    print("PASS: guest token entropy/uniqueness, two-slot bound, invalid token/origin/client rejection, malformed SDP, revocation isolation, TURN validation; loopback only")
+    print("PASS: guest token entropy/uniqueness, three-slot bound, invalid token/origin/client rejection, malformed SDP, revocation isolation, TURN validation; loopback only")
 }

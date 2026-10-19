@@ -46,6 +46,10 @@ struct AddSourceView: View {
         .onChange(of: type) { _, new in
             let props = model.properties(type: new)
             settings = props.object("settings"); properties = props.array("properties"); instanceRequired = props.flag("requiresInstance")
+            if new == "dante_audio_visualizer", let audio = model.items.first(where: { $0.flag("audio") }) {
+                settings["audioSourceUUID"] = audio.string("sourceUUID")
+                settings["audioSourceName"] = audio.string("name")
+            }
             let base = selection?.title ?? "Fonte"
             var candidate = base; var suffix = 2
             while existingNames.contains(candidate) { candidate = "\(base) \(suffix)"; suffix += 1 }
@@ -145,6 +149,8 @@ struct AddSourceView: View {
                     }
                     if instanceRequired {
                         Label("Depois de adicionar, escolha o dispositivo ou conteúdo em Propriedades.", systemImage: "slider.horizontal.3").font(.callout).foregroundStyle(.secondary)
+                    } else if type == "dante_audio_visualizer" {
+                        AudioVisualizerSettingsView(settings: $settings, scenes: model.scenes) { _ in }
                     } else { PropertyFields(properties: properties, settings: $settings) }
                 } else {
                     SourceIllustration(symbol: "square.stack.3d.up.fill", color: .teal)

@@ -12,7 +12,7 @@ for f in Sources/App/*.swift; do
 done
 xcrun swiftc -parse-as-library -Onone -target arm64-apple-macos14.0 \
   -import-objc-header Tests/GuestHarnessBridge.h "${FILES[@]}" Tests/GuestHarness.swift \
-  "$BUILD/objects/DanteEngine-arm64.o" "$BUILD/objects/GuestEchoFixture.o" -F vendor/sparkle-2.10.0 -F "$APP/Contents/Frameworks" \
+  "$BUILD/objects/DanteEngine-arm64.o" "$BUILD/objects/GuestEchoFixture.o" -F vendor/sparkle-2.10.0 -F vendor/guest-runtime/LiveKitWebRTC.xcframework/macos-arm64_x86_64 -F "$APP/Contents/Frameworks" \
   -framework Sparkle -framework LiveKitWebRTC -framework libobs -framework SwiftUI -framework AppKit -framework Metal -framework MetalKit \
   -framework AVFoundation -framework ScreenCaptureKit -framework Security -framework CoreAudio -framework VideoToolbox -lc++ \
   -Xlinker -rpath -Xlinker "$APP/Contents/Frameworks" -o "$BUILD/GuestHarness"

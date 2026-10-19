@@ -12,6 +12,7 @@
 </section>
 <section class="controls" aria-label="Entrar no estúdio">
 <div class="field"><label for="name">Seu nome</label><input id="name" maxlength="60" autocomplete="given-name" placeholder="Como podemos chamar você?"></div>
+<div id="nameActions" class="field" hidden><button id="saveName" class="secondary">Atualizar meu nome na live</button><small id="nameStatus" role="status" aria-live="polite">A câmera e o áudio continuam conectados.</small></div>
 <div class="device-fields"><div class="field"><label for="camera">Câmera</label><select id="camera" disabled><option value="">Câmera padrão</option></select></div><div class="field"><label for="microphone">Microfone</label><select id="microphone" disabled><option value="">Microfone padrão</option></select></div></div>
 <button id="screen" class="secondary">Compartilhar tela <span class="optional">opcional</span></button><p class="hint">Use fones para evitar eco.</p>
 <div class="entry-actions"><button id="join" disabled>Entrar no estúdio</button><button id="leave" class="danger" hidden>Sair e desligar dispositivos</button><button id="listen" class="secondary" hidden>Ouvir o apresentador</button></div>

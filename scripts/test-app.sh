@@ -12,7 +12,7 @@ sign_test() {
     codesign --force --sign "$DANTE_SIGN_IDENTITY" --timestamp --options runtime "$1"
   fi
 }
-xcrun swiftc -O -target "$ARCH-apple-macos14.0" Sources/App/ProjectStore.swift Tests/ProjectStoreTests.swift \
+xcrun swiftc -O -target "$ARCH-apple-macos14.0" Sources/App/ProjectStore.swift Sources/App/ProductionProfiles.swift Tests/ProjectStoreTests.swift \
   -framework Security -o build/tests/ProjectStoreTests
 build/tests/ProjectStoreTests > evidence/runtime/project-store-tests.txt
 cat evidence/runtime/project-store-tests.txt
@@ -61,3 +61,5 @@ sign_test build/tests/EditorInteractionTests
 build/tests/EditorInteractionTests "$APP" > evidence/runtime/editor-interaction-tests.txt
 cat evidence/runtime/editor-interaction-tests.txt
 python3 Tests/update_feed_tests.py
+bash "$ROOT/scripts/test-audio-visualizer.sh"
+bash "$ROOT/scripts/test-guest-name.sh"

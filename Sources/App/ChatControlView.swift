@@ -14,7 +14,14 @@ struct ChatStylePicker: View {
     @Binding var settings: [String: Any]
     var lower = false
     var changed: () -> Void
+    @LegacyState private var choosingFont = false
+    @LegacyState private var fontSearch = ""
+    @LegacyState private var installedFonts: [String] = []
     private var selected: ChatStyle { ChatStyle.selected(settings) }
+    private var chosenFont: String { settings.string("font", selected.layout == 5 ? "Menlo" : "Helvetica Neue") }
+    private var matchingFonts: [String] {
+        installedFonts.filter { fontSearch.isEmpty || $0.localizedStandardContains(fontSearch) }
+    }
     private func color(_ key: String, fallback: UInt32) -> Binding<Color> {
         Binding(get: {
             let value=settings.number(key,Double(fallback))
@@ -57,8 +64,52 @@ struct ChatStylePicker: View {
             }
             Divider()
             Text("Texto e espaçamento").font(.subheadline.bold())
-            Picker("Fonte",selection:Binding(get:{settings.string("font",selected.layout == 5 ? "Menlo" : "Helvetica Neue")},set:{settings["font"]=$0;changed()})) {
-                ForEach(["Helvetica Neue","Avenir Next","Georgia","Menlo","Trebuchet MS","Verdana"],id:\.self) { Text($0).tag($0) }
+            HStack {
+                Text("Fonte")
+                Button {
+                    installedFonts = ChatFontCatalog.availableFamilies()
+                    fontSearch = ""
+                    choosingFont = true
+                } label: {
+                    HStack {
+                        Text(chosenFont).lineLimit(1)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.up.chevron.down").font(.caption)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                }.buttonStyle(.plain)
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.secondary.opacity(0.25)))
+                    .popover(isPresented: $choosingFont, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Fontes deste Mac").font(.headline)
+                        TextField("Buscar fonte", text: $fontSearch).textFieldStyle(.roundedBorder)
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 2) {
+                                ForEach(matchingFonts, id: \.self) { family in
+                                    Button {
+                                        settings["font"] = family
+                                        changed()
+                                        choosingFont = false
+                                    } label: {
+                                        HStack {
+                                            Text(family).font(.custom(family, size: 15)).lineLimit(1)
+                                            Spacer()
+                                            if family == chosenFont { Image(systemName: "checkmark").foregroundStyle(.teal) }
+                                        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8).padding(.vertical, 5)
+                                    }.buttonStyle(.plain)
+                                }
+                            }
+                        }.frame(height: 300)
+                        Text("A escolha fica salva neste projeto. Se a fonte não existir em outro Mac, será usada a fonte do sistema.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }.padding(14).frame(width: 340)
+                }
+            }
+            if !ChatFontCatalog.isInstalled(chosenFont) {
+                Label("Fonte indisponível neste Mac; o texto usa a fonte do sistema.", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             slider("Nome da pessoa",key:"nameSize",fallback:20,range:12...48)
             slider("Mensagem",key:"fontSize",fallback:24,range:14...64)

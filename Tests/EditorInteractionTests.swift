@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Darwin
 
 var appVersion: String { "test" }
 
@@ -35,12 +36,12 @@ var appVersion: String { "test" }
         precondition(SourceOrder.moving(ids, from: [0], to: -1) == nil)
         precondition(SourceOrder.moving([1,1], from: [0], to: 1) == nil)
 
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("dante-editor-\(UUID().uuidString)")
+        let directory = URL(fileURLWithPath: "/tmp", isDirectory: true).appendingPathComponent("dante-editor-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let model = StudioModel(projectDirectory: directory)
         guard let engine = dante_engine_create_with_config(CommandLine.arguments[1], 640, 360, 10, directory.path) else { fatalError(copied(dante_engine_last_error(nil))) }
-        model.engine = engine; model.refresh()
+        model.engine = engine; model.restoreProfile(); model.refresh()
         for name in ["A", "B", "C"] {
             precondition(model.command("source.add", ["scene":model.sceneName,"type":"color_source_v3","name":name,"settings":["width":640,"height":360,"color":0xFF112233]]))
         }
@@ -109,6 +110,68 @@ var appVersion: String { "test" }
         try await runCanvasGestureTests(model:model)
         try await runLiveSettingsTests(model: model, directory: directory)
         try await runGuestSecurityTests(model:model,directory:directory)
+        let overview = try AgentTools.execute("studio_overview", arguments: [:], model: model)
+        precondition((overview["scenes"] as? [[String: Any]])?.isEmpty == false)
+        let mcpScene = "MCP QA"
+        _ = try AgentTools.execute("scene_create", arguments: ["name": mcpScene], model: model)
+        let added = try AgentTools.execute("source_add", arguments: ["scene": mcpScene, "type": "color_source_v3", "name": "Fundo MCP", "settings": ["width": 320, "height": 180, "color": 0xFF112233]], model: model)
+        let mcpID = added["id"] as! Int64
+        _ = try AgentTools.execute("item_transform", arguments: ["scene": mcpScene, "id": mcpID, "x": 42, "y": 64], model: model)
+        _ = try AgentTools.execute("item_visibility", arguments: ["scene": mcpScene, "id": mcpID, "visible": false], model: model)
+        let mcpItems = try AgentTools.execute("scene_items", arguments: ["scene": mcpScene], model: model)["items"] as! [[String: Any]]
+        precondition(mcpItems.count == 1 && mcpItems[0].number("x") == 42 && !mcpItems[0].flag("visible"))
+        precondition(mcpItems[0]["settings"] == nil && !mcpItems[0].string("sourceUUID").isEmpty)
+        let reused = try AgentTools.execute("source_reuse", arguments: ["scene": mcpScene, "name": "A"], model: model)
+        precondition((reused["id"] as? Int64 ?? 0) > 0)
+        _ = try AgentTools.execute("item_order", arguments: ["scene": mcpScene, "id": mcpID, "index": 0], model: model)
+        let savedState = model.state
+        model.state["streaming"] = true
+        do {
+            _ = try AgentTools.execute("scene_create", arguments: ["name": "Must not exist"], model: model)
+            preconditionFailure("MCP must not edit while streaming")
+        } catch { precondition(!model.scenes.contains(where: { $0.string("name") == "Must not exist" })) }
+        model.state = savedState
+        do {
+            _ = try AgentTools.execute("stream.start", arguments: [:], model: model)
+            preconditionFailure("MCP must not expose stream operations")
+        } catch { }
+        UserDefaults.standard.set(true, forKey: AgentSocket.enabledKey)
+        let agent = AgentSocket(model: model)
+        agent.applyPreference()
+        precondition(agent.running, agent.problem ?? "MCP socket failed")
+        let response = try await Task.detached { () throws -> [String: Any] in
+            let fd = try AgentWire.socket()
+            defer { Darwin.close(fd) }
+            var address = AgentWire.address(try AgentWire.path(directory))
+            let connected = withUnsafePointer(to: &address) {
+                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) == 0 }
+            }
+            precondition(connected)
+            try AgentWire.writeLine(JSONSerialization.data(withJSONObject: ["tool": "studio_overview", "arguments": [:] as [String: Any]]), to: fd)
+            return try JSONSerialization.jsonObject(with: AgentWire.readLine(fd)) as! [String: Any]
+        }.value
+        precondition(response["ok"] as? Bool == true)
+        agent.stop()
+        UserDefaults.standard.removeObject(forKey: AgentSocket.enabledKey)
+        print("PASS: MCP allowlist, layout edits, redacted reads, live guard, local socket")
+        let previousProfile = model.selectedProfileID
+        precondition(previousProfile == "default")
+        model.createProfile(name: "Entrevistas")
+        let interviewsID = model.selectedProfileID
+        precondition(interviewsID != previousProfile && model.profiles.count == 2)
+        precondition(!model.scenes.contains(where: { $0.string("name") == mcpScene }))
+        precondition(model.command("scene.create", ["name": "Cenário entrevista"]))
+        model.selectProfile(previousProfile)
+        precondition(model.selectedProfileID == previousProfile && model.scenes.contains(where: { $0.string("name") == mcpScene }))
+        precondition(!model.scenes.contains(where: { $0.string("name") == "Cenário entrevista" }))
+        model.selectProfile(interviewsID)
+        precondition(model.scenes.contains(where: { $0.string("name") == "Cenário entrevista" }))
+        model.renameProfile(interviewsID, to: "Conversas")
+        precondition(model.selectedProfileName == "Conversas")
+        let reopened = try ProductionProfiles(directory: directory)
+        precondition(reopened.selectedID == interviewsID && reopened.selected.name == "Conversas")
+        precondition(model.undoCount == 0 && model.redoCount == 0)
+        print("PASS: production profiles isolate scene collections, persist last selection and rename, clear cross-profile history")
         model.shutdown()
         print("PASS: actual engine reorder, one-step undo/redo, stable selection, stale/invalid order rejection, save/load and source-bound edits; no physical devices or public output")
     }

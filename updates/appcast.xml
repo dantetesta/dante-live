@@ -6,6 +6,27 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.27</title>
+      <pubDate>Mon, 19 Oct 2026 23:02:01 +0000</pubDate>
+      <sparkle:version>28</sparkle:version>
+      <sparkle:shortVersionString>0.1.27</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">DANTE LIVE 0.1.27 — NOVIDADES
+
+• O componente Likes e novos inscritos permite ajustar o tamanho do ícone de like e inscrição separadamente do título, da contagem e dos detalhes.
+• O controle vai de 24 a 120 px. O selo e o símbolo mudam juntos; cartões pequenos limitam o tamanho para manter o conteúdo dentro da área.
+• Componentes antigos conservam o tamanho anterior até você ajustar o novo controle.
+
+COMO USAR
+Selecione Likes e novos inscritos na cena. Em Propriedades, mova Ícone de like e inscrição. Escala geral continua aumentando o cartão inteiro; os controles de fonte continuam independentes.
+
+VALIDAÇÃO
+Renderização local com ícones pequenos e grandes e com aviso de inscrição aprovada. Os testes de chat e de textura nativa passaram. Build e publicação em andamento. Live pública e hardware Intel físico não validados.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.27/Dante-Live-0.1.27-macOS-universal.dmg" length="97862912" type="application/octet-stream" sparkle:edSignature="QUwHEdH7YpEHgSmW0RIWojzteiitKkomhukM4OY8BOQGD860DRrMRtDgBjDVhPZB6NtfHHkeMX6u5LMX8SrYCQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.26</title>
       <pubDate>Mon, 19 Oct 2026 22:44:41 +0000</pubDate>
       <sparkle:version>27</sparkle:version>
@@ -476,6 +497,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: O8G8Vct8TSVjfqe4ZvFGpEg9cMQnC4kRBfEgsbyU/FISYsUdH61zjWUx2LXOaZ1Rysz9/mo4nJTU4cmzIuOTDA==
-length: 44109
+edSignature: vM2vaDrlIGb6yznQ4mfsstGy6Q2++uvo3OIO0LbzYtHMkRpIWUGhsBSd1iklyuH6rN1wy2nSmc572CZQWpj0AQ==
+length: 45759
 -->

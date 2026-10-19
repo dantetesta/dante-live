@@ -1,0 +1,16 @@
+{
+  "version": "0.1.27",
+  "build": 28,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.27/Dante-Live-0.1.27-macOS-universal.dmg",
+  "length": 97862912,
+  "sha256": "f57385f1fbe8ce7df0ae583d980dc61113b330f190bbd070a836a26fcb8516a4",
+  "signature": "QUwHEdH7YpEHgSmW0RIWojzteiitKkomhukM4OY8BOQGD860DRrMRtDgBjDVhPZB6NtfHHkeMX6u5LMX8SrYCQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-19T23:02:01.612103+00:00",
+  "changelog": "DANTE LIVE 0.1.27 — NOVIDADES\n\n• O componente Likes e novos inscritos permite ajustar o tamanho do ícone de like e inscrição separadamente do título, da contagem e dos detalhes.\n• O controle vai de 24 a 120 px. O selo e o símbolo mudam juntos; cartões pequenos limitam o tamanho para manter o conteúdo dentro da área.\n• Componentes antigos conservam o tamanho anterior até você ajustar o novo controle.\n\nCOMO USAR\nSelecione Likes e novos inscritos na cena. Em Propriedades, mova Ícone de like e inscrição. Escala geral continua aumentando o cartão inteiro; os controles de fonte continuam independentes.\n\nVALIDAÇÃO\nRenderização local com ícones pequenos e grandes e com aviso de inscrição aprovada. Os testes de chat e de textura nativa passaram. Build e publicação em andamento. Live pública e hardware Intel físico não validados.\n",
+  "notarized": true
+}

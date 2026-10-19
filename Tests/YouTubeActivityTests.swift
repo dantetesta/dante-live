@@ -55,5 +55,15 @@ import Foundation
     try scaled.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("scaled-150-percent.png"))
     let capped=YouTubeActivityRaster.render(event:nil,total:1250,settings:["layoutWidth":1920,"layoutHeight":1600,"componentScale":2])!
     precondition(capped.pixelsWide==2592 && capped.pixelsHigh==2160)
+    let smallIcon=YouTubeActivityRaster.render(event:nil,total:1250,settings:["iconSize":24])!
+    let largeIcon=YouTubeActivityRaster.render(event:nil,total:1250,settings:["iconSize":120])!
+    precondition(smallIcon.pixelsWide==largeIcon.pixelsWide && smallIcon.pixelsHigh==largeIcon.pixelsHigh)
+    precondition(smallIcon.colorAt(x:100,y:120) != largeIcon.colorAt(x:100,y:120),
+                 "Changing the icon must alter its own pixels without resizing the card")
+    let subscriberIcon=YouTubeActivityRaster.render(event:.init(id:"subscriber-preview",kind:.subscriber,name:"Marina",total:nil),
+                                                    total:nil,settings:["iconSize":120])!
+    try smallIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-small.png"))
+    try largeIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-large.png"))
+    try subscriberIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-subscriber.png"))
     print("PASS: likes, rounded channel total, public subscriber count, dedup, six editable raster styles and authenticated read-only requests")
 }

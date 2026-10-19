@@ -21,6 +21,10 @@ Versão experimental **0.1.26**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.27
+
+O componente **Likes e novos inscritos** agora permite definir o tamanho do ícone de like e inscrição separadamente das letras e da Escala geral. O controle vai de 24 a 120 px; em cartões pequenos, o desenho respeita o espaço disponível. Componentes antigos mantêm o tamanho anterior até você escolher outro valor.
+
 ## Novidades da 0.1.26
 
 Chat, destaque de comentário e alertas de likes/inscrições ganharam uma **Escala geral** de 50% a 200%. Ela aumenta cartão, ícones e letras juntos, redesenhando a textura na resolução escolhida. Largura e altura continuam independentes para ajustar a área e a quebra de linha. Novos alertas também começam com cartão e tipografia maiores, mais legíveis em cenas 4K; componentes já salvos mantêm seus valores até você alterá-los.

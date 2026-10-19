@@ -93,6 +93,9 @@ struct YouTubeActivitySettings: View {
             sizeControl("Título", key: "labelSize", fallback: 20, range: 10...26)
             sizeControl("Contagem ou nome", key: "valueSize", fallback: 68, range: 18...90)
             sizeControl("Detalhes", key: "detailSize", fallback: 22, range: 10...32)
+            sizeControl("Ícone de like e inscrição", key: "iconSize",
+                        fallback: min(70, max(40, settings.number("layoutWidth", 820) * 0.16)), range: 24...120)
+            Text("Em cartões menores, o ícone se ajusta ao espaço disponível.").font(.caption).foregroundStyle(.secondary)
             Divider()
             HStack { Text("Escala geral").font(.subheadline.bold()); Spacer(); Text("\(Int(componentScale.wrappedValue * 100))%").monospacedDigit().foregroundStyle(.secondary) }
             Slider(value: componentScale, in: 0.5...2, step: 0.05).accessibilityLabel("Escala geral do componente")
@@ -161,19 +164,22 @@ struct YouTubeActivitySettings: View {
             accent.withAlphaComponent(0.25).setStroke(); inner.lineWidth = 1; inner.stroke()
         }
 
-        let iconWidth = min(CGFloat(70), max(40, CGFloat(width) * 0.16))
+        let legacyIcon = min(70, max(40, CGFloat(width) * 0.16))
+        let requestedIcon = CGFloat(min(120, max(24, settings.number("iconSize", Double(legacyIcon)))))
+        let iconWidth = min(requestedIcon, CGFloat(height) - 20, CGFloat(width) * 0.32)
         let iconRect = CGRect(x: 19, y: (CGFloat(height) - iconWidth) / 2, width: iconWidth, height: iconWidth)
         if style.id != 3 && style.id != 5 {
             accent.withAlphaComponent(style.id == 4 ? 0.28 : 0.17).setFill()
             NSBezierPath(ovalIn: iconRect).fill()
         }
         let subscribed = event?.kind == .subscriber
+        let customIcon = settings["iconSize"] != nil
         if let symbol = NSImage(systemSymbolName: subscribed ? "person.badge.plus.fill" : "hand.thumbsup.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: min(42, iconWidth * 0.53), weight: .semibold)) {
+            .withSymbolConfiguration(.init(pointSize: customIcon ? iconWidth * 0.58 : min(42, iconWidth * 0.53), weight: .semibold)) {
             let image = symbol.copy() as! NSImage
             image.isTemplate = false
             image.lockFocus(); accent.set(); NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop); image.unlockFocus()
-            image.draw(in: iconRect.insetBy(dx: iconWidth * 0.23, dy: iconWidth * 0.23),
+            image.draw(in: iconRect.insetBy(dx: iconWidth * (customIcon ? 0.21 : 0.23), dy: iconWidth * (customIcon ? 0.21 : 0.23)),
                        from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         }
 

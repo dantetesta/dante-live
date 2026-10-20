@@ -25,7 +25,6 @@ if [[ ! -f "$BUILD/DanteLive.icns" || packaging/generate-icon.swift -nt "$BUILD/
 fi
 cp "$BUILD/DanteLive.icns" "$APP/Contents/Resources/DanteLive.icns"
 cp Sources/Assets/credits-author.png "$APP/Contents/Resources/credits-author.png"
-cp Sources/Assets/Partners/dante-studio.png "$APP/Contents/Resources/partner-dante-studio.png"
 cp Sources/Assets/Partners/academy.png "$APP/Contents/Resources/partner-academy.png"
 cp Sources/Assets/Partners/napoleon.png "$APP/Contents/Resources/partner-napoleon.png"
 # User-facing offline help, explicitly requested as part of the application.

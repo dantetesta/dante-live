@@ -21,7 +21,11 @@ Versão experimental **0.1.30**. Assinado com Developer ID e notarizado pela App
 
 ---
 
-## Novidades da 0.1.31
+## Novidades da 0.1.32
+
+O convite azul para parcerias no topo agora usa a marca e o ícone oficiais do Dante Live. O cartão é desenhado pelo aplicativo para manter a identidade correta nas próximas versões.
+
+### Composição de likes, inscritos e comentários
 
 Os cartões de likes e novos inscritos foram redesenhados. Ícone, título, número ou nome e detalhes ocupam áreas próprias; o texto se ajusta à largura e à altura disponíveis, inclusive quando o componente é reduzido no canvas. Os seis presets mantêm cores editáveis e receberam bordas e contrastes mais discretos.
 

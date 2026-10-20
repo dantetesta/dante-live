@@ -1,4 +1,6 @@
-## Versão 0.1.31 — composição dos cartões de atividade e destaque
+## Versão 0.1.32 — cartões de atividade, destaque e marca do banner
+
+O convite azul para parcerias no carrossel usa o ícone oficial do aplicativo e texto Dante Live, desenhados nativamente. O PNG com a marca Dante Studio foi removido do runtime. A 0.1.31 foi compilada para QA, mas sua publicação foi interrompida antes de virar release por causa da identidade incorreta no banner.
 
 Likes e inscritos usam uma grade vertical com espaços próprios para título, valor/nome e detalhes. Tamanho e largura da fonte são limitados pela área real do cartão; os dois indicadores secundários se separam em linhas quando há altura. Os seis presets têm bordas e cores revistas. Destaques de comentários e Super Chats usam cabeçalho com avatar/autor e selo/valor independentes, mensagem em largura ampla e ajuste do valor em cartões compactos. O seletor renderiza miniaturas do destaque, e o Neon perdeu o contorno chamativo. Amostras rasterizadas em tamanhos compacto e largo foram inspecionadas; testes nativos de chat/atividade passaram. Build e publicação finais ainda pendem.
 

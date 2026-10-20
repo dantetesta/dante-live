@@ -13,7 +13,8 @@ var appVersion: String { "test" }
         var thumbnailWindows: [NSWindow] = []
         for style in 0..<10 {
             let thumbnail = NSHostingView(rootView: VisualizerStyleThumbnail(
-                style: style, primary: 0x48D8E8, secondary: 0x986BFF
+                style: style, primary: style == 0 ? .infinity : 0x48D8E8,
+                secondary: style == 6 ? .nan : 0x986BFF
             ).frame(width: 144, height: 54))
             thumbnail.frame = NSRect(x: 0, y: 0, width: 144, height: 54)
             let window = NSWindow(contentRect: NSRect(x: -2000, y: -2000, width: 144, height: 54),
@@ -28,7 +29,7 @@ var appVersion: String { "test" }
             window.orderOut(nil)
             thumbnailWindows.append(window)
         }
-        print("PASS: all ten audio visualizer thumbnails render without crashing")
+        print("PASS: all ten audio visualizer thumbnails render, including waveform endpoints and invalid colors")
         fflush(stdout)
         let queue = PropertyEditQueue()
         var edits: [String] = []

@@ -6,7 +6,8 @@ import Foundation
 enum AgentTools {
     static let editableTypes: Set<String> = [
         "text_ft2_source_v2", "color_source_v3", "image_source", "dante_marquee",
-        "dante_qrcode", "dante_audio_visualizer", "dante_youtube_chat", "dante_superchat"
+        "dante_qrcode", "dante_audio_visualizer", "dante_youtube_chat", "dante_superchat",
+        "macos-avcapture", "coreaudio_input_capture"
     ]
 
     static func execute(_ name: String, arguments: [String: Any], model: StudioModel) throws -> [String: Any] {
@@ -67,7 +68,7 @@ enum AgentTools {
         case "source_update":
             let source = try text(arguments, "name")
             guard model.scenes.flatMap({ $0.array("items") }).contains(where: { $0.string("name") == source && editableTypes.contains($0.string("type")) }) else {
-                throw StudioError.message("Fonte visual não encontrada.")
+                throw StudioError.message("Fonte editável não encontrada.")
             }
             try run(model, "source.update", ["name": source, "settings": try settings(arguments)])
             return ["updated": source]
@@ -76,8 +77,9 @@ enum AgentTools {
             let source = try text(arguments, "name")
             guard !model.guests.managedSourceNames.contains(source),
                   model.scenes.flatMap({ $0.array("items") }).contains(where: {
-                      $0.string("name") == source && ($0.number("width") > 0 || $0.flag("awaitingVideo"))
-                  }) else { throw StudioError.message("Fonte visual existente não encontrada.") }
+                      $0.string("name") == source &&
+                      ($0.number("width") > 0 || $0.flag("awaitingVideo") || $0.string("type") == "coreaudio_input_capture")
+                  }) else { throw StudioError.message("Fonte existente não encontrada ou indisponível para reutilização.") }
             try run(model, "source.reuse", ["scene": scene, "name": source])
             let item = model.scenes.first { $0.string("name") == scene }?.array("items").first { $0.string("name") == source }
             return ["scene": scene, "name": source, "id": item?.sceneItemID ?? 0]

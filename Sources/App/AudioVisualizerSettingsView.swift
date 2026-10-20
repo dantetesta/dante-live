@@ -27,7 +27,11 @@ struct AudioVisualizerSettingsView: View {
             }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
-    private var selectedStyle: Int { min(9, max(0, Int(settings.number("style")))) }
+    private var selectedStyle: Int {
+        let value = settings.number("style")
+        guard value.isFinite, value >= 0, value < Double(Self.styles.count) else { return 0 }
+        return Int(value)
+    }
     private var selectedUUID: String { settings.string("audioSourceUUID") }
 
     var body: some View {
@@ -102,7 +106,7 @@ struct VisualizerStyleThumbnail: View {
     let secondary: Double
 
     private func color(_ raw: Double) -> Color {
-        let value = Int(raw)
+        let value = raw.isFinite ? Int(min(max(raw, 0), Double(0xFFFFFF))) : 0
         return Color(red: Double((value >> 16) & 255) / 255,
                      green: Double((value >> 8) & 255) / 255,
                      blue: Double(value & 255) / 255)
@@ -115,8 +119,9 @@ struct VisualizerStyleThumbnail: View {
             let values: [Double] = [0.12,0.25,0.45,0.18,0.75,0.52,0.30,0.92,0.58,0.36,0.68,0.24,0.42,0.77,0.32,0.16]
             if style == 0 || style == 6 {
                 var path = Path()
-                for i in 0..<33 {
-                    let x = CGFloat(i) / 32 * size.width
+                let segmentCount = values.count * 2
+                for i in 0...segmentCount {
+                    let x = CGFloat(i) / CGFloat(segmentCount) * size.width
                     let sample = values[min(i / 2, values.count - 1)]
                     let y = cy + sin(Double(i)*0.65) * (6 + sample*12)
                     if i == 0 { path.move(to: CGPoint(x:x,y:y)) } else { path.addLine(to: CGPoint(x:x,y:y)) }

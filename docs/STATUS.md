@@ -1,3 +1,7 @@
+## Versão 0.1.34 — estabilidade do visualizador
+
+O executável local 0.1.33 encerrava ao abrir as propriedades de um visualizador: a miniatura da onda desenhava 33 pontos usando uma lista de 16 amostras e acessava a posição 16 no último ponto. O UUID do binário instalado corresponde à cópia local que contém esse acesso. O código público preserva o limite correto e agora deriva o número de segmentos da própria lista; cores não finitas e índices de estilo inválidos também deixam de causar conversões fatais. O teste renderizou as dez miniaturas, incluindo as duas ondas e cores inválidas; a suíte local de interação, áudio sintético e persistência passou no build Universal 2. As fontes de câmera e microfone expostas ao MCP na cópia 0.1.33 foram mantidas nesta linha pública. Distribuição e teste no aplicativo instalado ainda pendem.
+
 ## Versão 0.1.32 — cartões de atividade, destaque e marca do banner
 
 O convite azul para parcerias no carrossel usa o ícone oficial do aplicativo e texto Dante Live, desenhados nativamente. O PNG com a marca Dante Studio foi removido do runtime. A 0.1.31 foi compilada para QA, mas sua publicação foi interrompida antes de virar release por causa da identidade incorreta no banner. A peça 400 × 55 pontos foi renderizada e inspecionada em Retina; o DMG 0.1.32 foi montado e confirmou a ausência do PNG antigo.

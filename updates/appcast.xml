@@ -6,6 +6,25 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.29</title>
+      <pubDate>Tue, 20 Oct 2026 00:29:53 +0000</pubDate>
+      <sparkle:version>30</sparkle:version>
+      <sparkle:shortVersionString>0.1.29</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.29 — comentários e Super Chats
+
+- Destaques e comentários podem ocupar até 3.840 px de largura em uma cena 4K. Ao arrastar as alças laterais, o texto se reorganiza sem ficar esticado.
+- Novo controle Avatar / ícone nas propriedades do chat e do destaque, de 24 a 144 px. O padrão agora é 64 px.
+- Nome e mensagem se alinham ao círculo do autor, com altura do cartão ajustada para preservar a leitura.
+
+O círculo mostra a inicial estilizada do autor; esta versão não carrega a foto remota do perfil.
+
+Requisitos: macOS 14 ou posterior, Apple Silicon ou Intel (aplicativo Universal 2). Testes locais de renderização e chat aprovados; hardware Intel físico e transmissão pública não foram validados nesta versão.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.29/Dante-Live-0.1.29-macOS-universal.dmg" length="96598877" type="application/octet-stream" sparkle:edSignature="2ar4oDTKF8NmAE6Q206Tpsd4FkRncpfEUKe7v7P2vjHsR3c9dCv395iA7PgnVptyjxnt/wbuL2aCKBC+kIDgDw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.28</title>
       <pubDate>Mon, 19 Oct 2026 23:57:23 +0000</pubDate>
       <sparkle:version>29</sparkle:version>
@@ -518,6 +537,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: JefsD6+8cZon2PWHjqiG7xMaJtmFKHOw6Nsx5kyuGsX6k+/Tn9xBHLUN5L2jujZ66a0vtRZyITKrMnumY8ktAA==
-length: 48038
+edSignature: LyltNfpW7XR4LZxBJLPYmSCLzjVcrAZzKB8BwRJFRch8SXlstiytWrNNvlPHfdoLMEq7Se53VUSN+eFzwCO6CA==
+length: 49568
 -->

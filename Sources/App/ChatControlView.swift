@@ -4,7 +4,7 @@ import AppKit
 @MainActor private enum ChatStylePreviews {
     static let images: [Int: NSImage] = Dictionary(uniqueKeysWithValues: ChatStyle.all.compactMap { style in
         let message=ChatMessage(["id":"preview","authorDetails":["displayName":"Marina"],"snippet":["type":"textMessageEvent","textMessageDetails":["messageText":"Boa noite, pessoal!"]]])!
-        guard let bitmap=ChatRaster.render(messages:[message],featured:nil,page:0,lower:false,settings:["style":style.id,"layoutWidth":360,"layoutHeight":140,"fontSize":24,"nameSize":20]) else{return nil}
+        guard let bitmap=ChatRaster.render(messages:[message],featured:nil,page:0,lower:false,settings:["style":style.id,"layoutWidth":360,"layoutHeight":180,"fontSize":24,"nameSize":20]) else{return nil}
         let image=NSImage(size:NSSize(width:bitmap.pixelsWide,height:bitmap.pixelsHigh));image.addRepresentation(bitmap)
         return (style.id,image)
     })
@@ -119,6 +119,7 @@ struct ChatStylePicker: View {
             }
             slider("Nome da pessoa",key:"nameSize",fallback:20,range:12...48)
             slider("Mensagem",key:"fontSize",fallback:24,range:14...64)
+            slider("Avatar / ícone",key:"avatarSize",fallback:64,range:24...144)
             if !lower { slider("Entre os comentários",key:"messageGap",fallback:10,range:0...48) }
             Divider()
             Text("Cores dos cartões").font(.subheadline.bold())
@@ -146,7 +147,7 @@ struct ChatStylePicker: View {
                 Text("Altura")
                 TextField("Altura",value:number("layoutHeight",Double(layout.height)),format:.number).textFieldStyle(.roundedBorder)
             }
-            Text("Arraste as laterais no canvas para mudar largura ou altura e reorganizar as linhas. Use Escala geral para aumentar tudo proporcionalmente. A altura mínima preserva uma linha de leitura.").font(.caption).foregroundStyle(.secondary)
+            Text("Arraste as laterais no canvas para mudar largura ou altura e reorganizar as linhas, até 3.840 px de largura. Use Escala geral para aumentar tudo proporcionalmente. A altura mínima preserva uma linha de leitura.").font(.caption).foregroundStyle(.secondary)
             Text("Os nomes usam cores consistentes por pessoa. O destaque usa este mesmo desenho; mensagens longas ficam em páginas na fila. A aparência acompanha esta fonte nas cenas em que é reutilizada.").font(.caption).foregroundStyle(.secondary)
         }
     }

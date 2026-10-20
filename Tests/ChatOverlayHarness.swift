@@ -53,9 +53,15 @@ let appVersion = "Chat QA"
         let compact=spans(["messageGap":10]),spaced=spans(["messageGap":30])
         precondition(compact.count==2 && spaced.count==2)
         precondition(spaced[1].lowerBound-compact[1].lowerBound==20)
-        let largeName=spans(["nameSize":32]);precondition(largeName[0].count>compact[0].count)
+        let largeName=spans(["nameSize":48]);precondition(largeName[0].count>compact[0].count)
         let largerText=spans(["fontSize":40]);precondition(largerText[0].count>compact[0].count)
-        print("PASS: measured card spacing and independent name/body sizes; editor samples gated before live")
+        let largerAvatar=spans(["avatarSize":128]);precondition(largerAvatar[0].count>compact[0].count)
+        let wideSettings:[String:Any]=["layoutWidth":3840,"layoutHeight":320,"avatarSize":96]
+        precondition(ChatLayout(lower:true,settings:wideSettings).width==3840)
+        let wideHighlight=ChatRaster.render(messages:[],featured:chat.featured,page:0,lower:true,settings:wideSettings)!
+        precondition(wideHighlight.pixelsWide==3840)
+        try wideHighlight.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("highlight-wide-avatar.png"))
+        print("PASS: card spacing, independent font and avatar sizes, full-canvas highlight width; samples gated before live")
         for style in ChatStyle.all.prefix(6) {
             let settings:[String:Any]=["style":style.id,"layoutWidth":480,"layoutHeight":360,"nameSize":22,"fontSize":25,"messageGap":10]
             let bitmap=ChatRaster.render(messages:feedMessages,featured:nil,page:0,lower:false,settings:settings)!

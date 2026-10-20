@@ -56,12 +56,17 @@ struct ChatLayout {
             let value = settings.number(key, fallback)
             return value.isFinite ? min(hi, max(lo, value)) : fallback
         }
-        width = Int(bounded("layoutWidth", lower ? 1100 : 480, 240, 1920))
+        width = Int(bounded("layoutWidth", lower ? 1100 : 480, 240, 3840))
         bodySize = bounded("fontSize", 24, 14, 64)
         nameSize = bounded("nameSize", 20, 12, 48)
         gap = bounded("messageGap", 10, 0, 48)
-        let minimumHeight = lower ? ceil(146 + nameSize*1.4 + bodySize*1.4) : ceil(40 + nameSize*1.4 + bodySize*1.4)
+        let authorHeight = max(Self.avatarSize(settings), ceil(nameSize*1.4))
+        let minimumHeight = ceil(44 + (lower ? 102 : 0) + authorHeight + bodySize*1.4)
         height = Int(bounded("layoutHeight", lower ? 420 : 720, max(140, minimumHeight), 2160))
+    }
+    static func avatarSize(_ settings: [String: Any]) -> CGFloat {
+        let requested = settings.number("avatarSize", 64)
+        return CGFloat(requested.isFinite ? min(144, max(24, requested)) : 64)
     }
 }
 
@@ -157,35 +162,42 @@ enum OverlayComponentScale {
                 fill.withAlphaComponent(opacity).setFill();tail.fill()
             }
         }
-        let avatar: CGFloat = 42, padding: CGFloat = 16, outside = style.layout == 4
+        let avatar = ChatLayout.avatarSize(settings), padding: CGFloat = 16, outside = style.layout == 4
         let margin: CGFloat = style.layout == 2 ? 8 : 4
         let textX = margin + padding + avatar + 12
         let contentWidth = CGFloat(width) - textX - padding - margin
         let nameHeight = ceil(layout.nameSize * 1.4)
+        let authorHeight = max(avatar, nameHeight)
         let badgeHeight: CGFloat = lower ? 26 : 0
         let amountHeight: CGFloat = lower && featured?.paid == true ? 52 : 0
         func cardHeight(_ value: String, lower: Bool) -> CGFloat {
             let bodyHeight = measure(value, width: contentWidth, size: layout.bodySize)
-            return max(avatar + padding*2, padding*2 + badgeHeight + nameHeight + 4 + amountHeight + (lower ? bodyHeight : min(bodyHeight, layout.bodySize*5.9)))
+            return padding*2 + badgeHeight + authorHeight + 4 + amountHeight + (lower ? bodyHeight : min(bodyHeight, layout.bodySize*5.9))
         }
         func draw(_ message: ChatMessage, value: String, y: CGFloat, cardHeight: CGFloat, featured: Bool) {
             let paid = featured && message.paid
             let rect = CGRect(x: outside ? textX-10 : margin, y:y, width:CGFloat(width)-(outside ? textX-10 : margin)-margin, height:cardHeight)
             panel(rect, paid:paid)
             let personColor = authorColor(message)
-            let avatarRect = CGRect(x:margin + (outside ? 2 : padding),y:y+padding+badgeHeight,width:avatar,height:avatar)
+            let authorY = y + padding + badgeHeight
+            let avatarRect = CGRect(x:margin + (outside ? 2 : padding),y:authorY + (authorHeight-avatar)/2,width:avatar,height:avatar)
             (style.layout == 5 ? background : personColor).setFill(); NSBezierPath(ovalIn:avatarRect).fill()
             if style.layout == 5 { personColor.setStroke();let circle=NSBezierPath(ovalIn:avatarRect);circle.lineWidth=2;circle.stroke() }
             let initial = String(message.author.trimmingCharacters(in:.whitespacesAndNewlines).replacingOccurrences(of:"@",with:"").prefix(1)).uppercased()
-            text(initial, CGRect(x:avatarRect.minX+10,y:avatarRect.minY+5,width:30,height:34), 26, style.layout == 5 ? personColor : .white, bold:true)
+            let initialSize = avatar * 0.56
+            let initialStyle = NSMutableParagraphStyle(); initialStyle.alignment = .center
+            NSAttributedString(string:initial, attributes:[.font:NSFont.systemFont(ofSize:initialSize,weight:.bold),
+                .foregroundColor:style.layout == 5 ? personColor : NSColor.white,.paragraphStyle:initialStyle])
+                .draw(with:CGRect(x:avatarRect.minX,y:avatarRect.minY+(avatar-initialSize*1.25)/2,width:avatar,height:initialSize*1.25),
+                      options:[.usesLineFragmentOrigin,.truncatesLastVisibleLine])
             let paidInk: NSColor
             let rgb=accent.usingColorSpace(.sRGB) ?? accent
             let brightness=0.2126*rgb.redComponent+0.7152*rgb.greenComponent+0.0722*rgb.blueComponent
             paidInk = paid && style.layout != 2 && style.layout != 5 ? (brightness > 0.55 ? chatColor(0x101520) : .white) : ink
             if featured { text(paid ? "♥  SUPER CHAT" : "COMENTÁRIO EM DESTAQUE",CGRect(x:textX,y:y+padding,width:contentWidth,height:24),14,paid ? paidInk : accent,bold:true,single:true) }
-            let nameY=y+padding+badgeHeight
+            let nameY=authorY+(authorHeight-nameHeight)/2
             text((style.layout == 5 ? "> " : "") + message.author, CGRect(x:textX,y:nameY,width:contentWidth,height:nameHeight),layout.nameSize,paid ? paidInk : personColor,bold:true,single:true)
-            var bodyY=nameY+nameHeight+4
+            var bodyY=authorY+authorHeight+4
             if paid { text(message.amount,CGRect(x:textX,y:bodyY,width:contentWidth,height:amountHeight),38,style.layout == 2 || style.layout == 5 ? accent : paidInk,bold:true,single:true);bodyY += amountHeight }
             let bodyBox=CGRect(x:textX,y:bodyY,width:contentWidth,height:max(1,y+cardHeight-padding-bodyY))
             text(value,bodyBox,layout.bodySize,paidInk)
@@ -221,8 +233,10 @@ enum OverlayComponentScale {
         let face=settings.string("font",style.layout == 5 ? "Menlo" : "Helvetica Neue")
         let font=NSFont(name:face,size:layout.bodySize) ?? .systemFont(ofSize:layout.bodySize)
         let paragraph=NSMutableParagraphStyle();paragraph.lineBreakMode = .byWordWrapping;paragraph.lineSpacing=2
-        let width=CGFloat(layout.width)-(style.layout == 2 ? 102 : 94)
-        let height=max(layout.bodySize*1.4,CGFloat(layout.height)-8-32-26-ceil(layout.nameSize*1.4)-4-(message.paid ? 52 : 0)-24)
+        let avatar=ChatLayout.avatarSize(settings)
+        let margin: CGFloat = style.layout == 2 ? 8 : 4
+        let width=CGFloat(layout.width)-(margin+16+avatar+12)-16-margin
+        let height=max(layout.bodySize*1.4,CGFloat(layout.height)-margin*2-32-26-max(avatar,ceil(layout.nameSize*1.4))-4-(message.paid ? 52 : 0)-24)
         let attrs: [NSAttributedString.Key:Any]=[.font:font,.paragraphStyle:paragraph]
         var remaining=Array(message.text.isEmpty ? "Obrigado pelo apoio!" : message.text), result:[String]=[]
         while !remaining.isEmpty {

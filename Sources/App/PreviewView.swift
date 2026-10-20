@@ -189,7 +189,7 @@ struct CanvasView: View {
                     sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), crop: cropFor(origin),
                     position: CGPoint(x: origin.number("x"), y: origin.number("y")), alignment: Int(origin.number("alignment",5)),
                     minimum: CGSize(width:240*scale,height:CGFloat(minimumHeight)*scale),
-                    maximum: CGSize(width:min(3840,3840*scale),height:min(2160,2160*scale))) {
+                    maximum: CGSize(width:min(3840,(type == "dante_youtube_alert" ? 1920 : 3840)*scale),height:min(2160,2160*scale))) {
                     if model.command("source.update", ["name":origin.string("name"),"settings":["layoutWidth":(edit.size.width/scale).rounded(),"layoutHeight":(edit.size.height/scale).rounded()]],undo:false) {
                         _ = model.command("item.transform",["scene":model.sceneName,"id":origin.sceneItemID,"x":edit.position.x,"y":edit.position.y],undo:false)
                     }

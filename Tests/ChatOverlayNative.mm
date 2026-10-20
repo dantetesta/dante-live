@@ -43,6 +43,9 @@ int main(int argc,char **argv){@autoreleasepool{
     command(e,"source.update",R"({"name":"Overlay native QA","settings":{"componentScale":1.5}})");
     overlay=obs_get_source_by_name("Overlay native QA");assert(obs_source_get_width(overlay)==960&&obs_source_get_height(overlay)==450);
     assert(!dante_chat_frame("Overlay native QA",resized.data(),640,300,2560,false));obs_source_release(overlay);
+    command(e,"source.update",R"({"name":"Overlay native QA","settings":{"componentScale":1,"layoutWidth":3840,"layoutHeight":320,"avatarSize":96}})");
+    overlay=obs_get_source_by_name("Overlay native QA");assert(obs_source_get_width(overlay)==3840&&obs_source_get_height(overlay)==320);
+    std::vector<uint8_t> wide(3840*320*4,255);assert(dante_chat_frame("Overlay native QA",wide.data(),3840,320,15360,false));obs_source_release(overlay);
     command(e,"source.add",R"({"type":"dante_youtube_alert","name":"Activity QA"})");
     auto *activity=obs_get_source_by_name("Activity QA");assert(activity&&obs_source_get_width(activity)==820&&obs_source_get_height(activity)==240);
     std::vector<uint8_t> alert(820*240*4,255);assert(dante_chat_frame("Activity QA",alert.data(),820,240,3280,true));

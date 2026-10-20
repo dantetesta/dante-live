@@ -11,8 +11,9 @@ struct DanteChatTexture {
 static void dante_chat_resize(DanteChatTexture *v,obs_data_t *d) {
     auto bound=[](double n,double fallback,double lo,double hi){return std::isfinite(n)?std::min(hi,std::max(lo,n)):fallback;};
     double body=bound(obs_data_get_double(d,"fontSize"),24,14,64), name=bound(obs_data_get_double(d,"nameSize"),20,12,48);
-    double minimum=std::max(140.0,std::ceil((v->lower?146:40)+name*1.4+body*1.4));
-    uint32_t baseW=(uint32_t)bound(obs_data_get_double(d,"layoutWidth"),v->alert?820:v->lower?1100:480,240,1920);
+    double avatar=bound(obs_data_get_double(d,"avatarSize"),64,24,144);
+    double minimum=std::max(140.0,std::ceil(44+(v->lower?102:0)+std::max(avatar,std::ceil(name*1.4))+body*1.4));
+    uint32_t baseW=(uint32_t)bound(obs_data_get_double(d,"layoutWidth"),v->alert?820:v->lower?1100:480,240,v->alert?1920:3840);
     uint32_t baseH=(uint32_t)bound(obs_data_get_double(d,"layoutHeight"),v->alert?240:v->lower?420:720,v->alert?140:minimum,2160);
     double scale=bound(obs_data_get_double(d,"componentScale"),1,0.5,2);
     scale=std::min({scale,3840.0/baseW,2160.0/baseH});
@@ -41,8 +42,8 @@ static void dante_register_chat_sources() {
         i.destroy=[](void *raw){auto *v=(DanteChatTexture*)raw;obs_enter_graphics();gs_texture_destroy(v->texture);obs_leave_graphics();delete v;};
         i.get_width=[](void *raw){return ((DanteChatTexture*)raw)->width.load();};
         i.get_height=[](void *raw){return ((DanteChatTexture*)raw)->height.load();};
-        i.get_defaults=alert?+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",820);obs_data_set_default_int(d,"layoutHeight",240);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_bool(d,"showSubscribers",true);obs_data_set_default_bool(d,"showLikes",true);obs_data_set_default_double(d,"labelSize",20);obs_data_set_default_double(d,"valueSize",68);obs_data_set_default_double(d,"detailSize",22);}:lower?+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",1100);obs_data_set_default_int(d,"layoutHeight",420);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_double(d,"fontSize",24);obs_data_set_default_double(d,"nameSize",20);}
-            :+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",480);obs_data_set_default_int(d,"layoutHeight",720);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_double(d,"fontSize",24);obs_data_set_default_double(d,"nameSize",20);};
+        i.get_defaults=alert?+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",820);obs_data_set_default_int(d,"layoutHeight",240);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_bool(d,"showSubscribers",true);obs_data_set_default_bool(d,"showLikes",true);obs_data_set_default_double(d,"labelSize",20);obs_data_set_default_double(d,"valueSize",68);obs_data_set_default_double(d,"detailSize",22);}:lower?+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",1100);obs_data_set_default_int(d,"layoutHeight",420);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_double(d,"fontSize",24);obs_data_set_default_double(d,"nameSize",20);obs_data_set_default_double(d,"avatarSize",64);}
+            :+[](obs_data_t *d){obs_data_set_default_int(d,"layoutWidth",480);obs_data_set_default_int(d,"layoutHeight",720);obs_data_set_default_double(d,"componentScale",1);obs_data_set_default_double(d,"fontSize",24);obs_data_set_default_double(d,"nameSize",20);obs_data_set_default_double(d,"avatarSize",64);};
         i.update=[](void *raw,obs_data_t *d){dante_chat_resize((DanteChatTexture*)raw,d);};
         i.show=[](void *raw){((DanteChatTexture*)raw)->started=os_gettime_ns();};
         i.video_render=[](void *raw,gs_effect_t*) {

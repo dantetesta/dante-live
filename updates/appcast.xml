@@ -6,6 +6,25 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.35</title>
+      <pubDate>Tue, 20 Oct 2026 17:54:26 +0000</pubDate>
+      <sparkle:version>36</sparkle:version>
+      <sparkle:shortVersionString>0.1.35</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.35 — chat do YouTube
+
+- O anfitrião pode escrever no painel Chat e destaques e enviar uma mensagem ao chat da live pelo canal conectado. Links podem ser enviados como texto; a aceitação e exibição dependem das regras do YouTube.
+- O envio exige uma transmissão do YouTube ativa, limita o texto a 200 caracteres e mostra a confirmação da API. Em caso de resposta incerta, o texto é preservado para conferência antes de nova tentativa.
+- A consulta de comentários pode ser manual, automática com o painel aberto (30 ou 60 segundos) ou rápida enquanto a fonte Chat do YouTube estiver visível no Programa (10, 15 ou 30 segundos). O mínimo retornado pelo YouTube prevalece.
+- No modo Estúdio, a consulta acompanha a fonte realmente publicada após o corte; os alertas de atividade deixam de consultar a API quando não há fonte de alerta ativa no Programa.
+- Proteção local: até 1.200 consultas e 100 tentativas de envio de chat em 24 horas neste Mac, além de uma fila de até 1.000 comentários recentes.
+
+Validação: testes locais de transporte simulado, interface SwiftUI, integração e renderização nativa. Envio com uma live pública e validação em hardware Intel físico ainda pendentes.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.35/Dante-Live-0.1.35-macOS-universal.dmg" length="96890189" type="application/octet-stream" sparkle:edSignature="IaLytz6o6AhPMH81B8gSuFiKWkbv7eOXhUqUjHRKTfo6jOIx/vAkorSLZzLfMmlPt557qkFvF9R5PoFtHxw4DQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.34</title>
       <pubDate>Tue, 20 Oct 2026 10:22:19 +0000</pubDate>
       <sparkle:version>35</sparkle:version>
@@ -592,6 +611,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: xJyZ5ZKw98ZCLASMTry7uP9OnIwDcMREOKjZh5TLJpkmjneRf1FOlCOjwYJusEvvlMw70RTrMqxjzq/9rSZsCg==
-length: 54940
+edSignature: LATGZPA+rKUSw3SokPhtWfyW8eWqwtZe5J9Mn8ysfTdAZqxGdhb4hwQlVWeOHXQGYWnaA7sWnKGifN6edldRDA==
+length: 56957
 -->

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.35",
+  "build": 36,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.35/Dante-Live-0.1.35-macOS-universal.dmg",
+  "length": 96890189,
+  "sha256": "705b4f94caf51704bb806213eab0d99c7774ea71ae2c16bc93c6383c78c61b9e",
+  "signature": "IaLytz6o6AhPMH81B8gSuFiKWkbv7eOXhUqUjHRKTfo6jOIx/vAkorSLZzLfMmlPt557qkFvF9R5PoFtHxw4DQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-20T17:54:26.471047+00:00",
+  "changelog": "Dante Live 0.1.35 — chat do YouTube\n\n- O anfitrião pode escrever no painel Chat e destaques e enviar uma mensagem ao chat da live pelo canal conectado. Links podem ser enviados como texto; a aceitação e exibição dependem das regras do YouTube.\n- O envio exige uma transmissão do YouTube ativa, limita o texto a 200 caracteres e mostra a confirmação da API. Em caso de resposta incerta, o texto é preservado para conferência antes de nova tentativa.\n- A consulta de comentários pode ser manual, automática com o painel aberto (30 ou 60 segundos) ou rápida enquanto a fonte Chat do YouTube estiver visível no Programa (10, 15 ou 30 segundos). O mínimo retornado pelo YouTube prevalece.\n- No modo Estúdio, a consulta acompanha a fonte realmente publicada após o corte; os alertas de atividade deixam de consultar a API quando não há fonte de alerta ativa no Programa.\n- Proteção local: até 1.200 consultas e 100 tentativas de envio de chat em 24 horas neste Mac, além de uma fila de até 1.000 comentários recentes.\n\nValidação: testes locais de transporte simulado, interface SwiftUI, integração e renderização nativa. Envio com uma live pública e validação em hardware Intel físico ainda pendentes.\n",
+  "notarized": true
+}

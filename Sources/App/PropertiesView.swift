@@ -64,6 +64,11 @@ struct PropertyFields: View {
                 Text(label).font(.caption).foregroundStyle(.secondary)
                 InstalledFontPicker(title: "Família da fonte", selection: Binding(get: { settings.object(key).string("face", "Helvetica") }, set: { var font = settings.object(key); font["face"] = $0; set(key, font, immediate: false) }))
                 TextField("Tamanho", value: Binding<Double>(get: { settings.object(key).number("size", 48) }, set: { var font = settings.object(key); font["size"] = max(1, $0); set(key, font, immediate: false) }), format: .number).textFieldStyle(.roundedBorder)
+                HStack {
+                    Toggle("Negrito", isOn: fontFlag(key, mask: 1)).fontWeight(.bold)
+                    Toggle("Itálico", isOn: fontFlag(key, mask: 2)).italic()
+                    Toggle("Sublinhado", isOn: fontFlag(key, mask: 4)).underline()
+                }.toggleStyle(.button)
             }
         case 10:
             VStack(alignment: .leading) {
@@ -89,6 +94,14 @@ struct PropertyFields: View {
         onEdit(immediate)
     }
     func text(_ key: String) -> Binding<String> { Binding(get: { settings.string(key) }, set: { set(key, $0, immediate: false) }) }
+    func fontFlag(_ key: String, mask: Int) -> Binding<Bool> {
+        Binding(get: { Int(settings.object(key).number("flags")) & mask != 0 }, set: { active in
+            var font = settings.object(key)
+            let previous = Int(font.number("flags"))
+            font["flags"] = active ? previous | mask : previous & ~mask
+            set(key, font)
+        })
+    }
     func choosePath(_ key: String, directory: Bool) {
         let panel = NSOpenPanel(); panel.canChooseDirectories = directory; panel.canChooseFiles = !directory
         if panel.runModal() == .OK, let url = panel.url { set(key, url.path) }

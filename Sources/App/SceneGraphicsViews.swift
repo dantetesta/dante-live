@@ -82,6 +82,7 @@ struct MarqueeSettingsView: View {
             HStack {
                 Toggle("Negrito", isOn: flag("bold")).fontWeight(.bold)
                 Toggle("Itálico", isOn: flag("italic")).italic()
+                Toggle("Sublinhado", isOn: flag("underline")).underline()
             }.toggleStyle(.button)
             GraphicColorPicker(title: "Cor da letra", settings: $settings, key: "ink", fallback: 0xFFFFFF) { onEdit(false) }
             Divider()

@@ -47,7 +47,7 @@ struct ChatStylePicker: View {
                 ForEach(ChatStyle.all) { style in
                     Button {
                         settings["style"]=style.id
-                        for key in ["accent","background","ink","font","cardOpacity"] { settings[key]=nil };changed()
+                        for key in ["accent","background","ink","font","nameFont","bodyFont","badgeFont","amountFont","nameBold","nameItalic","nameUnderline","bodyBold","bodyItalic","bodyUnderline","badgeBold","badgeItalic","badgeUnderline","amountBold","amountItalic","amountUnderline","cardOpacity"] { settings[key]=nil };changed()
                     } label: {
                         VStack(alignment:.leading,spacing:0) {
                             if let image=ChatStylePreviews.images[style.id] {
@@ -63,11 +63,21 @@ struct ChatStylePicker: View {
             }
             Divider()
             Text("Texto e espaçamento").font(.subheadline.bold())
-            InstalledFontPicker(title: "Fonte", selection: Binding(
-                get: { settings.string("font", selected.layout == 5 ? "Menlo" : "Helvetica Neue") },
-                set: { settings["font"] = $0; changed() }))
+            let legacyFont = settings.string("font", selected.layout == 5 ? "Menlo" : "Helvetica Neue")
+            InstalledFontPicker(title: "Fonte do nome", selection: Binding(get: { settings.string("nameFont", legacyFont) }, set: { settings["nameFont"]=$0; changed() }))
             slider("Nome da pessoa",key:"nameSize",fallback:20,range:12...48)
+            FontStyleControls(title:"nome",settings:$settings,prefix:"name",defaultBold:true,changed:changed)
+            InstalledFontPicker(title: "Fonte da mensagem", selection: Binding(get: { settings.string("bodyFont", legacyFont) }, set: { settings["bodyFont"]=$0; changed() }))
             slider("Mensagem",key:"fontSize",fallback:24,range:14...64)
+            FontStyleControls(title:"mensagem",settings:$settings,prefix:"body",changed:changed)
+            if lower {
+                InstalledFontPicker(title: "Fonte da identificação", selection: Binding(get: { settings.string("badgeFont", legacyFont) }, set: { settings["badgeFont"]=$0; changed() }))
+                slider("Identificação do destaque",key:"badgeSize",fallback:14,range:10...32)
+                FontStyleControls(title:"identificação",settings:$settings,prefix:"badge",defaultBold:true,changed:changed)
+                InstalledFontPicker(title: "Fonte do valor", selection: Binding(get: { settings.string("amountFont", legacyFont) }, set: { settings["amountFont"]=$0; changed() }))
+                slider("Valor do Super Chat",key:"amountSize",fallback:38,range:18...72)
+                FontStyleControls(title:"valor",settings:$settings,prefix:"amount",defaultBold:true,changed:changed)
+            }
             slider("Avatar / ícone",key:"avatarSize",fallback:64,range:24...144)
             if !lower { slider("Entre os comentários",key:"messageGap",fallback:10,range:0...48) }
             Divider()

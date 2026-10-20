@@ -4,6 +4,8 @@ Referência: OBS Studio 32.2.2, commit `ba2f32bdf791005443988a4955e963663e16b1ed
 
 **Objetivo permanece equivalência funcional macOS; pendências abaixo não reduzem o escopo.** “Implementado” significa código/controle real existente, não aceitação integral. A coluna Aceitação descreve critérios a completar, inclusive os ainda não executados.
 
+Incremento 0.1.30: fontes instaladas pesquisáveis em todos os campos de tipografia expostos, fontes e estilos independentes para título/valor/detalhes nos alertas e nome/mensagem/identificação/valor no chat e destaque. Negrito, itálico e sublinhado estão disponíveis também no texto nativo, nome do convidado e faixa animada. A família única dos projetos existentes permanece como fallback. Renderização sintética e build Universal 2 devem ser verificadas antes da publicação; Intel físico e live pública permanecem pendentes.
+
 Incremento 0.1.24: visualizador de áudio nativo vinculado a uma fonte específica por UUID, com FFT de 48 bandas, dez estilos, cores e geometria responsiva no canvas. Não altera a mixagem nem copia código dos repositórios de referência. Teste sintético de pixels/mute/persistência passou e build Universal 2 foi gerado, mas a miniatura de onda no painel de estilos podia encerrar a interface por acesso fora dos limites. Corrigido na 0.1.25 com teste de renderização das dez miniaturas; microfone real, live pública e hardware Intel permanecem sem validação.
 
 Incremento 0.1.27: controle independente de 24 a 120 px para o ícone de like ou inscrição, limitado ao espaço do cartão e sem alterar tipografia ou escala geral. Renderização local, build Universal 2 notarizada e release publicada; live pública e Intel físico não comprovados.

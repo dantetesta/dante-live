@@ -8,6 +8,7 @@ struct Configuration {
     std::string name = "Convidado", font = "Helvetica Neue";
     uint32_t width = 520, height = 104, accent = 0x51D4DF, background = 0x121923, ink = 0xFFFFFF;
     int style = 0, fontSize = 48;
+    bool bold = false, italic = false, underline = false;
 };
 struct Source {
     std::mutex mutex;
@@ -69,12 +70,15 @@ static void draw(CGContextRef context, const Configuration &v) {
         if(font)CFRelease(font);if(line)CFRelease(line);
         font=CTFontCreateWithName((__bridge CFStringRef)fontName,size,nullptr);
         if(!font)font=CTFontCreateWithName(CFSTR("Helvetica Neue"),size,nullptr);
+        CTFontSymbolicTraits traits=(v.bold ? kCTFontBoldTrait : 0)|(v.italic ? kCTFontItalicTrait : 0);
+        if(traits){CTFontRef styled=CTFontCreateCopyWithSymbolicTraits(font,size,nullptr,traits,traits);if(styled){CFRelease(font);font=styled;}}
         uint32_t ink=style==4 ? v.background : v.ink;
         CGColorSpaceRef space=CGColorSpaceCreateDeviceRGB();
         CGFloat values[]={CGFloat((ink>>16)&255)/255,CGFloat((ink>>8)&255)/255,CGFloat(ink&255)/255,1};
         CGColorRef textColor=CGColorCreate(space,values);CGColorSpaceRelease(space);
         NSDictionary *attributes=@{(__bridge NSString *)kCTFontAttributeName:(__bridge id)font,
-                                    (__bridge NSString *)kCTForegroundColorAttributeName:(__bridge id)textColor};
+                                    (__bridge NSString *)kCTForegroundColorAttributeName:(__bridge id)textColor,
+                                    (__bridge NSString *)kCTUnderlineStyleAttributeName:@(v.underline ? kCTUnderlineStyleSingle : 0)};
         NSAttributedString *attributed=[[NSAttributedString alloc]initWithString:label attributes:attributes];
         line=CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)attributed);
         CGColorRelease(textColor);
@@ -95,6 +99,9 @@ static void update(void *raw,obs_data_t *data) {
     next.name=obs_data_get_string(data,"guestName");
     next.font=obs_data_get_string(data,"fontFace");
     next.fontSize=int(std::clamp<int64_t>(obs_data_get_int(data,"fontSize"),18,120));
+    next.bold=obs_data_get_bool(data,"guestNameBold");
+    next.italic=obs_data_get_bool(data,"guestNameItalic");
+    next.underline=obs_data_get_bool(data,"guestNameUnderline");
     next.style=int(std::clamp<int64_t>(obs_data_get_int(data,"style"),0,5));
     next.accent=uint32_t(obs_data_get_int(data,"accent"))&0xFFFFFF;
     next.background=uint32_t(obs_data_get_int(data,"background"))&0xFFFFFF;

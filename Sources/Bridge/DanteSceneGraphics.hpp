@@ -56,7 +56,7 @@ static NSBitmapImageRep *bandBackground(obs_data_t *data,int width,int height) {
     }
     return image;
 }
-static NSBitmapImageRep *phraseImage(NSString *text,NSString *face,double requested,int width,int height,uint32_t ink,bool bold,bool italic) {
+static NSBitmapImageRep *phraseImage(NSString *text,NSString *face,double requested,int width,int height,uint32_t ink,bool bold,bool italic,bool underline) {
     NSAttributedString *content=nil;NSRect measured=NSZeroRect;
     int maxWidth=std::max(16,width-32),maxHeight=std::max(16,height-10);
     for(double size=requested;size>=12;size-=1) {
@@ -66,7 +66,7 @@ static NSBitmapImageRep *phraseImage(NSString *text,NSString *face,double reques
         NSFontTraitMask traits=0;if(bold)traits|=NSBoldFontMask;if(italic)traits|=NSItalicFontMask;
         font=[[NSFontManager sharedFontManager] convertFont:font toHaveTrait:traits]?:font;
         auto *paragraph=[NSMutableParagraphStyle new];paragraph.alignment=NSTextAlignmentCenter;paragraph.lineBreakMode=NSLineBreakByWordWrapping;
-        content=[[NSAttributedString alloc]initWithString:text attributes:@{NSFontAttributeName:font,NSForegroundColorAttributeName:color(ink),NSParagraphStyleAttributeName:paragraph}];
+        content=[[NSAttributedString alloc]initWithString:text attributes:@{NSFontAttributeName:font,NSForegroundColorAttributeName:color(ink),NSParagraphStyleAttributeName:paragraph,NSUnderlineStyleAttributeName:@(underline ? NSUnderlineStyleSingle : NSUnderlineStyleNone)}];
         measured=[content boundingRectWithSize:NSMakeSize(maxWidth,10000) options:NSStringDrawingUsesLineFragmentOrigin|NSStringDrawingUsesFontLeading];
         if(measured.size.height<=maxHeight||size<=12)break;
     }
@@ -107,12 +107,12 @@ static void update(void *raw,obs_data_t *data) {@autoreleasepool {
         if(obs_data_get_bool(data,"bold"))traits|=NSFontBoldTrait;
         if(obs_data_get_bool(data,"italic"))traits|=NSFontItalicTrait;
         font=[NSFont fontWithDescriptor:[font.fontDescriptor fontDescriptorWithSymbolicTraits:traits] size:size]?:font;
-        NSDictionary *attrs=@{NSFontAttributeName:font,NSForegroundColorAttributeName:color((uint32_t)obs_data_get_int(data,"ink"))};
+        NSDictionary *attrs=@{NSFontAttributeName:font,NSForegroundColorAttributeName:color((uint32_t)obs_data_get_int(data,"ink")),NSUnderlineStyleAttributeName:@(obs_data_get_bool(data,"underline") ? NSUnderlineStyleSingle : NSUnderlineStyleNone)};
         if(obs_data_get_int(data,"displayMode")==1) {
             for(NSString *line in [text componentsSeparatedByCharactersInSet:NSCharacterSet.newlineCharacterSet]) {
                 NSString *phrase=[line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
                 if(!phrase.length)continue;
-                auto *image=phraseImage(phrase,face,size,width,height,(uint32_t)obs_data_get_int(data,"ink"),obs_data_get_bool(data,"bold"),obs_data_get_bool(data,"italic"));
+                auto *image=phraseImage(phrase,face,size,width,height,(uint32_t)obs_data_get_int(data,"ink"),obs_data_get_bool(data,"bold"),obs_data_get_bool(data,"italic"),obs_data_get_bool(data,"underline"));
                 if(image)[phraseImages addObject:image];
             }
         } else {

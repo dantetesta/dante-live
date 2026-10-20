@@ -45,6 +45,7 @@ struct GuestNameSettingsView: View {
                 }
             }
             InstalledFontPicker(title: "Fonte", selection: Binding(get:{settings.string("fontFace","Helvetica Neue")},set:{settings["fontFace"]=$0;onEdit(true)}))
+            FontStyleControls(title:"nome do convidado",settings:$settings,prefix:"guestName",changed:{onEdit(true)})
             HStack {
                 Text("Tamanho da letra")
                 Spacer()

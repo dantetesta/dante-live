@@ -2,6 +2,8 @@
 
 O seletor de famílias instaladas no Mac, com busca e aviso de fonte ausente, foi aplicado à faixa de texto, ao nome do convidado, aos indicadores de likes/inscrições e às propriedades genéricas de texto; chat e destaque usam o mesmo controle. A faixa resolve a família pelo AppKit ao desenhar, e a paginação do destaque mede com a mesma fonte da rasterização. A seleção permanece no projeto.
 
+Alertas agora têm famílias e controles de negrito, itálico e sublinhado independentes para título, contagem/nome e detalhes; chat e destaque separam nome, mensagem, identificação e valor. O texto nativo usa os flags de fonte da libobs, e o nome do convidado e a faixa animada receberam os mesmos estilos. A chave legada de fonte única continua sendo o fallback. A suíte de chat/alertas passou após essas mudanças; build e publicação da versão final ainda pendem.
+
 A faixa agora aceita sentido de rolagem reverso, gradiente horizontal/vertical de duas cores com posições e alfas independentes e modo de frases por linha com intervalo e entrada por slide vertical. A cor sólida opaca e a rolagem anterior permanecem como padrão dos projetos existentes. Teste nativo confirmou pixels, troca de frases, direção e transparência em saída composta; imagens do modo de frases foram inspecionadas. Rebuild final, validação visual dos controles e publicação ainda pendentes.
 
 ## Versão 0.1.29 — publicada e notarizada

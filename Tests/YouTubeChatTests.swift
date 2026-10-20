@@ -45,6 +45,28 @@ import AppKit
         precondition(bitmap.pixelsWide == 1100 && bitmap.pixelsHigh == 420)
         precondition(bitmap.bitmapData![3] == 0) // Outer corner is transparent.
     }
+    func pixels(_ bitmap: NSBitmapImageRep) -> Data { Data(bytes: bitmap.bitmapData!, count: bitmap.bytesPerRow * bitmap.pixelsHigh) }
+    let comment = ChatMessage(fixture("typography", text:"Mensagem de teste"))!
+    let commentBase: [String: Any] = ["font":"Menlo", "layoutWidth":620, "layoutHeight":260]
+    let commentOriginal = pixels(ChatRaster.render(messages:[comment],featured:nil,page:0,lower:false,settings:commentBase)!)
+    for role in ["name", "body"] {
+        var changed = commentBase
+        changed[role + "Font"] = "Georgia"
+        precondition(pixels(ChatRaster.render(messages:[comment],featured:nil,page:0,lower:false,settings:changed)!) != commentOriginal)
+        changed = commentBase
+        changed[role + "Underline"] = true
+        precondition(pixels(ChatRaster.render(messages:[comment],featured:nil,page:0,lower:false,settings:changed)!) != commentOriginal)
+    }
+    var explicitLegacy = commentBase
+    explicitLegacy["nameFont"] = "Menlo"; explicitLegacy["bodyFont"] = "Menlo"
+    precondition(pixels(ChatRaster.render(messages:[comment],featured:nil,page:0,lower:false,settings:explicitLegacy)!) == commentOriginal)
+    let highlightBase: [String: Any] = ["font":"Menlo", "layoutWidth":1100, "layoutHeight":420]
+    let highlightOriginal = pixels(ChatRaster.render(messages:[],featured:message,page:0,lower:true,settings:highlightBase)!)
+    for role in ["badge", "amount"] {
+        var changed = highlightBase
+        changed[role + "Font"] = "Georgia"
+        precondition(pixels(ChatRaster.render(messages:[],featured:message,page:0,lower:true,settings:changed)!) != highlightOriginal)
+    }
     print("PASS: paid approval, dedup, dismissal, complete pagination, moderation, bounds, reset and 12 RGBA styles")
 
     // An explicit Hide finishes the operator queue, but never claims that a

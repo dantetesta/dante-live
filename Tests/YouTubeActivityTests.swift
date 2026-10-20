@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 @MainActor func runYouTubeActivityTests() async throws {
     func likes(_ n:String)->[String:Any]{["items":[["statistics":["likeCount":n]]]]}
@@ -62,6 +63,22 @@ import Foundation
                  "Changing the icon must alter its own pixels without resizing the card")
     let subscriberIcon=YouTubeActivityRaster.render(event:.init(id:"subscriber-preview",kind:.subscriber,name:"Marina",total:nil),
                                                     total:nil,settings:["iconSize":120])!
+    func pixels(_ bitmap: NSBitmapImageRep) -> Data { Data(bytes: bitmap.bitmapData!, count: bitmap.bytesPerRow * bitmap.pixelsHigh) }
+    let typographyBase: [String: Any] = ["layoutWidth":820,"layoutHeight":240,"font":"Menlo"]
+    let typographyOriginal = pixels(YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,settings:typographyBase)!)
+    for role in ["label", "value", "detail"] {
+        var changed = typographyBase
+        changed[role + "Font"] = "Georgia"
+        precondition(pixels(YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,settings:changed)!) != typographyOriginal,
+                     "Each activity text role must use its own font")
+        changed = typographyBase
+        changed[role + "Underline"] = true
+        precondition(pixels(YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,settings:changed)!) != typographyOriginal,
+                     "Each activity text role must draw underline independently")
+    }
+    var explicitLegacy = typographyBase
+    for role in ["label", "value", "detail"] { explicitLegacy[role + "Font"] = "Menlo" }
+    precondition(pixels(YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,settings:explicitLegacy)!) == typographyOriginal)
     try smallIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-small.png"))
     try largeIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-large.png"))
     try subscriberIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-subscriber.png"))

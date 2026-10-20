@@ -25,6 +25,8 @@ Versão experimental **0.1.29**. Assinado com Developer ID e notarizado pela App
 
 Os campos de tipografia agora oferecem busca entre as famílias de fontes instaladas no Mac, inclusive fontes adicionadas pelo usuário. A mudança vale para faixa de texto, chat e destaque, nome do convidado, likes e inscrições e propriedades genéricas de texto. O projeto preserva a família escolhida; se ela não estiver instalada em outro Mac, o seletor avisa e o texto usa a fonte do sistema.
 
+Likes e inscritos oferecem fontes, tamanhos e estilos independentes para título, contagem/nome e detalhes. Nos comentários, nome e mensagem são independentes; o destaque também separa identificação e valor do Super Chat. Cada trecho tem negrito, itálico e sublinhado. Texto nativo, nome do convidado e faixa animada oferecem os mesmos estilos. Projetos antigos continuam usando a família única salva até que cada trecho seja personalizado.
+
 A faixa de texto ganhou rolagem em ambos os sentidos e um modo **Frases com slide**: cada linha não vazia vira uma frase, exibida no intervalo configurado, entrando por cima ou por baixo. O fundo pode ser uma cor translúcida ou um gradiente de duas cores, com direção, pontos inicial/final e opacidade independente.
 
 ## Novidades da 0.1.29

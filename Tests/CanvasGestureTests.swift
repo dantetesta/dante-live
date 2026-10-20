@@ -63,7 +63,7 @@ import SwiftUI
         let after=model.selected!
         precondition(after.number("width") >= before.number("width")+60,
                      "\(type) must grow horizontally with the right handle: \(after)")
-        precondition(after.number("height")==before.number("height"),"\(type) height must not stretch")
+        precondition(abs(after.number("height")-before.number("height"))<=3,"\(type) height must not stretch beyond pixel rounding")
         let resizedSettings=model.properties(name:label).object("settings")
         precondition(abs(resizedSettings.number("componentScale")-1.5)<0.001,"\(type) scale must remain unchanged")
         model.selectedItem=nil

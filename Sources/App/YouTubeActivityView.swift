@@ -70,7 +70,7 @@ struct YouTubeActivitySettings: View {
                 ForEach(YouTubeActivityStyle.all) { style in
                     Button {
                         settings["style"] = style.id
-                        for key in ["accent", "background", "ink", "font", "labelSize", "valueSize", "detailSize"] { settings[key] = nil }
+                        for key in ["accent", "background", "ink", "font", "labelFont", "valueFont", "detailFont", "labelSize", "valueSize", "detailSize", "labelBold", "labelItalic", "labelUnderline", "valueBold", "valueItalic", "valueUnderline", "detailBold", "detailItalic", "detailUnderline"] { settings[key] = nil }
                         changed()
                     } label: {
                         VStack(alignment: .leading, spacing: 5) {
@@ -87,10 +87,15 @@ struct YouTubeActivitySettings: View {
             GraphicColorPicker(title: "Destaque", settings: $settings, key: "accent", fallback: Double(selected.accent)) { changed() }
             GraphicColorPicker(title: "Fundo", settings: $settings, key: "background", fallback: Double(selected.background)) { changed() }
             GraphicColorPicker(title: "Texto", settings: $settings, key: "ink", fallback: Double(selected.ink)) { changed() }
-            InstalledFontPicker(title: "Fonte", selection: Binding(get: { settings.string("font", selected.font) }, set: { settings["font"] = $0; changed() }))
+            InstalledFontPicker(title: "Fonte do título", selection: Binding(get: { settings.string("labelFont", settings.string("font", selected.font)) }, set: { settings["labelFont"] = $0; changed() }))
             sizeControl("Título", key: "labelSize", fallback: 20, range: 10...26)
+            FontStyleControls(title: "título", settings: $settings, prefix: "label", defaultBold: true, changed: changed)
+            InstalledFontPicker(title: "Fonte da contagem ou nome", selection: Binding(get: { settings.string("valueFont", settings.string("font", selected.font)) }, set: { settings["valueFont"] = $0; changed() }))
             sizeControl("Contagem ou nome", key: "valueSize", fallback: 68, range: 18...90)
+            FontStyleControls(title: "contagem ou nome", settings: $settings, prefix: "value", defaultBold: true, changed: changed)
+            InstalledFontPicker(title: "Fonte dos detalhes", selection: Binding(get: { settings.string("detailFont", settings.string("font", selected.font)) }, set: { settings["detailFont"] = $0; changed() }))
             sizeControl("Detalhes", key: "detailSize", fallback: 22, range: 10...32)
+            FontStyleControls(title: "detalhes", settings: $settings, prefix: "detail", changed: changed)
             sizeControl("Ícone de like e inscrição", key: "iconSize",
                         fallback: min(70, max(40, settings.number("layoutWidth", 820) * 0.16)), range: 24...120)
             Text("Em cartões menores, o ícone se ajusta ao espaço disponível.").font(.caption).foregroundStyle(.secondary)
@@ -142,7 +147,10 @@ struct YouTubeActivitySettings: View {
             return chatColor(raw.isFinite ? UInt32(min(0xFFFFFF, max(0, raw))) : fallback)
         }
         let accent = paint("accent", style.accent), background = paint("background", style.background), ink = paint("ink", style.ink)
-        let face = settings.string("font", style.font)
+        let legacyFace = settings.string("font", style.font)
+        let labelFace = settings.string("labelFont", legacyFace)
+        let valueFace = settings.string("valueFont", legacyFace)
+        let detailFace = settings.string("detailFont", legacyFace)
         let labelSize = CGFloat(min(26, max(10, settings.number("labelSize", 20))))
         let valueSize = CGFloat(min(90, max(18, settings.number("valueSize", 68))))
         let detailSize = CGFloat(min(32, max(10, settings.number("detailSize", 22))))
@@ -183,12 +191,14 @@ struct YouTubeActivitySettings: View {
 
         let x = iconRect.maxX + 16
         let available = max(48, CGFloat(width) - x - 18)
-        func text(_ value: String, y: CGFloat, size: CGFloat, color: NSColor, bold: Bool = false) {
-            let base = ChatFontCatalog.font(named: face, size: size)
-            let font = bold ? NSFontManager.shared.convert(base, toHaveTrait: .boldFontMask) : base
+        func text(_ value: String, y: CGFloat, size: CGFloat, color: NSColor, face: String, role: String, defaultBold: Bool = false) {
+            let font = ChatFontCatalog.styledFont(named: face, size: size,
+                bold: settings.flag(role + "Bold", defaultBold), italic: settings.flag(role + "Italic"))
             let paragraph = NSMutableParagraphStyle(); paragraph.lineBreakMode = .byTruncatingTail
+            var attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: paragraph]
+            if settings.flag(role + "Underline") { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
             (value as NSString).draw(in: CGRect(x: x, y: y, width: available, height: size * 1.45),
-                                     withAttributes: [.font: font, .foregroundColor: color, .paragraphStyle: paragraph])
+                                     withAttributes: attrs)
         }
         let formatted: (UInt64) -> String = { $0.formatted(.number.locale(Locale(identifier: "pt_BR"))) }
         let label = subscribed ? "NOVO INSCRITO PÚBLICO" : total != nil ? "LIKES NA LIVE" : "INSCRITOS DO CANAL"
@@ -200,15 +210,15 @@ struct YouTubeActivitySettings: View {
         let maxPrimary = max(18, (CGFloat(height) - 22 - footerHeight - labelSize * 1.45 - 6) / 1.45)
         let actualPrimary = min(valueSize, maxPrimary)
         let lineTop = max(8, (CGFloat(height) - footerHeight - labelSize * 1.45 - 6 - actualPrimary * 1.45) / 2)
-        text(label, y: lineTop, size: labelSize, color: accent, bold: true)
-        text(primary, y: lineTop + labelSize + 6, size: actualPrimary, color: ink, bold: true)
+        text(label, y: lineTop, size: labelSize, color: accent, face: labelFace, role: "label", defaultBold: true)
+        text(primary, y: lineTop + labelSize + 6, size: actualPrimary, color: ink, face: valueFace, role: "value", defaultBold: true)
         if footer.isEmpty {
             text(subscribed ? "Boas-vindas ao canal!" : "Obrigado pelo apoio!", y: CGFloat(height) - 10 - footerHeight,
-                 size: detailSize, color: ink.withAlphaComponent(0.77))
+                 size: detailSize, color: ink.withAlphaComponent(0.77), face: detailFace, role: "detail")
         } else {
             for (index, line) in footer.enumerated() {
                 text(line, y: CGFloat(height) - 10 - footerHeight + CGFloat(index) * footerStep,
-                     size: detailSize, color: ink.withAlphaComponent(0.82))
+                     size: detailSize, color: ink.withAlphaComponent(0.82), face: detailFace, role: "detail")
             }
         }
         return bitmap

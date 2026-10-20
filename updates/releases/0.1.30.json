@@ -1,0 +1,16 @@
+{
+  "version": "0.1.30",
+  "build": 31,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.30/Dante-Live-0.1.30-macOS-universal.dmg",
+  "length": 93249656,
+  "sha256": "a793dd648160bc7ee75d11d4a198d3952fbd4ad67738c89a4ec0f7915e609529",
+  "signature": "JsWhM4Vt0Oozb0/C3aKY208kRcH3+JH6iw5469FWVcrUyn525MbrIcMrRMqKlMZS3n5bjSviY2MSojlrH2PnDg==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-20T02:35:22.370809+00:00",
+  "changelog": "Dante Live 0.1.30 — macOS 14+ (Apple Silicon e Intel)\n\n• Os seletores de fonte de texto agora permitem buscar as famílias instaladas no Mac. A opção aparece na faixa de texto, chat e destaque, nome do convidado, likes/inscrições e propriedades genéricas. Se um projeto usar uma fonte ausente em outro Mac, o aplicativo avisa e desenha com a fonte do sistema.\n• Likes e inscritos agora têm fonte independente para título, contagem/nome e detalhes. Chat e destaque separam nome, mensagem, identificação e valor do Super Chat. Cada trecho tem seu tamanho e controles de negrito, itálico e sublinhado; os mesmos estilos foram adicionados a texto nativo, nome do convidado e faixa animada.\n• A Faixa de texto animada pode rolar em qualquer sentido ou alternar frases. No modo Frases com slide, cada linha não vazia do campo de texto é uma frase; escolha o intervalo e se a próxima entra subindo ou descendo.\n• O fundo da faixa aceita uma cor com transparência ou gradiente de duas cores. Configure direção horizontal ou vertical, pontos inicial e final e opacidade de cada cor.\n\nProjetos antigos conservam a fonte única, a rolagem original e a cor sólida opaca até que você mude as opções. Os testes locais verificaram o desenho da faixa na saída composta, as fontes instaladas e os controles em tema escuro. Nenhuma live pública nem Mac Intel físico foi usado nesta validação.\n",
+  "notarized": true
+}

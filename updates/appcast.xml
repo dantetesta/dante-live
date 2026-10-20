@@ -6,6 +6,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.34</title>
+      <pubDate>Tue, 20 Oct 2026 10:22:19 +0000</pubDate>
+      <sparkle:version>35</sparkle:version>
+      <sparkle:shortVersionString>0.1.34</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.34 — correção do visualizador de áudio
+
+• Corrige o encerramento ao abrir as propriedades de um visualizador de áudio. A miniatura de onda agora respeita o fim da lista de amostras.
+• Valores inválidos de cor ou estilo salvos no projeto não derrubam o painel do visualizador.
+• Mantém a edição de câmeras e microfones pelo MCP e a reutilização de uma fonte de microfone em outra cena, presentes na instalação local 0.1.33.
+
+Versão experimental para macOS 14 ou superior. A execução em hardware Intel físico e em uma live pública ainda não foi validada.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.34/Dante-Live-0.1.34-macOS-universal.dmg" length="96503981" type="application/octet-stream" sparkle:edSignature="nofT/xxA8Nh2fk5e3WuDW5FERw/ogKU97Mxs9Euj/frRYgZtCdT+IzKQjMJJ4DHBI1qcr+nTQIW7dSnMsRJaDQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.32</title>
       <pubDate>Tue, 20 Oct 2026 03:32:27 +0000</pubDate>
       <sparkle:version>33</sparkle:version>
@@ -575,6 +592,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: Gp7/NzqUfglX8tZOB+tMZRgoSV92vIr8k3AFfevhosw4jUOVyzRzAgmD12/3ispoZv6IfrOkO10Kx+NkbN3/Bw==
-length: 53560
+edSignature: xJyZ5ZKw98ZCLASMTry7uP9OnIwDcMREOKjZh5TLJpkmjneRf1FOlCOjwYJusEvvlMw70RTrMqxjzq/9rSZsCg==
+length: 54940
 -->

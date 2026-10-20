@@ -1,0 +1,16 @@
+{
+  "version": "0.1.34",
+  "build": 35,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.34/Dante-Live-0.1.34-macOS-universal.dmg",
+  "length": 96503981,
+  "sha256": "e5a00ecb379a971d61e53bc01148f8184321637b0e1e7c292e3a7ea126afecb3",
+  "signature": "nofT/xxA8Nh2fk5e3WuDW5FERw/ogKU97Mxs9Euj/frRYgZtCdT+IzKQjMJJ4DHBI1qcr+nTQIW7dSnMsRJaDQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-20T10:22:19.843239+00:00",
+  "changelog": "Dante Live 0.1.34 — correção do visualizador de áudio\n\n• Corrige o encerramento ao abrir as propriedades de um visualizador de áudio. A miniatura de onda agora respeita o fim da lista de amostras.\n• Valores inválidos de cor ou estilo salvos no projeto não derrubam o painel do visualizador.\n• Mantém a edição de câmeras e microfones pelo MCP e a reutilização de uma fonte de microfone em outra cena, presentes na instalação local 0.1.33.\n\nVersão experimental para macOS 14 ou superior. A execução em hardware Intel físico e em uma live pública ainda não foi validada.\n",
+  "notarized": true
+}

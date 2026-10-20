@@ -6,6 +6,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.36</title>
+      <pubDate>Tue, 20 Oct 2026 19:46:14 +0000</pubDate>
+      <sparkle:version>37</sparkle:version>
+      <sparkle:shortVersionString>0.1.36</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.36 — macOS 14+ (versão experimental)
+
+• O convite do participante agora abre com a preparação de câmera e microfone. Depois de entrar, o retorno da live ganha destaque no navegador, com controles de câmera, microfone, tela e saída sempre acessíveis.
+• Conversa interna entre anfitrião e participantes, separada do chat público e da transmissão. Envie para todos ou selecione uma pessoa para uma mensagem privada; @nome também direciona a mensagem ao participante.
+• Câmera e nome do convidado podem ser selecionados e movidos diretamente no canvas do editor.
+• O aviso de microfone sem áudio pode ser fechado. Ele não se repete por tempo; só volta se o sinal se recuperar e falhar novamente. Falhas de outros microfones continuam independentes.
+
+Validação: compilação Universal 2 e testes locais de interface, gestos, regras do alerta e mídia sintética/WebRTC. Hardware Intel físico, dispositivos reais em uma live longa e redes externas ainda não foram validados nesta versão.
+
+Instalação: abra o DMG e arraste Dante Live para Aplicativos. A atualização pelo aplicativo usa o catálogo Sparkle após a publicação da versão.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.36/Dante-Live-0.1.36-macOS-universal.dmg" length="94878984" type="application/octet-stream" sparkle:edSignature="uWghvyO0B0f1ToDajJKKLhWdsN9TN/4zA5x7H6FJXCk3VbajSj4s2YsEbhgR+3uhxF6yijtcgZmRK7bUnnwxAw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.35</title>
       <pubDate>Tue, 20 Oct 2026 17:54:26 +0000</pubDate>
       <sparkle:version>36</sparkle:version>
@@ -611,6 +631,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: LATGZPA+rKUSw3SokPhtWfyW8eWqwtZe5J9Mn8ysfTdAZqxGdhb4hwQlVWeOHXQGYWnaA7sWnKGifN6edldRDA==
-length: 56957
+edSignature: VdAH6qjlG9KLdgIQTknXtQrzovNHNoMoPLrvauXO3w6xYFsTa4UFkf7fC2vR8tF4KzdywdKGeT/TXEnEi1XeAA==
+length: 58922
 -->

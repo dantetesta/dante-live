@@ -21,6 +21,10 @@ Versão experimental **0.1.28**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.29
+
+O destaque de comentários e Super Chats pode ser esticado horizontalmente até 3.840 px, acompanhando toda a largura de um canvas 4K. O ajuste reorganiza as linhas do texto, sem esticar a imagem. Nas propriedades do chat e do destaque, **Avatar / ícone** controla de 24 a 144 px o círculo com a inicial da pessoa; nome e mensagem se reposicionam para manter o alinhamento. O tamanho inicial passou a 64 px e pode ser alterado em cada fonte.
+
 ## Novidades da 0.1.28
 
 **Áudio de aba do navegador** é uma nova fonte de áudio. Ao adicioná-la, o Dante abre o seletor do Chrome: escolha a aba, marque **Compartilhar áudio** e mantenha a página de captura aberta. Somente o áudio da aba escolhida entra no mixer; o vídeo não é capturado. Após reiniciar o Dante, escolha a aba novamente. A captura antiga **Áudio do Mac → Aplicativo** continua incluindo todas as abas do Chrome.

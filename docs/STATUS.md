@@ -1,10 +1,16 @@
-## Versão 0.1.28 — áudio de aba, créditos e parceiros em validação
+## Versão 0.1.29 — largura do comentário e avatar em validação
+
+Chat e destaque aceitam largura de layout até 3.840 px. O redimensionamento pelas alças respeita o limite físico de 3.840 × 2.160 px depois da Escala geral e reorganiza texto sem esticar a textura. O círculo com a inicial do autor tem controle próprio de 24 a 144 px, com padrão de 64 px; o nome fica centralizado verticalmente ao lado do círculo, e o cartão ganha altura suficiente para a mensagem. O avatar ainda é uma inicial estilizada, sem foto remota do perfil. Build arm64 local e suíte de chat passaram, incluindo textura de 3.840 px e avatar de 96 px; PNGs do destaque e dos estilos foram inspecionados. Hardware Intel físico e live pública ainda pendentes.
+
+## Versão 0.1.28 — publicada e notarizada
 
 Nova fonte `dante_browser_tab_audio`: o Chrome oferece o seletor nativo de abas e exige ação explícita do operador e a opção Compartilhar áudio. Uma página local, sem serviços externos, envia blocos PCM mono por loopback autenticado para a fonte libobs, que entra no mixer normalmente. A captura rejeita escolha de janela/tela e ausência de trilha de áudio; o vídeo selecionado é usado só para manter a permissão do navegador e não entra no Dante. A associação com a aba é temporária e precisa ser refeita após reiniciar. A captura por aplicativo do macOS permanece agregada. Testes sintéticos de JS e fonte nativa passaram. No ensaio integrado, Chrome isolado produziu tom sintético detectado no medidor (-12,0 dBFS), token inválido recebeu 403 e parar a página silenciou a fonte. Chrome físico com seletor real, sincronismo e live pública ainda pendentes.
 
 Menu nativo **Dante Live → Créditos…** abre uma janela separada com autoria, site, comunidade e doações voluntárias. Pix e e-mail PayPal são exibidos sob demanda e copiados para a área de transferência. A foto do autor é um recurso de runtime explícito; nenhum dado de pagamento é transmitido pelo aplicativo.
 
 Carrossel de parceiros no centro da barra superior: três peças locais de 400 × 55 pontos, recursos raster de 800 × 110 pixels para Retina, rotação automática de oito segundos pausada no hover e clique que abre o destino externo. Em largura insuficiente, o banner some para preservar os controles. Visual final no aplicativo e destinos dos três links ainda requerem validação manual.
+
+Build Universal 2 e suítes locais de app, captura, chat, áudio sintético de aba e gráficos passaram. Aplicativo e DMG receberam Apple Accepted, ticket anexado e aprovação do Gatekeeper. O pacote publicado corresponde ao commit público de fontes e aos hashes conferidos antes da publicação: [release 0.1.28](https://github.com/dantetesta/dante-live/releases/tag/v0.1.28). Não houve validação em hardware Intel físico nem live pública.
 
 ## Versão 0.1.27 — publicada e notarizada
 

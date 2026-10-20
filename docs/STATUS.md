@@ -1,3 +1,11 @@
+## 0.1.36 — palco do convidado, conversa interna e edição no canvas
+
+O convite agora começa com uma preparação de câmera e microfone. Depois da entrada, o retorno do programa ocupa a maior parte do navegador; prévia local e controles de câmera, microfone, tela e saída continuam acessíveis, enquanto as configurações ficam em um painel. O layout foi verificado em sete tamanhos de tela com mídia sintética no Chrome.
+
+Convidados e anfitrião têm uma conversa interna da sala, separada do chat público do YouTube e da imagem transmitida. Mensagens para Todos aparecem para o grupo; ao selecionar uma pessoa ou usar `@nome`, a mensagem é entregue apenas ao remetente e ao destinatário. O servidor filtra as mensagens por identidade autenticada, limita tamanho e frequência e mantém apenas histórico temporário da sessão. A troca entre navegadores e aplicativo foi testada localmente com pares WebRTC sintéticos; internet externa e sessão longa ainda não foram validadas.
+
+Fontes de câmera e nome do convidado podem ser selecionadas e arrastadas diretamente no canvas, mantendo a edição pela lista. O banner de microfone sem sinal ganhou botão de fechar: uma confirmação suprime aquele alerta até o sinal voltar e falhar novamente, sem lembrete cronometrado. Os testes de gesto e do ciclo de silêncio foram executados localmente; interação com câmeras e microfones físicos ainda precisa de verificação.
+
 ## 0.1.35 — chat sob demanda e envio de mensagens
 
 O painel agora também oferece um campo para o anfitrião enviar mensagens ao chat da própria live do YouTube. O envio exige canal e transmissão ativos, aceita até 200 caracteres e apresenta a confirmação devolvida pela API. Links seguem como texto e podem ser recusados ou filtrados pelo YouTube. Cada envio custa 20 unidades de cota; o Mac limita a 100 tentativas em 24 horas. Falhas sem confirmação preservam o texto e não disparam nova tentativa automática. Transporte real e live pública ainda não validados.

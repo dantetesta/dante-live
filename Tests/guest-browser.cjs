@@ -43,7 +43,36 @@ function forceTurnRelay(){
    await page.waitForFunction(()=>!document.querySelector('#join').disabled);if(i!==1)await page.locator('#screen').click();const started=Date.now();await page.locator('#join').click();
    try { await page.waitForFunction(()=>peer?.connectionState==='connected',null,{timeout:30000}); } catch(e) { console.log(await page.evaluate(async()=>({status:document.querySelector('#status').textContent, state:peer?.connectionState, ice:peer?.iceConnectionState, descriptions:[peer?.localDescription?.sdp,peer?.remoteDescription?.sdp].map(s=>s?.split('\r\n').filter(x=>/^m=|^a=mid:|^a=group:|^a=inactive|^a=send|^a=recv/.test(x))), local:peer?.localDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), remote:peer?.remoteDescription?.sdp.split('\r\n').filter(x=>x.startsWith('a=candidate')).map(x=>x.split(' ').filter((_,i)=>[2,7].includes(i)).join(' ')), stats:peer?Array.from((await peer.getStats()).values()).filter(x=>x.type==='candidate-pair').map(x=>({state:x.state,requestsSent:x.requestsSent,responsesReceived:x.responsesReceived})):[]})));throw e; }const elapsed=Date.now()-started;assert(elapsed<15000,'connection must not wait for STUN gathering timeout');console.log('PASS: browser '+(i+1)+' connected through real WebRTC in '+elapsed+' ms');if(process.env.DANTE_FORCE_TURN){await page.waitForFunction(async()=>{const values=Array.from((await peer.getStats()).values()),pair=values.find(x=>x.type==='candidate-pair'&&x.nominated&&x.state==='succeeded');return pair&&values.find(x=>x.id===pair.localCandidateId)?.candidateType==='relay';},null,{timeout:10000});console.log('PASS: browser '+(i+1)+' selected TURN relay');}if(i===1){await new Promise(r=>setTimeout(r,1000));await page.locator('#screen').click();}
   }
+  // Authenticated room messages are filtered on the host, before they reach
+  // another browser. Private guest-to-guest content must never reach the host.
+  const roster=await pages[0].evaluate(()=>api('/status',{chatAfter:0}));
+  const guestA=roster.chatIdentity,guestB=roster.participants.find(p=>p.name==='João Beta').id;
+  await pages[0].evaluate(async id=>{await api('/status',{chatText:'segredo entre convidados',chatTo:id,chatAfter:0});},guestB);
+  const receivedA=await pages[0].evaluate(()=>api('/status',{chatAfter:0}));
+  const receivedB=await pages[1].evaluate(()=>api('/status',{chatAfter:0}));
+  assert(receivedA.chatMessages.some(m=>m.text==='segredo entre convidados'));
+  assert(receivedB.chatMessages.some(m=>m.text==='segredo entre convidados'));
+  if(guestCount>2){const receivedC=await pages[2].evaluate(()=>api('/status',{chatAfter:0}));assert(!receivedC.chatMessages.some(m=>m.text==='segredo entre convidados'));}
+  await pages[1].evaluate(()=>api('/status',{chatText:'recado ao anfitrião',chatTo:'host',chatAfter:0}));
+  await new Promise(r=>setTimeout(r,650));
+  await pages[0].evaluate(()=>api('/status',{chatText:'olá para todos',chatTo:'all',chatAfter:0}));
+  await pages[1].waitForFunction(()=>document.querySelector('#chatMessages').textContent.includes('olá para todos'),null,{timeout:10000});
+  fs.writeFileSync(path.join(root,'host-chat.json'),JSON.stringify({text:'@João Alfa resposta privada do anfitrião',recipient:'all'}));
+  await pages[0].waitForFunction(()=>document.querySelector('#chatMessages').textContent.includes('resposta privada do anfitrião'),null,{timeout:10000});
+  const hostReplyB=await pages[1].evaluate(()=>api('/status',{chatAfter:0}));
+  assert(!hostReplyB.chatMessages.some(m=>m.text==='resposta privada do anfitrião'));
+  const hostState=JSON.parse(fs.readFileSync(path.join(root,'state.json')));
+  assert(hostState.roomChatHost.some(m=>m.text==='recado ao anfitrião'));
+  assert(!hostState.roomChatHost.some(m=>m.text==='segredo entre convidados'));
+  await pages[0].waitForFunction(()=>chatParticipants.some(person=>person.name==='João Beta'));
+  await pages[0].locator('#openChat').click();
+  await pages[0].locator('#chatText').fill('@João Beta segunda mensagem privada');
+  await pages[0].locator('#chatSend').click();
+  await pages[1].waitForFunction(()=>document.querySelector('#chatMessages').textContent.includes('segunda mensagem privada'),null,{timeout:10000});
+  if(guestCount>2){const onlyB=await pages[2].evaluate(()=>api('/status',{chatAfter:0}));assert(!onlyB.chatMessages.some(m=>m.text.includes('segunda mensagem privada')));}
+  console.log('PASS: group and private room chat, host reply, guest-to-guest isolation');
   const beforeRename=await pages[0].evaluate(()=>{window.__peerBeforeRename=peer;return {camera:media.getVideoTracks()[0].id,microphone:media.getAudioTracks()[0].id};});
+  await pages[0].locator('#openSettings').click();
   assert(await pages[0].locator('#nameActions').isVisible());
   await pages[0].locator('#name').fill('Marina ao vivo');
   await pages[0].locator('#saveName').click();
@@ -52,6 +81,7 @@ function forceTurnRelay(){
   assert(afterRename.samePeer);assert.equal(afterRename.camera,beforeRename.camera);assert.equal(afterRename.microphone,beforeRename.microphone);
   const invalidName=await pages[0].evaluate(async()=>{try{await api('/status',{name:'inválido\nextra'});return 200;}catch(error){return error.status;}});
   assert.equal(invalidName,400);
+  await pages[0].locator('#closeSettings').click();
   console.log('PASS: guest renames in place without replacing WebRTC peer or media tracks');
   await new Promise(r=>setTimeout(r,6000));
   const state=JSON.parse(fs.readFileSync(path.join(root,'state.json')));

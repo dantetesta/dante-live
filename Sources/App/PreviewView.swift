@@ -54,7 +54,7 @@ struct CanvasView: View {
                     ChatCanvasExamples(studio:model,countdown:model.countdown,factor:factor)
                         .frame(width:size.width,height:size.height).allowsHitTesting(false)
                     Color.clear.contentShape(Rectangle())
-                        .onTapGesture { point in select(at: point, factor: factor) }
+                        .gesture(canvasGesture(factor: factor))
                     if let item = model.selected, item.number("width") > 0, item.number("height") > 0, let box = geometryFor(item) {
                         let framing = model.framingItem == item.sceneItemID
                         let cropFeedback = framing || optionDown || cropping || cropModifier()
@@ -67,9 +67,6 @@ struct CanvasView: View {
                             CanvasCropGhost(model:model,item:item,box:box,factor:factor,canvasSize:size,cropPath:path)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
-                        path.fill(Color.white.opacity(0.001))
-                            .contentShape(path)
-                            .gesture(moveGesture(item: item, factor: factor))
                         path.stroke(item.flag("locked") || cropFeedback ? Color.orange : Color.cyan, lineWidth: 1.5)
                             .allowsHitTesting(false)
                         if !item.flag("locked"), item.number("boundsType") == 0 {
@@ -122,10 +119,34 @@ struct CanvasView: View {
         return CanvasGeometry(corners: corners)
     }
     func select(at point: CGPoint, factor: Double) {
+        model.selectedItem = item(at: point, factor: factor)?.sceneItemID
+    }
+    func item(at point: CGPoint, factor: Double) -> [String: Any]? {
         let canvasPoint = CGPoint(x: point.x / factor, y: point.y / factor)
-        model.selectedItem = model.items.reversed().first(where: { item in
+        return model.items.reversed().first(where: { item in
             item.flag("visible", true) && (geometryFor(item)?.contains(canvasPoint) ?? false)
-        }).map { $0.sceneItemID }
+        })
+    }
+    func canvasGesture(factor: Double) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(canvasSpace)).onChanged { value in
+            guard let target = dragStart ?? item(at: value.startLocation, factor: factor) else {
+                if model.selectedItem != nil { model.selectedItem = nil }; return
+            }
+            if model.selectedItem != target.sceneItemID { model.selectedItem = target.sceneItemID }
+            guard !target.flag("locked"),
+                  abs(value.translation.width) >= 2 || abs(value.translation.height) >= 2 else { return }
+            begin(target)
+            let origin = dragStart ?? target
+            if cropping, origin.number("boundsType") == 0, let box = geometryFor(origin),
+               let crop = box.panCrop(translation: CGSize(width: value.translation.width/factor, height: value.translation.height/factor), sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), initial: cropFor(origin)) {
+                applyCrop(crop, item: origin, position: CGPoint(x: origin.number("x"), y: origin.number("y"))); return
+            }
+            if cropping { return }
+            var x = origin.number("x") + value.translation.width / factor
+            var y = origin.number("y") + value.translation.height / factor
+            if abs(x) < 8 { x = 0 }; if abs(y) < 8 { y = 0 }
+            _ = model.command("item.transform", ["scene": model.sceneName, "id": origin.sceneItemID, "x": x, "y": y], undo: false)
+        }.onEnded { _ in if dragStart != nil { end() } }
     }
     func pointForHandle(_ handle: Int, box: CanvasGeometry) -> CGPoint {
         let a = box.corners[handle/2], b = box.corners[(handle/2+1)%4]
@@ -138,21 +159,6 @@ struct CanvasView: View {
     }
     func begin(_ item: [String: Any]) { if dragStart == nil { dragStart = item; dragUndo = model.captureUndo(); cropping = cropModifier() || optionDown || model.framingItem == item.sceneItemID } }
     func end() { if let dragUndo { model.pushUndo(dragUndo) }; dragStart = nil; dragUndo = nil; cropping = false; model.inspectorRevision += 1 }
-    func moveGesture(item: [String: Any], factor: Double) -> some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .named(canvasSpace)).onChanged { value in
-            guard !item.flag("locked") else { return }; begin(item)
-            let origin = dragStart ?? item
-            if cropping, origin.number("boundsType") == 0, let box = geometryFor(origin),
-               let crop = box.panCrop(translation: CGSize(width: value.translation.width/factor, height: value.translation.height/factor), sourceSize: CGSize(width: origin.number("width"), height: origin.number("height")), initial: cropFor(origin)) {
-                applyCrop(crop, item: origin, position: CGPoint(x: origin.number("x"), y: origin.number("y"))); return
-            }
-            if cropping { return }
-            var x = origin.number("x") + value.translation.width / factor
-            var y = origin.number("y") + value.translation.height / factor
-            if abs(x) < 8 { x = 0 }; if abs(y) < 8 { y = 0 }
-            _ = model.command("item.transform", ["scene": model.sceneName, "id": item.sceneItemID, "x": x, "y": y], undo: false)
-        }.onEnded { _ in end() }
-    }
     func resizeGesture(item: [String: Any], factor: Double, handle: Int) -> some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .named(canvasSpace)).onChanged { value in
             begin(item); let origin = dragStart ?? item

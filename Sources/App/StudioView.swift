@@ -20,6 +20,10 @@ struct StudioView: View {
                         Text(model.microphoneWarnings.joined(separator: ", ") + " • sem sinal há pelo menos 30 segundos. Confira bateria, conexão e dispositivo.")
                     }
                     Spacer()
+                    Button { model.dismissMicrophoneWarnings() } label: { Image(systemName: "xmark.circle.fill").font(.title2) }
+                        .buttonStyle(.plain).foregroundStyle(.white)
+                        .help("Dispensar este aviso até o sinal voltar e falhar novamente")
+                        .accessibilityLabel("Fechar aviso de microfone sem áudio")
                 }.padding(14).foregroundStyle(.white).background(Color.red)
                 .accessibilityElement(children: .combine)
             }
@@ -63,6 +67,11 @@ struct StudioView: View {
         .frame(minWidth: 1030, minHeight: 650)
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(.teal)
+        .overlay(alignment: .bottomTrailing) {
+            if model.guests.chatOpen {
+                GuestRoomChatView(guests: model.guests).padding(22)
+            }
+        }
         .studioPanel(isPresented: $model.showingAdd, title: "Adicionar à cena", onDismiss: {
             if !model.cameraSourceName.isEmpty { model.showingCamera = true }
         }) { AddSourceView(model: model) }
@@ -116,6 +125,9 @@ struct StudioView: View {
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active || model.guests.inUse).help("Refazer ⇧⌘Z")
             Button { model.showingChat = true } label: { Image(systemName: "bubble.left.and.bubble.right") }.help("Chat e Super Chats do YouTube")
             Button { model.showingGuests = true } label: { Image(systemName: "person.badge.plus") }.help("Convidar participantes")
+            Button { model.guests.chatOpen.toggle() } label: {
+                Label(model.guests.unreadChatCount > 0 ? "Conversa (\(model.guests.unreadChatCount))" : "Conversa", systemImage: "bubble.left.and.text.bubble.right")
+            }.help("Conversar com os participantes fora da transmissão")
             Button { model.showingOutput = true } label: { Image(systemName: "slider.horizontal.3") }.help("Configurações da live")
 
             Button {

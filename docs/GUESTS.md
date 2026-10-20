@@ -6,10 +6,14 @@ Na 0.1.24, a sala aceita três convidados. O retorno individual usa as trilhas i
 
 1. No topo do estúdio, clique no ícone de convidar participantes e em Convidar.
 2. Copie o link e envie apenas à pessoa convidada. São até três convidados simultâneos, além do apresentador.
-3. No navegador, a pessoa informa o nome, clica em Ativar câmera e microfone, permite o acesso no navegador e escolhe os dispositivos e, se quiser, compartilha uma tela. Depois clica em Entrar no estúdio. Enquanto estiver conectada, pode mudar **Seu nome** e clicar em **Atualizar meu nome na live**; a mídia continua conectada.
+3. No navegador, a pessoa informa o nome, clica em Ativar câmera e microfone, permite o acesso e escolhe os dispositivos. Depois clica em **Próximo · abrir palco**. O retorno do programa ocupa a área principal; câmera, microfone, tela e saída ficam acessíveis abaixo. O botão de configurações permite trocar dispositivos ou atualizar o nome sem substituir a conexão de mídia.
 4. No painel Participantes, abaixo de Cenas, escolha a cena e clique em Adicionar à cena. Cada pessoa tem controles de câmera, nome, tela, microfone e volume. O nome é uma camada própria: clique nela para mover/redimensionar no canvas e escolher entre seis estilos nas Propriedades; use o olho para exibir ou ocultar.
 5. Use fones. O retorno contém o áudio do estúdio e dos outros convidados, excluindo a própria voz. As trilhas internas 5, 6 e 4 são reservadas ao retorno dos três convidados; fontes do apresentador precisam participar dessas trilhas para serem ouvidas.
-6. Revogar desconecta um convite. Encerrar sala invalida todos os links. No próximo build, encerrar a transmissão também fecha a sala após a saída parar por completo. Reabrir o aplicativo exige novos convites; os componentes dos convites atuais são removidos das cenas. Fontes órfãs de versões anteriores podem ser removidas manualmente.
+6. Revogar desconecta um convite. Encerrar sala invalida todos os links. Encerrar a transmissão também fecha a sala depois que a saída parar por completo. Reabrir o aplicativo exige novos convites; os componentes dos convites atuais são removidos das cenas. Fontes órfãs de versões anteriores podem ser removidas manualmente.
+
+## Conversa interna da sala — 0.1.36
+
+O anfitrião abre **Conversa dos participantes** no estúdio; o convidado abre **Conversa** no navegador. Este chat não entra na cena, no retorno em vídeo nem nos comentários públicos do YouTube. **Todos** envia ao grupo. Escolher uma pessoa na lista ou escrever `@nome` envia somente ao destinatário e ao remetente; uma menção ambígua ou indisponível é recusada em vez de ser enviada ao grupo. O servidor valida convite e cliente, limita mensagens a 2.000 caracteres/4.000 bytes e aceita no máximo uma por remetente a cada meio segundo. Até 200 mensagens ficam apenas na memória e são apagadas ao encerrar a sala. O teste local com três navegadores confirmou que mensagem privada entre convidados não aparece ao terceiro convidado nem no painel do anfitrião.
 
 ## Conexão e segurança
 

@@ -31,6 +31,18 @@ async function synthetic(){
    assert(geometry.scrollWidth<=width,'horizontal overflow '+width);if(width>900){assert(geometry.scrollHeight<=height+1,'desktop needs scrolling '+JSON.stringify(geometry));assert(geometry.status.bottom<=height,'status below desktop viewport');}result.layouts.push(geometry);
    await page.screenshot({path:path.join(output,`guest-ready-${width}x${height}.png`),fullPage:true});
   }
+  await page.evaluate(()=>{stageMode(true);document.querySelector('#programReturn').hidden=false;document.querySelector('#stagePlaceholder').hidden=true;});
+  for(const [width,height] of [[1920,1080],[1366,768],[390,844]]){
+   await page.setViewportSize({width,height});await page.waitForTimeout(60);
+   const stage=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,video:document.querySelector('#programVideo').getBoundingClientRect().toJSON(),local:document.querySelector('.video-frame').getBoundingClientRect().toJSON()}));
+   assert(stage.scrollWidth<=width,'stage horizontal overflow '+width);
+   assert(stage.video.width>width*0.5,'return video must dominate the stage '+JSON.stringify(stage));
+   assert(stage.local.width<stage.video.width*0.3,'local preview must be compact '+JSON.stringify(stage));
+   await page.screenshot({path:path.join(output,`guest-stage-${width}x${height}.png`),fullPage:true});
+  }
+  await page.setViewportSize({width:1366,height:768});await page.locator('#openChat').click();assert(await page.locator('#chatPanel').isVisible());await page.screenshot({path:path.join(output,'guest-stage-chat.png'),fullPage:true});await page.locator('#closeChat').click();await page.locator('#openSettings').click();assert(await page.locator('#settingsPanel').isVisible());await page.locator('#closeSettings').click();
+  await page.evaluate(()=>stageMode(false));
+  result.checks.push('stage return dominates viewport, compact preview, chat and settings drawers');
   await page.setViewportSize({width:1366,height:768});await page.evaluate(()=>fixture.error='NotAllowedError');await page.locator('#devices').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Acesso não autorizado'));assert(await page.locator('#preview').evaluate(e=>e.srcObject.getTracks().every(t=>t.readyState==='live')));result.checks.push('denied replacement keeps prior working media');
   await page.evaluate(()=>fixture.error=null);await page.locator('#devices').click();await page.waitForFunction(()=>!document.querySelector('#devices').disabled);await page.locator('#name').fill('Teste local');
   await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));assert(await page.evaluate(()=>fixture.streams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))));result.checks.push('page exit releases devices');

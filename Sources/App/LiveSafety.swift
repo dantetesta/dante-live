@@ -13,18 +13,26 @@ func microphoneOnAir(_ source: [String: Any], programAudioIDs: Set<String>) -> B
 }
 struct MicrophoneSilenceWatch {
     private var watchingSince: [String: TimeInterval] = [:]
+    private var acknowledged = Set<String>()
+    private var currentWarningIDs = Set<String>()
+    mutating func acknowledgeCurrent() { acknowledged.formUnion(currentWarningIDs); currentWarningIDs.removeAll() }
     mutating func update(_ samples: [MicrophoneSample], live: Bool, now: TimeInterval) -> [String] {
-        guard live else { watchingSince.removeAll(); return [] }
+        guard live else { watchingSince.removeAll(); acknowledged.removeAll(); currentWarningIDs.removeAll(); return [] }
         let enabled = samples.filter(\.enabled)
         let ids = Set(enabled.map(\.id))
         watchingSince = watchingSince.filter { ids.contains($0.key) }
+        acknowledged.formIntersection(ids)
+        currentWarningIDs.removeAll()
         var warnings: [String] = []
         for sample in enabled {
             let start = watchingSince[sample.id] ?? now
             watchingSince[sample.id] = start
             // Both a full 30 s of monitoring and 30 s without signal are required.
             let age = sample.signalAge.map { max(0, $0) } ?? .infinity
-            if now - start >= 30 && age >= 30 { warnings.append(sample.name) }
+            if age < 30 { acknowledged.remove(sample.id) }
+            if now - start >= 30 && age >= 30 && !acknowledged.contains(sample.id) {
+                warnings.append(sample.name); currentWarningIDs.insert(sample.id)
+            }
         }
         return warnings.sorted()
     }

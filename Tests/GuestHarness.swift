@@ -54,6 +54,13 @@ let appVersion = "0.1.9 QA"
                         guests.admit(guest.id);guests.insertScreen(guest.id)
                         _=studio.command("audio.set",["name":guest.microphone,"monitoring":0],undo:false)
                     }
+                    let hostChatRequest=root.appendingPathComponent("host-chat.json")
+                    if let data=try? Data(contentsOf:hostChatRequest),
+                       let request=try? JSONSerialization.jsonObject(with:data) as? [String:String],
+                       let text=request["text"],let recipient=request["recipient"] {
+                        precondition(guests.sendHostChat(text,to:recipient),"Host chat send failed")
+                        try? FileManager.default.removeItem(at:hostChatRequest)
+                    }
                     if let raw=try? Data(contentsOf:root.appendingPathComponent("revoke")),let index=Int(String(decoding:raw,as:UTF8.self)),guests.invites.indices.contains(index) {
                         guests.revoke(guests.invites[index].id);try? FileManager.default.removeItem(at:root.appendingPathComponent("revoke"))
                     }
@@ -105,7 +112,7 @@ let appVersion = "0.1.9 QA"
                         try Data("passed".utf8).write(to:root.appendingPathComponent("panel-checks-passed"))
                     }
                     let state=studio.state;let levels=jsonObject(copied(dante_engine_audio_levels(studio.engine)))
-                    let snapshot:[String:Any]=["state":state,"levels":levels,"guests":guests.invites.map{["name":$0.name,"status":$0.status,"media":$0.peer?.mediaDiagnostics ?? [:]]},
+                    let snapshot:[String:Any]=["state":state,"levels":levels,"roomChatHost":guests.hostChatMessages.map { $0.object() },"guests":guests.invites.map{["name":$0.name,"status":$0.status,"media":$0.peer?.mediaDiagnostics ?? [:]]},
                         "labels":guests.invites.map{studio.properties(name:$0.nameOverlay).object("settings")}]
                     try JSONSerialization.data(withJSONObject:snapshot).write(to:root.appendingPathComponent("state.json"),options:.atomic)
                     try await Task.sleep(for:.milliseconds(200))

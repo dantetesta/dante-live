@@ -21,6 +21,12 @@ Versão experimental **0.1.35**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.36
+
+O convidado prepara seus dispositivos ao abrir o convite e, depois de entrar, acompanha o retorno da live em uma área ampla. Câmera, microfone e compartilhamento de tela ficam à mão; as configurações podem ser abertas quando necessário.
+
+Uma conversa interna permite mensagens para todos os participantes ou privadas para uma pessoa, escolhida na lista ou por `@nome`. Ela é separada dos comentários do YouTube e não aparece na transmissão. No editor, câmera e nome do convidado podem ser selecionados e movidos diretamente no canvas. O alerta de microfone sem sinal agora pode ser fechado e só retorna se o áudio se recuperar e falhar novamente.
+
 ## Novidades da 0.1.32
 
 O convite azul para parcerias no topo agora usa a marca e o ícone oficiais do Dante Live. O cartão é desenhado pelo aplicativo para manter a identidade correta nas próximas versões.

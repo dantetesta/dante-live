@@ -69,7 +69,29 @@ import SwiftUI
         model.selectedItem=nil
         precondition(model.command("source.remove",["scene":scene,"id":sourceID]))
     }
+    let guestLabel="Convidado selecionável QA"
+    precondition(model.command("source.add",["scene":scene,"type":"dante_guest_name","name":guestLabel,
+                                            "settings":["guestName":"Convidado QA","layoutWidth":260,"layoutHeight":80]]))
+    let guestID=model.items.first { $0.string("name")==guestLabel }!.sceneItemID
+    precondition(model.command("item.transform",["scene":scene,"id":guestID,"x":120,"y":110]))
+    model.selectedItem=nil
+    host.rootView=CanvasView(model:model,cropModifier:{false})
+    try await Task.sleep(for:.milliseconds(180));host.layoutSubtreeIfNeeded()
+    let label=model.items.first { $0.sceneItemID==guestID }!
+    precondition(label.number("width")>0 && label.number("height")>0)
+    let box=CanvasGeometry(corners:label["boxCorners"] as! [[Double]])!
+    let center=CGPoint(x:(box.corners[0].x+box.corners[2].x)/2,y:(box.corners[0].y+box.corners[2].y)/2)
+    send(.leftMouseDown,center);send(.leftMouseUp,center)
+    try await Task.sleep(for:.milliseconds(160))
+    precondition(model.selectedItem==guestID,"Guest name must be selectable directly on canvas")
+    model.selectedItem=nil
+    try await drag(from:center,to:CGPoint(x:center.x+24,y:center.y+14))
+    precondition(model.selectedItem==guestID,"Direct drag must select guest name")
+    precondition(abs(model.selected!.number("x")-144)<=2 && abs(model.selected!.number("y")-124)<=2,
+                 "Direct drag must move guest name")
+    precondition(model.command("source.remove",["scene":scene,"id":guestID]))
     print("PASS: explicit framing pans without Alt, keeps the visible box fixed, one undo and selection cleanup")
     print("PASS: actual SwiftUI top/bottom handle drag crops vertically in fixed canvas coordinates; no global input injection")
     print("PASS: scaled chat, featured comment and likes resize horizontally without changing height or scale")
+    print("PASS: guest name direct canvas selection and movement without sidebar")
 }

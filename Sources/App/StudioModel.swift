@@ -54,6 +54,10 @@ final class StudioModel: ObservableObject {
     let countdown = LiveCountdown()
     @Published var microphoneWarnings: [String] = []
     private var silenceWatch = MicrophoneSilenceWatch()
+    func dismissMicrophoneWarnings() {
+        silenceWatch.acknowledgeCurrent()
+        microphoneWarnings = []
+    }
     lazy var guests = GuestModel(studio: self)
     lazy var browserTabAudio = BrowserTabAudioModel(studio: self)
     lazy var liveSettings = LiveSettingsModel(model: self)

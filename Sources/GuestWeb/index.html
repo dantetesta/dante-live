@@ -1,22 +1,27 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Seu convite • Dante Live</title><link rel="stylesheet" href="/guest.css"><script src="/guest.js" defer></script></head>
 <body><main>
-<header><span class="brand">DANTE LIVE <small>CONVIDADO</small></span><h1>Entre na conversa.</h1><p>Confira seus dispositivos antes de entrar.</p></header>
+<header class="app-header"><span class="brand">DANTE <b>LIVE</b></span><span id="headerSubtitle">Prepare seus dispositivos para entrar</span><div class="header-actions"><button id="openChat" class="icon-button" hidden aria-label="Abrir conversa" aria-expanded="false">Conversa <span id="chatBadge" hidden>0</span></button><button id="openSettings" class="icon-button" hidden aria-label="Abrir configurações" aria-expanded="false">Configurações</button></div></header>
 <div class="layout">
-<section class="preview" aria-label="Prévia dos dispositivos">
-<div id="programReturn" hidden><div class="return-heading"><strong>Retorno do estúdio</strong><span>Conexão direta</span></div><video id="programVideo" muted autoplay playsinline aria-label="Programa ao vivo do apresentador"></video><button id="toggleReturnAudio" class="secondary" aria-pressed="true">Silenciar retorno</button><p class="hint">Este botão muda apenas o que você escuta. Seu microfone continua independente.</p></div>
-<div class="video-frame"><video id="preview" muted autoplay playsinline></video><div id="previewEmpty" class="preview-empty"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="13" width="25" height="23" rx="5"/><path d="m31 21 11-6v20l-11-6M16 7h6"/></svg><strong>Sua câmera aparece aqui</strong><span>Ative os dispositivos para conferir a prévia.</span></div><video id="screenPreview" muted autoplay playsinline hidden aria-label="Tela compartilhada"></video></div>
-<div class="preview-toolbar"><span class="preview-caption">Prévia local</span><div class="toggles"><button id="toggleCamera" class="secondary" disabled>Desligar câmera</button><button id="toggleMic" class="secondary" disabled>Silenciar microfone</button></div></div>
-<div class="microphone-level"><label for="level">Microfone</label><meter id="level" min="0" max="1" value="0" aria-label="Nível do microfone"></meter></div>
-<button id="devices">Ativar câmera e microfone</button>
+<section class="preview" aria-label="Retorno da live e prévia local">
+ <div id="stagePlaceholder" class="stage-placeholder" hidden><span class="pulse"></span><strong>Aguardando o retorno do estúdio</strong><span>Você já pode conversar com o anfitrião enquanto a imagem conecta.</span></div>
+ <div id="programReturn" hidden><div class="return-heading"><strong>AO VIVO · RETORNO DO ESTÚDIO</strong><span>Conexão direta</span></div><video id="programVideo" muted autoplay playsinline aria-label="Programa ao vivo do apresentador"></video></div>
+ <div class="stage-bottom">
+  <div class="video-frame"><video id="preview" muted autoplay playsinline aria-label="Prévia da sua câmera"></video><div id="previewEmpty" class="preview-empty"><strong>Sua câmera</strong><span>Ative os dispositivos para conferir a imagem.</span></div><video id="screenPreview" muted autoplay playsinline hidden aria-label="Sua tela compartilhada"></video></div>
+  <div class="bottom-main"><div class="preview-caption">VOCÊ · PRÉVIA LOCAL</div><div class="preview-toolbar"><button id="toggleCamera" class="secondary" disabled>Desligar câmera</button><button id="toggleMic" class="secondary" disabled>Silenciar microfone</button><button id="screen" class="secondary">Compartilhar tela</button><button id="toggleReturnAudio" class="secondary" aria-pressed="true">Silenciar retorno</button><button id="listen" class="secondary" hidden>Ouvir o apresentador</button><button id="reconnectNow" class="secondary" hidden>Reconectar</button><button id="leave" class="danger" hidden>Sair</button></div><p id="stageStatus" role="status" aria-live="polite" hidden></p></div>
+ </div>
+ <div class="microphone-level"><label for="level">Microfone</label><meter id="level" min="0" max="1" value="0" aria-label="Nível do microfone"></meter></div>
 </section>
-<section class="controls" aria-label="Entrar no estúdio">
-<div class="field"><label for="name">Seu nome</label><input id="name" maxlength="60" autocomplete="given-name" placeholder="Como podemos chamar você?"></div>
-<div id="nameActions" class="field" hidden><button id="saveName" class="secondary">Atualizar meu nome na live</button><small id="nameStatus" role="status" aria-live="polite">A câmera e o áudio continuam conectados.</small></div>
-<div class="device-fields"><div class="field"><label for="camera">Câmera</label><select id="camera" disabled><option value="">Câmera padrão</option></select></div><div class="field"><label for="microphone">Microfone</label><select id="microphone" disabled><option value="">Microfone padrão</option></select></div></div>
-<button id="screen" class="secondary">Compartilhar tela <span class="optional">opcional</span></button><p class="hint">Use fones para evitar eco.</p>
-<div class="entry-actions"><button id="join" disabled>Entrar no estúdio</button><button id="leave" class="danger" hidden>Sair e desligar dispositivos</button><button id="listen" class="secondary" hidden>Ouvir o apresentador</button></div>
-<p id="status" role="status" aria-live="polite">Clique em Ativar câmera e microfone e permita o acesso no navegador.</p><audio id="returnAudio" autoplay></audio>
-</section></div>
-<footer><span>O apresentador escolhe quando colocar você no ar.</span><details><summary>Privacidade do convite</summary><p>Este link é pessoal. Compartilhe apenas com quem foi convidado. A câmera, o microfone e a tela selecionada são enviados ao apresentador ao entrar. O retorno não inclui sua própria voz.</p></details></footer>
+<section id="settingsPanel" class="controls" aria-label="Configuração do convidado">
+ <div class="panel-heading"><div><span class="eyebrow">01 · PREPARAÇÃO</span><h1>Entre na conversa.</h1><p>Confira seus dispositivos antes de entrar no palco.</p></div><button id="closeSettings" class="icon-button" hidden aria-label="Fechar configurações">Fechar</button></div>
+ <div class="field"><label for="name">Seu nome</label><input id="name" maxlength="60" autocomplete="given-name" placeholder="Como podemos chamar você?"></div>
+ <div id="nameActions" class="field" hidden><button id="saveName" class="secondary">Atualizar meu nome na live</button><small id="nameStatus" role="status" aria-live="polite">Câmera e áudio continuam conectados.</small></div>
+ <div class="device-fields"><div class="field"><label for="camera">Câmera</label><select id="camera" disabled><option value="">Câmera padrão</option></select></div><div class="field"><label for="microphone">Microfone</label><select id="microphone" disabled><option value="">Microfone padrão</option></select></div></div>
+ <button id="devices" class="secondary">Ativar câmera e microfone</button><p class="hint">Use fones para evitar eco no retorno.</p>
+ <button id="join" disabled>Próximo · abrir palco</button>
+ <p id="status" role="status" aria-live="polite">Clique em Ativar câmera e microfone e permita o acesso no navegador.</p><audio id="returnAudio" autoplay></audio>
+ <details class="privacy"><summary>Privacidade do convite</summary><p>Este link é pessoal. Câmera, microfone e tela selecionada são enviados ao apresentador ao entrar. O retorno não inclui sua própria voz. Mensagens privadas aparecem somente para você e o destinatário.</p></details>
+</section>
+<section id="chatPanel" class="chat-panel" aria-label="Conversa dos participantes" hidden><div class="chat-heading"><div><span class="eyebrow">CONVERSA DA SALA</span><h2>Participantes</h2><p>Este chat não aparece na transmissão.</p></div><button id="closeChat" class="icon-button" aria-label="Fechar conversa">Fechar</button></div><div id="chatMessages" class="chat-messages" role="log" aria-live="polite"><p class="chat-empty">Converse com todos ou escolha @alguém para enviar uma mensagem privada.</p></div><form id="chatForm"><label for="chatTo">Enviar para</label><select id="chatTo"><option value="all">Todos · conversa geral</option></select><label for="chatText">Mensagem</label><textarea id="chatText" rows="2" maxlength="2000" placeholder="Escreva uma mensagem"></textarea><p id="chatPrivacy" class="hint">Todos os participantes verão esta mensagem.</p><button id="chatSend" type="submit">Enviar mensagem</button><p id="chatError" role="status" aria-live="polite"></p></form></section>
+</div>
 </main></body></html>

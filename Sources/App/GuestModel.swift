@@ -33,6 +33,29 @@ private final class GuestVPSNoRedirect: NSObject, URLSessionTaskDelegate {
     var nameOverlay: String { "Nome do convidado · \(id.uuidString.prefix(8))" }
 }
 
+struct GuestRoomMessage: Identifiable {
+    let id: Int
+    let senderID: String
+    let senderName: String
+    let recipientID: String?
+    let recipientName: String?
+    let text: String
+    let sentAt: Date
+    func object() -> [String: Any] {
+        ["id": id, "senderID": senderID, "senderName": senderName,
+         "recipientID": recipientID ?? "all", "recipientName": recipientName ?? "Todos",
+         "text": text, "sentAt": sentAt.timeIntervalSince1970]
+    }
+    func visible(to identity: String) -> Bool {
+        recipientID == nil || senderID == identity || recipientID == identity
+    }
+}
+
+struct GuestChatRecipient: Identifiable {
+    let id: String
+    let name: String
+}
+
 @MainActor
 final class GuestModel: ObservableObject {
     static let maximumGuests = 3
@@ -52,6 +75,12 @@ final class GuestModel: ObservableObject {
     @Published private(set) var vpsHasChecked = false
     @Published private(set) var vpsLastCheckedAt: Date?
     @Published var showing = false
+    @Published var chatOpen = false { didSet { if chatOpen { unreadChatCount = 0 } } }
+    @Published private(set) var unreadChatCount = 0
+    @Published private(set) var chatMessages: [GuestRoomMessage] = []
+    @Published var chatError: String?
+    private var chatSequence = 0
+    private var lastChatPost: [String: Date] = [:]
     private weak var studio: StudioModel?
     private let discoveryServers: [String]
     private var server: GuestHTTPServer?
@@ -69,6 +98,63 @@ final class GuestModel: ObservableObject {
     var hasVPSConfiguration: Bool { !vpsAddress.isEmpty && (try? SecretStore.read(account: "guest-vps-token"))?.isEmpty == false }
     var inUse: Bool { busy || !invites.isEmpty }
     var hasTURN: Bool { !remoteICE.isEmpty || (try? iceServers()).map { $0.count > 1 } ?? false }
+    var hostChatMessages: [GuestRoomMessage] { chatMessages.filter { $0.visible(to: "host") } }
+    var chatRecipients: [GuestChatRecipient] {
+        invites.filter { $0.peer != nil && Date().timeIntervalSince($0.lastSeen) < 20 }
+            .map { GuestChatRecipient(id: $0.id.uuidString, name: $0.name) }
+    }
+    @discardableResult func sendHostChat(_ text: String, to recipient: String) -> Bool {
+        chatError = nil
+        let target: String
+        if recipient == "all" {
+            let folded = text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "pt_BR"))
+            var mentions = Set<String>()
+            for person in chatRecipients {
+                let marker = "@" + person.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "pt_BR"))
+                var search = folded[...]
+                while let range = search.range(of: marker) {
+                    let before = range.lowerBound == folded.startIndex ? nil : folded[folded.index(before: range.lowerBound)]
+                    let after = range.upperBound == folded.endIndex ? nil : folded[range.upperBound]
+                    let boundary = after.map { $0.isWhitespace || $0.isPunctuation } ?? true
+                    if (before == nil || before?.isWhitespace == true) && boundary { mentions.insert(person.id) }
+                    search = folded[range.upperBound...]
+                }
+            }
+            if mentions.count > 1 || (mentions.isEmpty && folded.range(of: "(^|\\s)@", options: .regularExpression) != nil) {
+                chatError = "Escolha um único participante disponível para a mensagem privada."
+                return false
+            }
+            target = mentions.first ?? "all"
+        } else { target = recipient }
+        guard appendChat(sender: "host", recipient: target, text: text) else {
+            chatError = "Mensagem inválida ou participante indisponível. Use até 2.000 caracteres."
+            return false
+        }
+        return true
+    }
+    private func appendChat(sender: String, recipient: String, text: String) -> Bool {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty, clean.count <= 2_000, clean.utf8.count <= 4_000,
+              !clean.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else { return false }
+        let now = Date()
+        if let last = lastChatPost[sender], now.timeIntervalSince(last) < 0.5 { return false }
+        let recipientID: String?
+        let recipientName: String?
+        if recipient == "all" { recipientID = nil; recipientName = nil }
+        else if recipient == "host" { recipientID = "host"; recipientName = "Anfitrião" }
+        else if let target = invites.first(where: { $0.id.uuidString == recipient && $0.peer != nil && now.timeIntervalSince($0.lastSeen) < 20 }) {
+            recipientID = target.id.uuidString; recipientName = target.name
+        } else { return false }
+        guard sender == "host" || invites.contains(where: { $0.id.uuidString == sender && $0.peer != nil }) else { return false }
+        let senderName = sender == "host" ? "Anfitrião" : invites.first(where: { $0.id.uuidString == sender })!.name
+        chatSequence += 1
+        chatMessages.append(GuestRoomMessage(id: chatSequence, senderID: sender, senderName: senderName,
+            recipientID: recipientID, recipientName: recipientName, text: clean, sentAt: now))
+        if chatMessages.count > 200 { chatMessages.removeFirst(chatMessages.count - 200) }
+        lastChatPost[sender] = now
+        if sender != "host", recipientID == nil || recipientID == "host", !chatOpen { unreadChatCount += 1 }
+        return true
+    }
     init(studio: StudioModel, discoveryServers: [String] = ["stun:stun.cloudflare.com:3478"]) {
         self.studio = studio; self.discoveryServers = discoveryServers
     }
@@ -465,6 +551,7 @@ final class GuestModel: ObservableObject {
     }
     func stop() {
         generation=UUID();timer?.invalidate();timer=nil
+        chatMessages=[];chatSequence=0;lastChatPost.removeAll();unreadChatCount=0;chatOpen=false;chatError=nil
         positionedCameras.removeAll();positionedScreens.removeAll()
         for guest in invites { removeFromScene(guest.id);guest.peer?.close() };invites=[]
         pipe?.fileHandleForReading.readabilityHandler=nil
@@ -525,7 +612,21 @@ final class GuestModel: ObservableObject {
                 guard updateName(name,at:i) else { respond(500,["error":"Não foi possível atualizar a tarja do nome."]);return }
             }
             if let camera=payload["camera"] as? Bool,let screen=payload["screen"] as? Bool { invites[i].peer?.setCameraEnabled(camera,screenEnabled:screen) }
-            respond(200,["status":invites[i].status,"admitted":invites[i].admitted,"name":invites[i].name]);return
+            if let chatText=payload["chatText"] as? String {
+                guard invites[i].peer != nil,
+                      let recipient=payload["chatTo"] as? String,
+                      appendChat(sender:invites[i].id.uuidString,recipient:recipient,text:chatText) else {
+                    respond(400,["error":"Mensagem inválida ou participante indisponível."]);return
+                }
+            }
+            let afterNumber=payload["chatAfter"] as? NSNumber
+            let after = afterNumber.flatMap { CFGetTypeID($0) != CFBooleanGetTypeID() && $0.intValue >= 0 ? $0.intValue : nil } ?? 0
+            let identity=invites[i].id.uuidString
+            let recent=chatMessages.filter { $0.id > after && $0.visible(to: identity) }.suffix(100)
+            let participants: [[String:String]] = [["id":"host","name":"Anfitrião"]] + chatRecipients.map { ["id":$0.id,"name":$0.name] }
+            respond(200,["status":invites[i].status,"admitted":invites[i].admitted,"name":invites[i].name,
+                         "chatIdentity":identity,"chatMessages":recent.map { $0.object() },
+                         "chatCursor":chatSequence,"participants":participants]);return
         }
         if path=="/join" {
             let name=(payload["name"] as? String ?? "").trimmingCharacters(in:.whitespacesAndNewlines)

@@ -1,3 +1,9 @@
+## Versão 0.1.30 — fontes instaladas em todos os controles de tipografia
+
+O seletor de famílias instaladas no Mac, com busca e aviso de fonte ausente, foi aplicado à faixa de texto, ao nome do convidado, aos indicadores de likes/inscrições e às propriedades genéricas de texto; chat e destaque usam o mesmo controle. A faixa resolve a família pelo AppKit ao desenhar, e a paginação do destaque mede com a mesma fonte da rasterização. A seleção permanece no projeto.
+
+A faixa agora aceita sentido de rolagem reverso, gradiente horizontal/vertical de duas cores com posições e alfas independentes e modo de frases por linha com intervalo e entrada por slide vertical. A cor sólida opaca e a rolagem anterior permanecem como padrão dos projetos existentes. Teste nativo confirmou pixels, troca de frases, direção e transparência em saída composta; imagens do modo de frases foram inspecionadas. Rebuild final, validação visual dos controles e publicação ainda pendentes.
+
 ## Versão 0.1.29 — publicada e notarizada
 
 Chat e destaque aceitam largura de layout até 3.840 px. O redimensionamento pelas alças respeita o limite físico de 3.840 × 2.160 px depois da Escala geral e reorganiza texto sem esticar a textura. O círculo com a inicial do autor tem controle próprio de 24 a 144 px, com padrão de 64 px; o nome fica centralizado verticalmente ao lado do círculo, e o cartão ganha altura suficiente para a mensagem. O avatar ainda é uma inicial estilizada, sem foto remota do perfil. Build Universal 2 e suítes locais de aplicativo, chat, captura, gráficos e áudio sintético de aba passaram, incluindo textura de 3.840 px e avatar de 96 px; PNGs do destaque e dos estilos foram inspecionados. Aplicativo e DMG receberam Apple Accepted, tickets anexados e aprovação do Gatekeeper. [Release pública 0.1.29](https://github.com/dantetesta/dante-live/releases/tag/v0.1.29). Hardware Intel físico e live pública ainda pendentes.

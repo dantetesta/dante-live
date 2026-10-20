@@ -140,6 +140,24 @@ let appVersion = "Chat QA"
         let settingsBitmap=settingsHost.bitmapImageRepForCachingDisplay(in:settingsHost.bounds)!
         settingsHost.cacheDisplay(in:settingsHost.bounds,to:settingsBitmap)
         try settingsBitmap.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("chat-settings-revised.png"))
+        struct MarqueeQA: View {
+            @LegacyState var settings: [String: Any]
+            var body: some View {
+                ScrollView { MarqueeSettingsView(settings: $settings, onEdit: { _ in }).padding(16) }
+                    .frame(width: 420, height: 1060)
+            }
+        }
+        for (name, settings) in [
+            ("marquee-controls", ["text": "Acesse: academy.dantetesta.com.br", "gradientEnabled": true, "gradientEndColor": 0x354CA0, "backgroundOpacity": 0.8, "gradientEndOpacity": 0.35] as [String: Any]),
+            ("phrase-controls", ["displayMode": 1, "text": "Primeira frase\nSegunda frase", "phraseInterval": 5, "slideDirection": 1] as [String: Any])
+        ] {
+            let host = NSHostingView(rootView: MarqueeQA(settings: settings).environment(\.colorScheme, .dark))
+            window.contentView = host; window.setContentSize(host.fittingSize)
+            try await Task.sleep(for: .milliseconds(150)); host.layoutSubtreeIfNeeded()
+            let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds)!
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            try bitmap.representation(using: .png, properties: [:])!.write(to: directory.appendingPathComponent("\(name).png"))
+        }
         let libraryDirectory=directory.appendingPathComponent("library-visual")
         try FileManager.default.createDirectory(at:libraryDirectory,withIntermediateDirectories:true)
         var libraryPrefs=YouTubePreferences()

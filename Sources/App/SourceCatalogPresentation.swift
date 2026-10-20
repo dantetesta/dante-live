@@ -18,7 +18,7 @@ struct SourceChoice: Identifiable {
         case "dante_audio_visualizer":
             data = ("Visualizador de áudio", "Ondas e espectros que reagem ao som em tempo real.", "Escolha uma fonte de áudio da cena, um dos dez desenhos e duas cores. Redimensione livremente no canvas sem deformar o desenho.", "waveform.path", "Elementos", 10)
         case "dante_marquee":
-            data = ("Faixa de texto rolante", "Avisos, links e cupons no rodapé da live.", "Uma faixa de ponta a ponta, com altura, velocidade, cores, fonte, negrito e itálico ajustáveis. Texto salvo com a cena.", "text.line.first.and.arrowtriangle.forward", "Elementos", 13)
+            data = ("Faixa de texto animada", "Avisos, links e frases no rodapé da live.", "Uma faixa de ponta a ponta com rolagem ou frases em slide, gradiente, transparência, fonte e cores ajustáveis. Texto salvo com a cena.", "text.line.first.and.arrowtriangle.forward", "Elementos", 13)
         case "dante_qrcode":
             data = ("QR Code", "Links, texto ou Pix para sua audiência.", "Escolha o tipo nas Propriedades e gere o código localmente. Personalize cores, estilo e logo, depois posicione na cena.", "qrcode", "Elementos", 14)
         case "dante_youtube_alert":

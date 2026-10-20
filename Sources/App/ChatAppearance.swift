@@ -231,7 +231,7 @@ enum OverlayComponentScale {
     static func pages(for message: ChatMessage, settings: [String: Any]) -> [String] {
         let layout=ChatLayout(lower:true,settings:settings), style=ChatStyle.selected(settings)
         let face=settings.string("font",style.layout == 5 ? "Menlo" : "Helvetica Neue")
-        let font=NSFont(name:face,size:layout.bodySize) ?? .systemFont(ofSize:layout.bodySize)
+        let font=ChatFontCatalog.font(named:face,size:layout.bodySize)
         let paragraph=NSMutableParagraphStyle();paragraph.lineBreakMode = .byWordWrapping;paragraph.lineSpacing=2
         let avatar=ChatLayout.avatarSize(settings)
         let margin: CGFloat = style.layout == 2 ? 8 : 4

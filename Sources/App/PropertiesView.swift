@@ -62,7 +62,7 @@ struct PropertyFields: View {
         case 9:
             VStack(alignment: .leading, spacing: 4) {
                 Text(label).font(.caption).foregroundStyle(.secondary)
-                TextField("Família da fonte", text: Binding(get: { settings.object(key).string("face", "Helvetica") }, set: { var font = settings.object(key); font["face"] = $0; set(key, font, immediate: false) })).textFieldStyle(.roundedBorder)
+                InstalledFontPicker(title: "Família da fonte", selection: Binding(get: { settings.object(key).string("face", "Helvetica") }, set: { var font = settings.object(key); font["face"] = $0; set(key, font, immediate: false) }))
                 TextField("Tamanho", value: Binding<Double>(get: { settings.object(key).number("size", 48) }, set: { var font = settings.object(key); font["size"] = max(1, $0); set(key, font, immediate: false) }), format: .number).textFieldStyle(.roundedBorder)
             }
         case 10:

@@ -30,6 +30,8 @@ import AppKit
     chat.reset(); precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil && chat.overflow == 0)
     let installedFonts = ChatFontCatalog.availableFamilies()
     precondition(installedFonts.contains("Menlo") && installedFonts.count > 6)
+    let formerlyMissing = installedFonts.first { !["Helvetica Neue", "Avenir Next", "Georgia", "Menlo", "Trebuchet MS", "Verdana"].contains($0) }!
+    precondition(ChatFontCatalog.font(named: formerlyMissing, size: 24).familyName == formerlyMissing)
     precondition(ChatFontCatalog.isInstalled("Menlo"))
     precondition(ChatFontCatalog.font(named: "Menlo", size: 24).familyName == "Menlo")
     precondition(!ChatFontCatalog.isInstalled("Dante Missing Font Fixture"))

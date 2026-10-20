@@ -1,12 +1,16 @@
-# Faixa rolante e QR Code
+# Faixa de texto animada e QR Code
 
-Em Adicionar à cena → Elementos, escolha Faixa de texto rolante ou QR Code. São fontes nativas editáveis, salvas no projeto, com posição, escala, olho, crop e filtros da cena. No modo estúdio, mudanças de conteúdo ficam na prévia até Corte/Transição.
+Em Adicionar à cena → Elementos, escolha Faixa de texto animada ou QR Code. São fontes nativas editáveis, salvas no projeto, com posição, escala, olho, crop e filtros da cena. No modo estúdio, mudanças de conteúdo ficam na prévia até Corte/Transição.
 
-## Faixa de texto rolante
+## Faixa de texto animada
 
-Entra no rodapé ocupando a largura do canvas. Nas Propriedades: texto de até 250 caracteres, altura 40–320 px, velocidade 0–500 px/s, família/tamanho da fonte, negrito, itálico e cores da faixa/letra. Zero deixa o texto parado; o restante rola da direita para a esquerda em repetição. A letra se ajusta para caber em faixas baixas. URLs são texto visível, não links clicáveis dentro do vídeo.
+Entra no rodapé ocupando a largura do canvas. Nas Propriedades: texto de até 250 caracteres, altura 40–320 px, família/tamanho da fonte, negrito, itálico e cores da faixa/letra. O seletor de fonte busca as famílias instaladas no Mac. URLs são texto visível, não links clicáveis dentro do vídeo.
 
-Rasterização somente em alterações; texturas em blocos limitados, movimento e recorte feitos pelo motor gráfico. Nenhum navegador, serviço ou fonte remota é necessário.
+Em **Rolagem**, o texto inteiro corre em repetição a 0–500 px/s, da direita para a esquerda ou no sentido inverso. Quebras de linha viram espaços; velocidade zero deixa o texto parado. Em **Frases com slide**, cada linha não vazia vira uma frase. Ela permanece pelo intervalo escolhido (1–30 segundos) e a seguinte entra por baixo ou por cima; linhas longas se ajustam à área disponível. A troca de modo não apaga o texto.
+
+O fundo aceita uma cor com opacidade própria ou gradiente de duas cores. O gradiente pode correr na horizontal ou vertical, nos dois sentidos, com pontos inicial e final de transição e opacidade independente por cor. Transparência permite ver as fontes que estão abaixo da faixa na cena. Configurações antigas continuam com cor sólida, opaca e rolagem da direita para a esquerda.
+
+Rasterização somente em alterações; texturas em blocos limitados, movimento e recorte feitos pelo motor gráfico. Nenhum navegador, serviço ou fonte remota é necessário. O modo de frases guarda apenas o texto do projeto, não um histórico de exibições.
 
 ## QR Code
 

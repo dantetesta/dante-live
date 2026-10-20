@@ -21,6 +21,12 @@ Versão experimental **0.1.29**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.30
+
+Os campos de tipografia agora oferecem busca entre as famílias de fontes instaladas no Mac, inclusive fontes adicionadas pelo usuário. A mudança vale para faixa de texto, chat e destaque, nome do convidado, likes e inscrições e propriedades genéricas de texto. O projeto preserva a família escolhida; se ela não estiver instalada em outro Mac, o seletor avisa e o texto usa a fonte do sistema.
+
+A faixa de texto ganhou rolagem em ambos os sentidos e um modo **Frases com slide**: cada linha não vazia vira uma frase, exibida no intervalo configurado, entrando por cima ou por baixo. O fundo pode ser uma cor translúcida ou um gradiente de duas cores, com direção, pontos inicial/final e opacidade independente.
+
 ## Novidades da 0.1.29
 
 O destaque de comentários e Super Chats pode ser esticado horizontalmente até 3.840 px, acompanhando toda a largura de um canvas 4K. O ajuste reorganiza as linhas do texto, sem esticar a imagem. Nas propriedades do chat e do destaque, **Avatar / ícone** controla de 24 a 144 px o círculo com a inicial da pessoa; nome e mensagem se reposicionam para manter o alinhamento. O tamanho inicial passou a 64 px e pode ser alterado em cada fonte.
@@ -125,7 +131,7 @@ Interface de convite experimental para até dois participantes. A imagem mostra 
 
 ## Novidades da versão 0.1.19
 
-Adicione uma **faixa de texto rolante** para avisos e cupons, com altura, velocidade, cores, fonte, negrito e itálico. O novo **QR Code** cria links, textos e Pix estático, com três estilos e logo opcional. A geração acontece no Mac e verifica a leitura antes de aplicar à cena. O banco confirma o titular da chave Pix; o aplicativo não consulta o cadastro bancário. [Como usar](docs/SCENE-GRAPHICS.md).
+Adicione uma **faixa de texto animada** para avisos e cupons, com rolagem ou frases em slide, altura, intervalo/velocidade, gradiente, transparência e fonte configuráveis. O **QR Code** cria links, textos e Pix estático, com três estilos e logo opcional. A geração acontece no Mac e verifica a leitura antes de aplicar à cena. O banco confirma o titular da chave Pix; o aplicativo não consulta o cadastro bancário. [Como usar](docs/SCENE-GRAPHICS.md).
 
 ## Novidades da versão 0.1.18
 

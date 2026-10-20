@@ -87,9 +87,7 @@ struct YouTubeActivitySettings: View {
             GraphicColorPicker(title: "Destaque", settings: $settings, key: "accent", fallback: Double(selected.accent)) { changed() }
             GraphicColorPicker(title: "Fundo", settings: $settings, key: "background", fallback: Double(selected.background)) { changed() }
             GraphicColorPicker(title: "Texto", settings: $settings, key: "ink", fallback: Double(selected.ink)) { changed() }
-            Picker("Fonte", selection: Binding(get: { settings.string("font", selected.font) }, set: { settings["font"] = $0; changed() })) {
-                ForEach(ChatFontCatalog.availableFamilies(), id: \.self) { family in Text(family).tag(family) }
-            }
+            InstalledFontPicker(title: "Fonte", selection: Binding(get: { settings.string("font", selected.font) }, set: { settings["font"] = $0; changed() }))
             sizeControl("Título", key: "labelSize", fallback: 20, range: 10...26)
             sizeControl("Contagem ou nome", key: "valueSize", fallback: 68, range: 18...90)
             sizeControl("Detalhes", key: "detailSize", fallback: 22, range: 10...32)

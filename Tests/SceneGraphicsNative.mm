@@ -27,6 +27,16 @@ int main(int argc,char **argv){@autoreleasepool {
     auto *ocrHandler=[[VNImageRequestHandler alloc]initWithData:ocrPNG options:@{}];NSError *ocrError=nil;
     BOOL ocrOK=[ocrHandler performRequests:@[ocr] error:&ocrError];if(!ocrOK)fprintf(stderr,"Vision OCR unavailable: %s\n",ocrError.localizedDescription.UTF8String);assert(ocrOK);
     BOOL upright=NO;for(VNRecognizedTextObservation *o in ocr.results){NSString *text=[o topCandidates:1].firstObject.string;if([text containsString:@"DANTE LIVE"]&&[text containsString:@"LIVE10"])upright=YES;}assert(upright);
+    // A family outside the old six-font menu must change the actual output.
+    NSArray<NSString*> *oldChoices=@[@"Helvetica Neue",@"Avenir Next",@"Georgia",@"Menlo",@"Trebuchet MS",@"Verdana"];
+    NSString *testFamily=nil;
+    for(NSString *candidate in [[NSFontManager sharedFontManager] availableFontFamilies]) {
+        if(![oldChoices containsObject:candidate] && [[NSFontManager sharedFontManager] fontWithFamily:candidate traits:0 weight:5 size:36]) {testFamily=candidate;break;}
+    }
+    assert(testFamily);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"font":testFamily}});pump();
+    auto *otherFont=capture(nil);
+    assert(memcmp(staticImage.bitmapData,otherFont.bitmapData,1280*720*4)!=0);
     command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"height":@60}});pump();assert(channel(10,650,0)<10&&channel(10,710,0)>140);
     command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"speed":@500}});pump(.8);auto *first=capture(nil);pump(.4);auto *second=capture(@"marquee-moving.png");assert(memcmp(first.bitmapData,second.bitmapData,1280*720*4)!=0);
     // Studio copies the editable input: changes must wait for Cut/Transition.
@@ -43,5 +53,32 @@ int main(int argc,char **argv){@autoreleasepool {
     // Invalid or oversized PNG headers are rejected without allocating the image.
     command(e,"source.update",@{@"name":@"QR QA",@"settings":@{@"imagePNG":@"not-a-png"}});pump();assert(channel(640,360,0)<10);
     puts("PASS: QR decoded from actual program pixels; source settings survive save/reload; malformed bitmap cleared");
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"displayMode":@0,@"speed":@0,@"text":@"TESTE",@"gradientEnabled":@YES,@"background":@0xEE0000,@"gradientEndColor":@0x0000EE,@"gradientAxis":@0,@"gradientStart":@0,@"gradientEndPosition":@100,@"backgroundOpacity":@1,@"gradientEndOpacity":@1}});pump();
+    assert(channel(10,700,0)>150&&channel(10,700,2)<70);
+    assert(channel(1270,700,2)>150&&channel(1270,700,0)<70);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"gradientAxis":@2,@"gradientStart":@25,@"gradientEndPosition":@75}});pump();
+    assert(channel(10,665,0)>150&&channel(10,665,2)<70);
+    assert(channel(10,715,2)>150&&channel(10,715,0)<70);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"backgroundOpacity":@0,@"gradientEndOpacity":@0}});pump();
+    assert(channel(10,700,0)<30&&channel(1270,700,2)<30);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"backgroundOpacity":@1,@"gradientEndOpacity":@1,@"gradientEnabled":@NO,@"background":@0x142632,@"speed":@300,@"scrollDirection":@1}});pump(.55);
+    auto whiteCenter=[](NSBitmapImageRep *image) {
+        double sum=0,count=0;auto *bytes=image.bitmapData;
+        for(int y=665;y<720;y++)for(int x=0;x<1280;x++) {
+            auto *pixel=bytes+y*image.bytesPerRow+x*4;
+            if(pixel[0]>180&&pixel[1]>180&&pixel[2]>180){sum+=x;count++;}
+        }
+        return count>20?sum/count:-1.0;
+    };
+    double before=whiteCenter(capture(nil));pump(.25);double after=whiteCenter(capture(nil));
+    assert(before>=0&&after>before+20);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"displayMode":@1,@"text":@"PRIMEIRA\n\nSEGUNDA",@"phraseInterval":@1,@"slideDirection":@0}});pump(.7);
+    auto *phraseOne=capture(@"phrase-one.png");assert(whiteCenter(phraseOne)>=0);
+    pump(1);auto *phraseTwo=capture(@"phrase-two.png");assert(whiteCenter(phraseTwo)>=0);
+    assert(memcmp(phraseOne.bitmapData,phraseTwo.bitmapData,1280*720*4)!=0);
+    command(e,"source.update",@{@"name":@"Faixa QA",@"settings":@{@"slideDirection":@1}});pump(.1);
+    auto *entering=capture(nil);pump(.3);auto *settled=capture(nil);
+    assert(memcmp(entering.bitmapData,settled.bitmapData,1280*720*4)!=0);
+    puts("PASS: two-color gradient and opacity in program pixels, reverse scroll, line-based phrases and slide motion");
     obs_source_release(sceneSource);obs_remove_raw_video_callback(frame,nullptr);dante_engine_destroy(e);[[NSFileManager defaultManager]removeItemAtPath:directory error:nil];return 0;
 }}

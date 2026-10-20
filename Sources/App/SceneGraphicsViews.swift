@@ -19,25 +19,89 @@ struct GraphicColorPicker: View {
 struct MarqueeSettingsView: View {
     @Binding var settings: [String: Any]
     var onEdit: (Bool) -> Void
-    let fonts = ["Helvetica Neue", "Avenir Next", "Georgia", "Menlo", "Trebuchet MS", "Verdana"]
+    private var phraseMode: Bool { settings.number("displayMode") == 1 }
+    private func color(_ key: String, fallback: Double) -> Binding<Color> {
+        Binding(get: { Color(nsColor: QRArtwork.rgb(settings.number(key, fallback))) }, set: { value in
+            let c = NSColor(value).usingColorSpace(.sRGB) ?? .black
+            settings[key] = (Int((c.redComponent * 255).rounded()) << 16) | (Int((c.greenComponent * 255).rounded()) << 8) | Int((c.blueComponent * 255).rounded())
+            onEdit(false)
+        })
+    }
+    private func opacity(_ key: String) -> Binding<Double> {
+        Binding(get: { min(1, max(0, settings.number(key, 1))) }, set: { settings[key] = $0; onEdit(false) })
+    }
+    private func gradientStop(_ key: String, fallback: Double) -> Binding<Double> {
+        Binding(get: { settings.number(key, fallback) }, set: { value in
+            let position = value.rounded()
+            settings[key] = position
+            if key == "gradientStart", settings.number("gradientEndPosition", 100) <= position {
+                settings["gradientEndPosition"] = min(100, position + 5)
+            } else if key == "gradientEndPosition", settings.number("gradientStart") >= position {
+                settings["gradientStart"] = max(0, position - 5)
+            }
+            onEdit(false)
+        })
+    }
+    private func gradientSlider(_ title: String, key: String, fallback: Double, range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack { Text(title); Spacer(); Text("\(Int(settings.number(key, fallback)))%").monospacedDigit().foregroundStyle(.secondary) }
+            Slider(value: gradientStop(key, fallback: fallback), in: range, step: 1).accessibilityLabel(title)
+        }
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("Faixa de texto rolante", systemImage: "text.line.first.and.arrowtriangle.forward").font(.headline)
+            Label("Faixa de texto", systemImage: "text.line.first.and.arrowtriangle.forward").font(.headline)
+            Picker("Exibição", selection: Binding(get: { Int(settings.number("displayMode")) }, set: { settings["displayMode"] = $0; onEdit(true) })) {
+                Text("Rolagem").tag(0)
+                Text("Frases com slide").tag(1)
+            }.pickerStyle(.segmented)
             TextEditor(text: Binding(get: { settings.string("text") }, set: { settings["text"] = String($0.prefix(250)); onEdit(false) }))
                 .font(.body).frame(height: 90).overlay(RoundedRectangle(cornerRadius: 6).stroke(.secondary.opacity(0.25)))
-            Text("\(settings.string("text").count)/250 caracteres • links aparecem como texto").font(.caption).foregroundStyle(.secondary)
+            Text(phraseMode ? "\(settings.string("text").count)/250 caracteres • cada linha não vazia é uma frase" : "\(settings.string("text").count)/250 caracteres • na rolagem, quebras de linha viram espaços")
+                .font(.caption).foregroundStyle(.secondary)
             slider("Altura da faixa", key: "height", range: 40...320, fallback: 80, unit: "px")
-            slider("Velocidade", key: "speed", range: 0...500, fallback: 90, unit: "px/s")
-            Text(settings.number("speed", 90) == 0 ? "Texto parado. Aumente a velocidade para rolar." : "Rolagem da direita para a esquerda, em repetição.").font(.caption).foregroundStyle(.secondary)
-            Picker("Fonte", selection: Binding(get: { settings.string("font", "Helvetica Neue") }, set: { settings["font"] = $0; onEdit(true) })) { ForEach(fonts, id: \.self) { Text($0).tag($0) } }
+            if phraseMode {
+                slider("Intervalo entre frases", key: "phraseInterval", range: 1...30, fallback: 5, unit: "s")
+                Picker("Entrada da frase", selection: Binding(get: { Int(settings.number("slideDirection")) }, set: { settings["slideDirection"] = $0; onEdit(true) })) {
+                    Text("Sobe").tag(0); Text("Desce").tag(1)
+                }
+                Text("As frases se alternam no intervalo escolhido. Uma linha longa se ajusta à largura e à altura da faixa.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                slider("Velocidade", key: "speed", range: 0...500, fallback: 90, unit: "px/s")
+                Picker("Sentido", selection: Binding(get: { Int(settings.number("scrollDirection")) }, set: { settings["scrollDirection"] = $0; onEdit(true) })) {
+                    Text("Direita → esquerda").tag(0); Text("Esquerda → direita").tag(1)
+                }
+                Text(settings.number("speed", 90) == 0 ? "Texto parado. Aumente a velocidade para rolar." : "Rolagem contínua em repetição.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            InstalledFontPicker(title: "Fonte", selection: Binding(get: { settings.string("font", "Helvetica Neue") }, set: { settings["font"] = $0; onEdit(true) }))
             slider("Tamanho da letra", key: "fontSize", range: 12...96, fallback: 36, unit: "px")
-            Text("Em faixas baixas, a letra se ajusta para caber na altura.").font(.caption).foregroundStyle(.secondary)
+            Text(phraseMode ? "Frases longas podem reduzir a letra; aumente a altura se houver corte." : "Em faixas baixas, a letra se ajusta para caber na altura.")
+                .font(.caption).foregroundStyle(.secondary)
             HStack {
                 Toggle("Negrito", isOn: flag("bold")).fontWeight(.bold)
                 Toggle("Itálico", isOn: flag("italic")).italic()
             }.toggleStyle(.button)
             GraphicColorPicker(title: "Cor da letra", settings: $settings, key: "ink", fallback: 0xFFFFFF) { onEdit(false) }
-            GraphicColorPicker(title: "Cor da faixa", settings: $settings, key: "background", fallback: 0x142632) { onEdit(false) }
+            Divider()
+            Toggle("Gradiente de duas cores", isOn: flag("gradientEnabled"))
+            ColorPicker(settings.flag("gradientEnabled") ? "Cor inicial" : "Cor da faixa", selection: color("background", fallback: 0x142632), supportsOpacity: false)
+            HStack { Text(settings.flag("gradientEnabled") ? "Opacidade inicial" : "Opacidade da faixa"); Spacer(); Text("\(Int(opacity("backgroundOpacity").wrappedValue * 100))%").monospacedDigit().foregroundStyle(.secondary) }
+            Slider(value: opacity("backgroundOpacity"), in: 0...1).accessibilityLabel("Opacidade da primeira cor da faixa")
+            if settings.flag("gradientEnabled") {
+                ColorPicker("Cor final", selection: color("gradientEndColor", fallback: 0x35B8C8), supportsOpacity: false)
+                HStack { Text("Opacidade final"); Spacer(); Text("\(Int(opacity("gradientEndOpacity").wrappedValue * 100))%").monospacedDigit().foregroundStyle(.secondary) }
+                Slider(value: opacity("gradientEndOpacity"), in: 0...1).accessibilityLabel("Opacidade final da faixa")
+                Picker("Direção do gradiente", selection: Binding(get: { Int(settings.number("gradientAxis")) }, set: { settings["gradientAxis"] = $0; onEdit(true) })) {
+                    Text("Esquerda → direita").tag(0); Text("Direita → esquerda").tag(1)
+                    Text("Cima → baixo").tag(2); Text("Baixo → cima").tag(3)
+                }
+                gradientSlider("Início do gradiente", key: "gradientStart", fallback: 0, range: 0...95)
+                gradientSlider("Fim do gradiente", key: "gradientEndPosition", fallback: 100, range: 5...100)
+                Text("Antes do início, prevalece a primeira cor; após o fim, a segunda. A transparência revela as fontes abaixo.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
     func flag(_ key: String) -> Binding<Bool> { Binding(get: { settings.flag(key) }, set: { settings[key] = $0; onEdit(true) }) }

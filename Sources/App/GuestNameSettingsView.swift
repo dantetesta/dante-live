@@ -6,7 +6,6 @@ struct GuestNameSettingsView: View {
     var onEdit: (Bool) -> Void
     private let styles = ["Tarja", "Vidro", "Contorno", "Linha superior", "Cor sólida", "Tipografia"]
     private var selectedStyle: Int { min(5, max(0, Int(settings.number("style")))) }
-    private var fonts: [String] { Array(Set(NSFontManager.shared.availableFontFamilies)).sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
     private func rgb(_ key: String, fallback: Int) -> Color {
         let value=Int(settings.number(key,Double(fallback)))
         return Color(red:Double((value>>16)&255)/255,green:Double((value>>8)&255)/255,blue:Double(value&255)/255)
@@ -45,9 +44,7 @@ struct GuestNameSettingsView: View {
                     }
                 }
             }
-            Picker("Fonte",selection:Binding(get:{settings.string("fontFace","Helvetica Neue")},set:{settings["fontFace"]=$0;onEdit(true)})) {
-                ForEach(fonts,id:\.self) { Text($0).tag($0) }
-            }.frame(maxWidth:.infinity,alignment:.leading)
+            InstalledFontPicker(title: "Fonte", selection: Binding(get:{settings.string("fontFace","Helvetica Neue")},set:{settings["fontFace"]=$0;onEdit(true)}))
             HStack {
                 Text("Tamanho da letra")
                 Spacer()

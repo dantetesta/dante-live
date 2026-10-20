@@ -1,0 +1,16 @@
+{
+  "version": "0.1.32",
+  "build": 33,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.32/Dante-Live-0.1.32-macOS-universal.dmg",
+  "length": 97925037,
+  "sha256": "a069c5e397fca3d47250d1f5e8070b92d1ddd665fa53e709603cd49e8b39cc9e",
+  "signature": "F9oVygBCsiWH3AnQALdyrS+ig60ZRG6hXXrXzVV6HK+vUo2dxl4gesLx6pMZIzxBjy2hHtjq5hIn4jzaIvK3Bw==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-20T03:32:27.272764+00:00",
+  "changelog": "Dante Live 0.1.32 — cartões mais claros e banner com marca correta\n\n• O convite azul para parcerias no topo agora exibe o logo oficial e o nome Dante Live. O banner é desenhado pelo próprio aplicativo, evitando confusão com Dante Studio.\n• Likes e novos inscritos: ícone, título, número ou nome e detalhes agora ocupam áreas próprias e se ajustam a cartões compactos. Os seis estilos continuam editáveis.\n• Comentários em destaque e Super Chats: avatar e autor no cabeçalho, selo e valor em posição separada e mensagem abaixo. O valor cabe em cartões pequenos e mensagens longas continuam paginadas.\n• As miniaturas do seletor mostram o destaque real; o estilo Neon ficou mais discreto.\n\nBuild experimental para macOS 14 ou superior, Universal 2, assinado e notarizado pela Apple. Testes locais de renderização e integração passaram. Ainda não houve validação em hardware Intel físico nem em uma live pública real.\n\nhttps://github.com/dantetesta/dante-live/releases/tag/v0.1.32\n",
+  "notarized": true
+}

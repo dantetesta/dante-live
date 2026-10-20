@@ -6,6 +6,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.32</title>
+      <pubDate>Tue, 20 Oct 2026 03:32:27 +0000</pubDate>
+      <sparkle:version>33</sparkle:version>
+      <sparkle:shortVersionString>0.1.32</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.32 — cartões mais claros e banner com marca correta
+
+• O convite azul para parcerias no topo agora exibe o logo oficial e o nome Dante Live. O banner é desenhado pelo próprio aplicativo, evitando confusão com Dante Studio.
+• Likes e novos inscritos: ícone, título, número ou nome e detalhes agora ocupam áreas próprias e se ajustam a cartões compactos. Os seis estilos continuam editáveis.
+• Comentários em destaque e Super Chats: avatar e autor no cabeçalho, selo e valor em posição separada e mensagem abaixo. O valor cabe em cartões pequenos e mensagens longas continuam paginadas.
+• As miniaturas do seletor mostram o destaque real; o estilo Neon ficou mais discreto.
+
+Build experimental para macOS 14 ou superior, Universal 2, assinado e notarizado pela Apple. Testes locais de renderização e integração passaram. Ainda não houve validação em hardware Intel físico nem em uma live pública real.
+
+https://github.com/dantetesta/dante-live/releases/tag/v0.1.32
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.32/Dante-Live-0.1.32-macOS-universal.dmg" length="97925037" type="application/octet-stream" sparkle:edSignature="F9oVygBCsiWH3AnQALdyrS+ig60ZRG6hXXrXzVV6HK+vUo2dxl4gesLx6pMZIzxBjy2hHtjq5hIn4jzaIvK3Bw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.30</title>
       <pubDate>Tue, 20 Oct 2026 02:35:22 +0000</pubDate>
       <sparkle:version>31</sparkle:version>
@@ -555,6 +575,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: kZA6dfZrRLFUo8s3qf437B5YbBOWdqkNLZUsUT3Zkp1BbQr6Cy1TfKIzkxJ3zqiQxdMnZx8qVKWZB3hYw1AEBA==
-length: 51763
+edSignature: Gp7/NzqUfglX8tZOB+tMZRgoSV92vIr8k3AFfevhosw4jUOVyzRzAgmD12/3ispoZv6IfrOkO10Kx+NkbN3/Bw==
+length: 53560
 -->

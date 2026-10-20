@@ -9,10 +9,10 @@
 Cenas, captura, áudio e transmissão ao vivo — com interface própria em Swift e o motor audiovisual do OBS Studio.
 
 <!-- current-download:start -->
-[![Baixar Dante Live para Mac](https://img.shields.io/badge/BAIXAR_PARA_MAC-v0.1.30-18B7C7?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dantetesta/dante-live/releases/download/v0.1.30/Dante-Live-0.1.30-macOS-universal.dmg)
+[![Baixar Dante Live para Mac](https://img.shields.io/badge/BAIXAR_PARA_MAC-v0.1.32-18B7C7?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dantetesta/dante-live/releases/download/v0.1.32/Dante-Live-0.1.32-macOS-universal.dmg)
 
 **macOS 14+ · Apple Silicon e Intel · Universal 2**
-Versão experimental **0.1.30**. Assinado com Developer ID e notarizado pela Apple. [Notas e fontes](https://github.com/dantetesta/dante-live/releases/tag/v0.1.30).
+Versão experimental **0.1.32**. Assinado com Developer ID e notarizado pela Apple. [Notas e fontes](https://github.com/dantetesta/dante-live/releases/tag/v0.1.32).
 <!-- current-download:end -->
 
 [Começar pelo código](docs/BUILD.md) · [Estado do projeto](docs/STATUS.md) · [Contribuir](CONTRIBUTING.md) · [Propor uma melhoria](https://github.com/dantetesta/dante-live/issues)

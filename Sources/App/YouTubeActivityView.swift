@@ -9,12 +9,12 @@ struct YouTubeActivityStyle: Identifiable {
     let ink: UInt32
     let font: String
     static let all: [Self] = [
-        .init(id: 0, name: "Estúdio", accent: 0x57CDDF, background: 0x14212C, ink: 0xFFFFFF, font: "Helvetica Neue"),
-        .init(id: 1, name: "Pílula", accent: 0xC1F17B, background: 0x202C23, ink: 0xF7FFF1, font: "Helvetica Neue"),
-        .init(id: 2, name: "Neon", accent: 0xFF51CD, background: 0x120D29, ink: 0xFFFFFF, font: "Helvetica Neue"),
-        .init(id: 3, name: "Editorial", accent: 0xA54D38, background: 0xF8F0E4, ink: 0x302A29, font: "Georgia"),
-        .init(id: 4, name: "Pop", accent: 0x6E26C8, background: 0xFFE75C, ink: 0x231634, font: "Helvetica Neue"),
-        .init(id: 5, name: "Terminal", accent: 0x54F5A6, background: 0x061512, ink: 0xE2FFEF, font: "Menlo")
+        .init(id: 0, name: "Estúdio", accent: 0x58D4DF, background: 0x14212C, ink: 0xF7FBFF, font: "Helvetica Neue"),
+        .init(id: 1, name: "Pílula", accent: 0xA9DD9D, background: 0x1D2924, ink: 0xF3F8F1, font: "Helvetica Neue"),
+        .init(id: 2, name: "Neon", accent: 0xEE73C5, background: 0x171425, ink: 0xFAF6FF, font: "Helvetica Neue"),
+        .init(id: 3, name: "Editorial", accent: 0xA6543F, background: 0xF5F0E8, ink: 0x312B29, font: "Georgia"),
+        .init(id: 4, name: "Pop", accent: 0x583093, background: 0xF5D96A, ink: 0x251C2E, font: "Helvetica Neue"),
+        .init(id: 5, name: "Terminal", accent: 0x7BE0B3, background: 0x0B1B1B, ink: 0xE7F8ED, font: "Menlo")
     ]
     static func selected(_ settings: [String: Any]) -> Self {
         all.first { $0.id == Int(settings.number("style")) } ?? all[0]
@@ -48,8 +48,7 @@ struct YouTubeActivitySettings: View {
     private func preview(_ style: YouTubeActivityStyle) -> NSImage? {
         guard let sample = YouTubeActivityRaster.render(event: nil, total: 1234, subscriberTotal: 8500,
                                                         newPublicSubscribers: 3,
-                                                        settings: ["style": style.id, "layoutWidth": 310, "layoutHeight": 150,
-                                                                   "labelSize": 14, "valueSize": 42, "detailSize": 15]) else { return nil }
+                                                        settings: ["style": style.id, "layoutWidth": 360, "layoutHeight": 150]) else { return nil }
         let image = NSImage(size: NSSize(width: sample.pixelsWide, height: sample.pixelsHigh))
         image.addRepresentation(sample)
         return image
@@ -155,27 +154,24 @@ struct YouTubeActivitySettings: View {
         let valueSize = CGFloat(min(90, max(18, settings.number("valueSize", 68))))
         let detailSize = CGFloat(min(32, max(10, settings.number("detailSize", 22))))
         let bounds = CGRect(x: 4, y: 4, width: width - 8, height: height - 8)
-        let radius: CGFloat = [1, 4].contains(style.id) ? 34 : style.id == 3 ? 9 : 22
+        let radius: CGFloat = style.id == 3 || style.id == 5 ? 12 : 20
         let card = NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius)
-        if style.id == 4 {
-            NSGradient(starting: background, ending: background.blended(withFraction: 0.22, of: accent) ?? background)?.draw(in: card, angle: 0)
-        } else {
-            background.withAlphaComponent(style.id == 1 ? 0.94 : 0.97).setFill(); card.fill()
-        }
-        (style.id == 2 || style.id == 5 ? accent : accent.withAlphaComponent(0.4)).setStroke()
-        card.lineWidth = style.id == 2 ? 3 : style.id == 5 ? 1.5 : 1
-        card.stroke()
-        if style.id == 2 {
-            let inner = NSBezierPath(roundedRect: bounds.insetBy(dx: 6, dy: 6), xRadius: radius - 5, yRadius: radius - 5)
-            accent.withAlphaComponent(0.25).setStroke(); inner.lineWidth = 1; inner.stroke()
-        }
+        background.setFill(); card.fill()
+        accent.withAlphaComponent(style.id == 2 || style.id == 5 ? 0.60 : 0.28).setStroke()
+        card.lineWidth = 1; card.stroke()
+        NSGraphicsContext.saveGraphicsState()
+        card.addClip()
+        accent.setFill()
+        CGRect(x: bounds.minX, y: bounds.minY + radius, width: 5, height: bounds.height - radius * 2).fill()
+        NSGraphicsContext.restoreGraphicsState()
 
+        let padding: CGFloat = width < 500 ? 14 : 22
         let legacyIcon = min(70, max(40, CGFloat(width) * 0.16))
         let requestedIcon = CGFloat(min(120, max(24, settings.number("iconSize", Double(legacyIcon)))))
-        let iconWidth = min(requestedIcon, CGFloat(height) - 20, CGFloat(width) * 0.32)
-        let iconRect = CGRect(x: 19, y: (CGFloat(height) - iconWidth) / 2, width: iconWidth, height: iconWidth)
+        let iconWidth = min(requestedIcon, CGFloat(height) * 0.45, CGFloat(width) * 0.17)
+        let iconRect = CGRect(x: bounds.minX + padding, y: (CGFloat(height) - iconWidth) / 2, width: iconWidth, height: iconWidth)
         if style.id != 3 && style.id != 5 {
-            accent.withAlphaComponent(style.id == 4 ? 0.28 : 0.17).setFill()
+            accent.withAlphaComponent(style.id == 4 ? 0.13 : 0.16).setFill()
             NSBezierPath(ovalIn: iconRect).fill()
         }
         let subscribed = event?.kind == .subscriber
@@ -185,41 +181,61 @@ struct YouTubeActivitySettings: View {
             let image = symbol.copy() as! NSImage
             image.isTemplate = false
             image.lockFocus(); accent.set(); NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop); image.unlockFocus()
-            image.draw(in: iconRect.insetBy(dx: iconWidth * (customIcon ? 0.21 : 0.23), dy: iconWidth * (customIcon ? 0.21 : 0.23)),
+            image.draw(in: iconRect.insetBy(dx: iconWidth * (customIcon ? 0.19 : 0.21), dy: iconWidth * (customIcon ? 0.19 : 0.21)),
                        from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         }
 
-        let x = iconRect.maxX + 16
-        let available = max(48, CGFloat(width) - x - 18)
-        func text(_ value: String, y: CGFloat, size: CGFloat, color: NSColor, face: String, role: String, defaultBold: Bool = false) {
-            let font = ChatFontCatalog.styledFont(named: face, size: size,
+        let x = iconRect.maxX + (width < 500 ? 12 : 20)
+        let available = max(48, bounds.maxX - padding - x)
+        func fittedFont(_ value: String, requested: CGFloat, minimum: CGFloat, face: String, role: String, defaultBold: Bool = false) -> NSFont {
+            var size = requested
+            while size > minimum {
+                let candidate = ChatFontCatalog.styledFont(named: face, size: size,
+                    bold: settings.flag(role + "Bold", defaultBold), italic: settings.flag(role + "Italic"))
+                if (value as NSString).size(withAttributes: [.font: candidate]).width <= available { return candidate }
+                size -= 1
+            }
+            return ChatFontCatalog.styledFont(named: face, size: max(minimum, size),
                 bold: settings.flag(role + "Bold", defaultBold), italic: settings.flag(role + "Italic"))
+        }
+        func text(_ value: String, y: CGFloat, font: NSFont, color: NSColor, role: String) {
             let paragraph = NSMutableParagraphStyle(); paragraph.lineBreakMode = .byTruncatingTail
             var attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: paragraph]
             if settings.flag(role + "Underline") { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
-            (value as NSString).draw(in: CGRect(x: x, y: y, width: available, height: size * 1.45),
-                                     withAttributes: attrs)
+            NSAttributedString(string: value, attributes: attrs)
+                .draw(with: CGRect(x: x, y: y, width: available, height: ceil(font.ascender - font.descender + font.leading) + 3),
+                      options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
         }
         let formatted: (UInt64) -> String = { $0.formatted(.number.locale(Locale(identifier: "pt_BR"))) }
-        let label = subscribed ? "NOVO INSCRITO PÚBLICO" : total != nil ? "LIKES NA LIVE" : "INSCRITOS DO CANAL"
+        let label = subscribed ? "NOVO INSCRITO" : total != nil ? "LIKES NA LIVE" : "INSCRITOS NO CANAL"
         let primary = subscribed ? (event?.name ?? "") : total.map(formatted) ?? subscriberTotal.map { "≈ " + formatted($0) } ?? "0"
-        let footer = [subscriberTotal.map { "≈ \(formatted($0)) inscritos" },
-                      newPublicSubscribers.map { "+\($0) novos públicos" }].compactMap { $0 }
-        let footerStep = detailSize * 1.45 + 3
-        let footerHeight = footer.isEmpty ? footerStep : CGFloat(footer.count) * footerStep
-        let maxPrimary = max(18, (CGFloat(height) - 22 - footerHeight - labelSize * 1.45 - 6) / 1.45)
-        let actualPrimary = min(valueSize, maxPrimary)
-        let lineTop = max(8, (CGFloat(height) - footerHeight - labelSize * 1.45 - 6 - actualPrimary * 1.45) / 2)
-        text(label, y: lineTop, size: labelSize, color: accent, face: labelFace, role: "label", defaultBold: true)
-        text(primary, y: lineTop + labelSize + 6, size: actualPrimary, color: ink, face: valueFace, role: "value", defaultBold: true)
-        if footer.isEmpty {
-            text(subscribed ? "Boas-vindas ao canal!" : "Obrigado pelo apoio!", y: CGFloat(height) - 10 - footerHeight,
-                 size: detailSize, color: ink.withAlphaComponent(0.77), face: detailFace, role: "detail")
-        } else {
-            for (index, line) in footer.enumerated() {
-                text(line, y: CGFloat(height) - 10 - footerHeight + CGFloat(index) * footerStep,
-                     size: detailSize, color: ink.withAlphaComponent(0.82), face: detailFace, role: "detail")
-            }
+        let separateDetails = !subscribed && height >= 145 && subscriberTotal != nil && newPublicSubscribers != nil
+        let detailLines: [String] = subscribed ? ["Boas-vindas ao canal"] : separateDetails ?
+            ["≈ \(formatted(subscriberTotal!)) inscritos", "+\(newPublicSubscribers!) novos públicos"] :
+            [[subscriberTotal.map { "≈ \(formatted($0)) inscritos" },
+              newPublicSubscribers.map { "+\($0) novos" }].compactMap { $0 }.joined(separator: "  ·  ")]
+        let details = detailLines == [""] ? ["Obrigado pelo apoio"] : detailLines
+        let innerHeight = CGFloat(height) - padding * 2
+        let titleSize = min(labelSize, max(11, innerHeight * 0.19))
+        let secondarySize = min(detailSize, max(11, innerHeight * (separateDetails ? 0.14 : 0.19)))
+        let titleFont = fittedFont(label, requested: titleSize, minimum: 10, face: labelFace, role: "label", defaultBold: true)
+        let detailFont = fittedFont(details.max(by: { $0.count < $1.count }) ?? "", requested: secondarySize,
+                                    minimum: 10, face: detailFace, role: "detail")
+        let titleLine = ceil(titleFont.ascender - titleFont.descender + titleFont.leading) + 2
+        let detailLine = ceil(detailFont.ascender - detailFont.descender + detailFont.leading) + 1
+        let gap: CGFloat = height < 130 ? 2 : 6
+        let detailBlock = CGFloat(details.count) * detailLine + CGFloat(max(0, details.count - 1)) * 2
+        let primaryRoom = max(17, innerHeight - titleLine - detailBlock - gap * 2)
+        let primarySize = min(valueSize, max(17, primaryRoom * 0.83))
+        let valueFont = fittedFont(primary, requested: primarySize, minimum: 15, face: valueFace, role: "value", defaultBold: true)
+        let primaryLine = ceil(valueFont.ascender - valueFont.descender + valueFont.leading) + 2
+        let stackHeight = titleLine + primaryLine + detailBlock + gap * 2
+        let top = max(bounds.minY + padding, (CGFloat(height) - stackHeight) / 2)
+        text(label, y: top, font: titleFont, color: accent, role: "label")
+        text(primary, y: top + titleLine + gap, font: valueFont, color: ink, role: "value")
+        for (index, line) in details.enumerated() {
+            text(line, y: top + titleLine + gap + primaryLine + gap + CGFloat(index) * (detailLine + 2),
+                 font: detailFont, color: ink.withAlphaComponent(0.78), role: "detail")
         }
         return bitmap
     }

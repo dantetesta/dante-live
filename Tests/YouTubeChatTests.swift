@@ -45,6 +45,26 @@ import AppKit
         precondition(bitmap.pixelsWide == 1100 && bitmap.pixelsHigh == 420)
         precondition(bitmap.bitmapData![3] == 0) // Outer corner is transparent.
     }
+    let visualDirectory = URL(fileURLWithPath:"build/chat-qa",isDirectory:true)
+    try FileManager.default.createDirectory(at:visualDirectory,withIntermediateDirectories:true)
+    let visualMessage = ChatMessage(fixture("visual",paid:true,
+        text:"Obrigado por apoiar a live! Qual será o próximo tema?"))!
+    for style in [0, 3, 7] {
+        for (name, width, height) in [("compact",480,180),("wide",1100,300)] {
+            let visualSettings: [String: Any] = ["style":style,"layoutWidth":width,"layoutHeight":height]
+            precondition(ChatRaster.pages(for:visualMessage,settings:visualSettings).count == 1,
+                         "A short highlighted message must not be split in a compact card")
+            let bitmap = ChatRaster.render(messages:[],featured:visualMessage,page:0,lower:true,
+                settings:visualSettings)!
+            try bitmap.representation(using:.png,properties:[:])!.write(
+                to:visualDirectory.appendingPathComponent("featured-\(style)-\(name).png"))
+        }
+    }
+    let normalHighlight = ChatMessage(fixture("normal-visual",text:"Como você prepara as cenas antes da live?"))!
+    let normalBitmap = ChatRaster.render(messages:[],featured:normalHighlight,page:0,lower:true,
+        settings:["style":0,"layoutWidth":480,"layoutHeight":180])!
+    try normalBitmap.representation(using:.png,properties:[:])!.write(
+        to:visualDirectory.appendingPathComponent("featured-comment-compact.png"))
     func pixels(_ bitmap: NSBitmapImageRep) -> Data { Data(bytes: bitmap.bitmapData!, count: bitmap.bytesPerRow * bitmap.pixelsHigh) }
     let comment = ChatMessage(fixture("typography", text:"Mensagem de teste"))!
     let commentBase: [String: Any] = ["font":"Menlo", "layoutWidth":620, "layoutHeight":260]

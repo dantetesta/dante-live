@@ -21,6 +21,12 @@ Versão experimental **0.1.30**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.31
+
+Os cartões de likes e novos inscritos foram redesenhados. Ícone, título, número ou nome e detalhes ocupam áreas próprias; o texto se ajusta à largura e à altura disponíveis, inclusive quando o componente é reduzido no canvas. Os seis presets mantêm cores editáveis e receberam bordas e contrastes mais discretos.
+
+O destaque de comentários e Super Chats agora mostra autor e avatar em uma linha clara, identificação e valor em uma área separada e a mensagem abaixo. O valor se ajusta para aparecer inteiro em cartões compactos. Os estilos foram suavizados, e as miniaturas do seletor mostram o destaque de verdade, não um cartão de chat comum. Mensagens longas continuam paginadas.
+
 ## Novidades da 0.1.30
 
 Os campos de tipografia agora oferecem busca entre as famílias de fontes instaladas no Mac, inclusive fontes adicionadas pelo usuário. A mudança vale para faixa de texto, chat e destaque, nome do convidado, likes e inscrições e propriedades genéricas de texto. O projeto preserva a família escolhida; se ela não estiver instalada em outro Mac, o seletor avisa e o texto usa a fonte do sistema.

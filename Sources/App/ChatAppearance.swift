@@ -11,15 +11,15 @@ struct ChatStyle: Identifiable {
     let layout: Int
     // Stable IDs preserve existing project choices. First six follow the visual reference.
     static let all: [ChatStyle] = [
-        .init(id: 0, name: "YouTube Clean", background: 0x171D25, accent: 0xFFC43D, ink: 0xFFFFFF, radius: 12, layout: 0),
-        .init(id: 7, name: "Vidro", background: 0x17434E, accent: 0x58DCEA, ink: 0xFFFFFF, radius: 18, layout: 1),
-        .init(id: 3, name: "Neon", background: 0x101525, accent: 0xD939FF, ink: 0xFFFFFF, radius: 0, layout: 2),
+        .init(id: 0, name: "YouTube Clean", background: 0x171D25, accent: 0xF4BD58, ink: 0xF8FAFC, radius: 16, layout: 0),
+        .init(id: 7, name: "Vidro", background: 0x19303B, accent: 0x6AD4DE, ink: 0xF8FBFC, radius: 18, layout: 1),
+        .init(id: 3, name: "Neon", background: 0x1A1725, accent: 0xD788DA, ink: 0xFAF7FC, radius: 16, layout: 2),
         .init(id: 6, name: "Claro", background: 0xF7F8FC, accent: 0xFFE56A, ink: 0x182035, radius: 18, layout: 3),
         .init(id: 2, name: "Balões", background: 0x252D3A, accent: 0xFF666C, ink: 0xFFFFFF, radius: 28, layout: 4),
         .init(id: 11, name: "Terminal", background: 0x071D29, accent: 0x46F499, ink: 0xDDF5FF, radius: 4, layout: 5),
         .init(id: 1, name: "Editorial", background: 0xF6F1E8, accent: 0xA14628, ink: 0x252525, radius: 4, layout: 3),
         .init(id: 4, name: "Lavanda", background: 0xF0ECFF, accent: 0x7050B0, ink: 0x30234B, radius: 18, layout: 4),
-        .init(id: 5, name: "Esportivo", background: 0x16233B, accent: 0xFFBD42, ink: 0xFFFFFF, radius: 0, layout: 2),
+        .init(id: 5, name: "Esportivo", background: 0x1C2836, accent: 0xE7AD6D, ink: 0xF7FAFD, radius: 12, layout: 2),
         .init(id: 8, name: "Cinema", background: 0x161616, accent: 0xD9B979, ink: 0xF6EEDC, radius: 8, layout: 0),
         .init(id: 9, name: "Pêssego", background: 0xFFF0E3, accent: 0xB5502D, ink: 0x4B3029, radius: 18, layout: 3),
         .init(id: 10, name: "Pop", background: 0xFFED67, accent: 0x7A2DAD, ink: 0x281E35, radius: 24, layout: 4)
@@ -65,13 +65,13 @@ struct ChatLayout {
             return value.isFinite ? min(hi, max(lo, value)) : fallback
         }
         width = Int(bounded("layoutWidth", lower ? 1100 : 480, 240, 3840))
-        bodySize = bounded("fontSize", 24, 14, 64)
-        nameSize = bounded("nameSize", 20, 12, 48)
+        bodySize = bounded("fontSize", lower ? 22 : 24, 14, 64)
+        nameSize = bounded("nameSize", lower ? 26 : 20, 12, 48)
         badgeSize = bounded("badgeSize", 14, 10, 32)
         amountSize = bounded("amountSize", 38, 18, 72)
         gap = bounded("messageGap", 10, 0, 48)
         let authorHeight = max(Self.avatarSize(settings), ceil(nameSize*1.4))
-        let minimumHeight = ceil(44 + (lower ? max(26,badgeSize*1.6) + max(52,amountSize*1.4) + 24 : 0) + authorHeight + bodySize*1.4)
+        let minimumHeight = lower ? 140 : ceil(44 + authorHeight + bodySize * 1.4)
         height = Int(bounded("layoutHeight", lower ? 420 : 720, max(140, minimumHeight), 2160))
     }
     static func avatarSize(_ settings: [String: Any]) -> CGFloat {
@@ -145,13 +145,7 @@ enum OverlayComponentScale {
             return chatColor(colors[Int((hash ^ (hash >> 32)) % UInt64(colors.count))])
         }
         func panel(_ rect: CGRect, paid: Bool) {
-            let path: NSBezierPath
-            if style.layout == 2 {
-                let cut: CGFloat = 14
-                path = NSBezierPath()
-                path.move(to: CGPoint(x: rect.minX + cut, y: rect.minY))
-                for point in [CGPoint(x: rect.maxX-cut,y:rect.minY), CGPoint(x:rect.maxX,y:rect.minY+cut), CGPoint(x:rect.maxX,y:rect.maxY-cut), CGPoint(x:rect.maxX-cut,y:rect.maxY), CGPoint(x:rect.minX+cut,y:rect.maxY), CGPoint(x:rect.minX,y:rect.maxY-cut), CGPoint(x:rect.minX,y:rect.minY+cut)] { path.line(to: point) }; path.close()
-            } else { path = NSBezierPath(roundedRect: rect, xRadius: style.radius, yRadius: style.radius) }
+            let path = NSBezierPath(roundedRect: rect, xRadius: style.radius, yRadius: style.radius)
             let fill = paid && style.layout != 2 && style.layout != 5 ? accent : background
             fill.withAlphaComponent(opacity).setFill(); path.fill()
             if style.layout == 1 {
@@ -159,25 +153,16 @@ enum OverlayComponentScale {
                 NSGradient(starting: .white.withAlphaComponent(0.18), ending: .white.withAlphaComponent(0))?.draw(in: rect, angle: 90)
                 NSGraphicsContext.restoreGraphicsState()
             }
-            let stroke = style.layout == 2 || style.layout == 5 ? accent : (style.layout == 3 ? NSColor.black : NSColor.white).withAlphaComponent(style.layout == 1 ? 0.65 : 0.16)
-            if style.layout == 2 {
-                NSGraphicsContext.saveGraphicsState()
-                let glow=NSShadow();glow.shadowColor=accent.withAlphaComponent(paid ? 0.6 : 0.25);glow.shadowBlurRadius=paid ? 8:4;glow.shadowOffset = .zero;glow.set()
-                accent.setStroke();path.lineWidth=paid ? 3:1.5;path.stroke()
-                NSGraphicsContext.restoreGraphicsState()
-            }
-            stroke.setStroke(); path.lineWidth = style.layout == 2 ? (paid ? 3 : 1.5) : 1; path.stroke()
-            if style.layout == 2 {
-                let line = NSBezierPath(); line.move(to: CGPoint(x:rect.minX+16,y:rect.minY)); line.line(to:CGPoint(x:rect.minX+min(110,rect.width/3),y:rect.minY))
-                accent.setStroke(); line.lineWidth = 4; line.stroke()
-            }
+            let stroke = style.layout == 2 || style.layout == 5 ? accent.withAlphaComponent(0.48) :
+                (style.layout == 3 ? NSColor.black : NSColor.white).withAlphaComponent(style.layout == 1 ? 0.42 : 0.18)
+            stroke.setStroke(); path.lineWidth = 1; path.stroke()
             if style.layout == 4 {
                 let tail = NSBezierPath(); tail.move(to:CGPoint(x:rect.minX+1,y:rect.minY+25));tail.line(to:CGPoint(x:rect.minX-9,y:rect.minY+34));tail.line(to:CGPoint(x:rect.minX+1,y:rect.minY+43));tail.close()
                 fill.withAlphaComponent(opacity).setFill();tail.fill()
             }
         }
         let avatar = ChatLayout.avatarSize(settings), padding: CGFloat = 16, outside = style.layout == 4
-        let margin: CGFloat = style.layout == 2 ? 8 : 4
+        let margin: CGFloat = 4
         let textX = margin + padding + avatar + 12
         let contentWidth = CGFloat(width) - textX - padding - margin
         let nameHeight = ceil(layout.nameSize * 1.4)
@@ -185,8 +170,76 @@ enum OverlayComponentScale {
         let badgeHeight: CGFloat = lower ? max(26,layout.badgeSize*1.6) : 0
         let amountHeight: CGFloat = lower && featured?.paid == true ? max(52,layout.amountSize*1.4) : 0
         func cardHeight(_ value: String, lower: Bool) -> CGFloat {
+            if lower {
+                let featuredPadding: CGFloat = width < 500 ? 14 : 22
+                let featuredAvatar = min(avatar, max(36, min(72, CGFloat(height) * 0.24)))
+                let featuredBadge = min(layout.badgeSize, CGFloat(height) * 0.11)
+                let featuredAmount = featured?.paid == true ? min(layout.amountSize, CGFloat(height) * 0.19) : 0
+                let header = max(featuredAvatar, featuredBadge * 1.4 + max(layout.nameSize * 1.4, featuredAmount * 1.4) + 4)
+                let body = measure(value, width: CGFloat(width) - margin * 2 - featuredPadding * 2 - 7, size: layout.bodySize)
+                return featuredPadding * 2 + header + 12 + body
+            }
             let bodyHeight = measure(value, width: contentWidth, size: layout.bodySize)
             return padding*2 + badgeHeight + authorHeight + 4 + amountHeight + (lower ? bodyHeight : min(bodyHeight, layout.bodySize*5.9))
+        }
+        func drawFeatured(_ message: ChatMessage, value: String, y: CGFloat, cardHeight: CGFloat) {
+            let rect = CGRect(x: margin, y: y, width: CGFloat(width) - margin * 2, height: cardHeight)
+            panel(rect, paid: false)
+            let inset: CGFloat = width < 500 ? 14 : 22
+            let left = rect.minX + inset + 7
+            accent.setFill()
+            NSBezierPath(roundedRect: CGRect(x: rect.minX + 8, y: rect.minY + 12,
+                                             width: 5, height: max(1, rect.height - 24)), xRadius: 2.5, yRadius: 2.5).fill()
+            let avatarSize = min(avatar, max(36, min(72, CGFloat(height) * 0.24)))
+            let avatarRect = CGRect(x: left, y: rect.minY + inset, width: avatarSize, height: avatarSize)
+            let personColor = authorColor(message)
+            personColor.withAlphaComponent(0.22).setFill(); NSBezierPath(ovalIn: avatarRect).fill()
+            personColor.setStroke(); let ring = NSBezierPath(ovalIn: avatarRect.insetBy(dx: 0.7, dy: 0.7)); ring.lineWidth = 1.4; ring.stroke()
+            let initial = String(message.author.trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "@", with: "").prefix(1)).uppercased()
+            let initialStyle = NSMutableParagraphStyle(); initialStyle.alignment = .center
+            NSAttributedString(string: initial, attributes: [.font: NSFont.systemFont(ofSize: avatarSize * 0.48, weight: .bold),
+                .foregroundColor: personColor, .paragraphStyle: initialStyle])
+                .draw(with: avatarRect.insetBy(dx: 1, dy: avatarSize * 0.18), options: [.usesLineFragmentOrigin])
+
+            let badgeSize = min(layout.badgeSize, CGFloat(height) * 0.11)
+            var amountSize = message.paid ? min(layout.amountSize, CGFloat(height) * 0.19) : 0
+            let rightWidth = min(rect.width * 0.38, max(160, rect.width * 0.28))
+            let rightX = rect.maxX - inset - rightWidth
+            while amountSize > 16 {
+                let font = ChatFontCatalog.styledFont(named: face("amount"), size: amountSize,
+                    bold: settings.flag("amountBold", true), italic: settings.flag("amountItalic"))
+                if (message.amount as NSString).size(withAttributes: [.font: font]).width <= rightWidth { break }
+                amountSize -= 1
+            }
+            let badgeText = message.paid ? "SUPER CHAT" : "EM DESTAQUE"
+            text(badgeText, CGRect(x: rightX, y: rect.minY + inset, width: rightWidth, height: badgeSize * 1.45),
+                 badgeSize, accent, role: "badge", defaultBold: true, single: true)
+            if message.paid {
+                text(message.amount, CGRect(x: rightX, y: rect.minY + inset + badgeSize * 1.45 + 3,
+                                              width: rightWidth, height: amountSize * 1.4),
+                     amountSize, accent, role: "amount", defaultBold: true, single: true)
+            }
+            let nameX = avatarRect.maxX + 14
+            let nameWidth = max(40, rightX - nameX - 10)
+            var nameSize = min(layout.nameSize, CGFloat(height) * 0.24)
+            while nameSize > 12 {
+                let font = ChatFontCatalog.styledFont(named: face("name"), size: nameSize,
+                    bold: settings.flag("nameBold", true), italic: settings.flag("nameItalic"))
+                if (message.author as NSString).size(withAttributes: [.font: font]).width <= nameWidth { break }
+                nameSize -= 1
+            }
+            let headerHeight = max(avatarSize, badgeSize * 1.4 + max(nameSize * 1.4, amountSize * 1.4) + 4)
+            let nameY = rect.minY + inset + (headerHeight - nameSize * 1.4) / 2
+            text(message.author, CGRect(x: nameX, y: nameY, width: nameWidth, height: nameSize * 1.5),
+                 nameSize, ink, role: "name", defaultBold: true, single: true)
+
+            let bodyY = rect.minY + inset + headerHeight + 12
+            let bodyX = left
+            let bodyWidth = rect.maxX - inset - bodyX
+            let bodyHeight = max(1, rect.maxY - inset - bodyY)
+            text(value, CGRect(x: bodyX, y: bodyY, width: bodyWidth, height: bodyHeight),
+                 layout.bodySize, ink, role: "body")
         }
         func draw(_ message: ChatMessage, value: String, y: CGFloat, cardHeight: CGFloat, featured: Bool) {
             let paid = featured && message.paid
@@ -222,7 +275,7 @@ enum OverlayComponentScale {
             let content=pages[index]
             let footer: CGFloat = pages.count > 1 ? 24 : 0
             let h=min(CGFloat(height)-margin*2-footer,cardHeight(content,lower:true))
-            draw(featured,value:content,y:margin,cardHeight:h,featured:true)
+            drawFeatured(featured,value:content,y:margin,cardHeight:h)
             if footer > 0 { text("\(index+1) / \(pages.count)",CGRect(x:margin+12,y:margin+h+3,width:CGFloat(width)-24,height:21),13,accent,role:"badge",single:true) }
         } else if !lower {
             // Keep the newest whole cards that fit, oldest-to-newest. No fixed slots.
@@ -248,11 +301,21 @@ enum OverlayComponentScale {
         let font=ChatFontCatalog.styledFont(named:face,size:layout.bodySize,bold:settings.flag("bodyBold"),italic:settings.flag("bodyItalic"))
         let paragraph=NSMutableParagraphStyle();paragraph.lineBreakMode = .byWordWrapping;paragraph.lineSpacing=2
         let avatar=ChatLayout.avatarSize(settings)
-        let margin: CGFloat = style.layout == 2 ? 8 : 4
-        let width=CGFloat(layout.width)-(margin+16+avatar+12)-16-margin
-        let height=max(layout.bodySize*1.4,CGFloat(layout.height)-margin*2-32-max(26,layout.badgeSize*1.6)-max(avatar,ceil(layout.nameSize*1.4))-4-(message.paid ? max(52,layout.amountSize*1.4) : 0)-24)
+        let margin: CGFloat = 4
+        let inset: CGFloat = layout.width < 500 ? 14 : 22
+        let width = CGFloat(layout.width) - margin * 2 - inset * 2 - 7
+        let featuredAvatar = min(avatar, max(36, min(72, CGFloat(layout.height) * 0.24)))
+        let badge = min(layout.badgeSize, CGFloat(layout.height) * 0.11)
+        let amount = message.paid ? min(layout.amountSize, CGFloat(layout.height) * 0.19) : 0
+        let header = max(featuredAvatar, badge * 1.4 + max(layout.nameSize * 1.4, amount * 1.4) + 4)
+        let fullHeight = max(layout.bodySize * 1.4, CGFloat(layout.height) - margin * 2 - inset * 2 - header - 12)
         let attrs: [NSAttributedString.Key:Any]=[.font:font,.paragraphStyle:paragraph]
-        var remaining=Array(message.text.isEmpty ? "Obrigado pelo apoio!" : message.text), result:[String]=[]
+        let fullText = message.text.isEmpty ? "Obrigado pelo apoio!" : message.text
+        let fullMeasure = (fullText as NSString).boundingRect(with:CGSize(width:width,height:100000),
+            options:[.usesLineFragmentOrigin,.usesFontLeading],attributes:attrs).height
+        if fullMeasure <= fullHeight { return [fullText] }
+        let height = max(layout.bodySize * 1.4, fullHeight - 24)
+        var remaining=Array(fullText), result:[String]=[]
         while !remaining.isEmpty {
             var low=1, high=min(remaining.count,1000), count=1
             while low <= high {

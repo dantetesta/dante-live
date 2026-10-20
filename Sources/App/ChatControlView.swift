@@ -2,12 +2,19 @@ import SwiftUI
 import AppKit
 
 @MainActor private enum ChatStylePreviews {
-    static let images: [Int: NSImage] = Dictionary(uniqueKeysWithValues: ChatStyle.all.compactMap { style in
-        let message=ChatMessage(["id":"preview","authorDetails":["displayName":"Marina"],"snippet":["type":"textMessageEvent","textMessageDetails":["messageText":"Boa noite, pessoal!"]]])!
-        guard let bitmap=ChatRaster.render(messages:[message],featured:nil,page:0,lower:false,settings:["style":style.id,"layoutWidth":360,"layoutHeight":180,"fontSize":24,"nameSize":20]) else{return nil}
+    static func samples(lower: Bool) -> [Int: NSImage] { Dictionary(uniqueKeysWithValues: ChatStyle.all.compactMap { style in
+        let message=ChatMessage(["id":"preview","authorDetails":["displayName":"Marina"],
+            "snippet":["type":lower ? "superChatEvent" : "textMessageEvent",
+                       "textMessageDetails":["messageText":"Boa noite, pessoal!"],
+                       "superChatDetails":["userComment":"Boa noite, pessoal!","amountDisplayString":"R$ 20,00"]]])!
+        guard let bitmap=ChatRaster.render(messages:lower ? [] : [message],featured:lower ? message : nil,
+            page:0,lower:lower,settings:["style":style.id,"layoutWidth":360,"layoutHeight":lower ? 160 : 180,
+                                        "fontSize":22,"nameSize":20]) else{return nil}
         let image=NSImage(size:NSSize(width:bitmap.pixelsWide,height:bitmap.pixelsHigh));image.addRepresentation(bitmap)
         return (style.id,image)
-    })
+    }) }
+    static let chatImages = samples(lower: false)
+    static let highlightImages = samples(lower: true)
 }
 
 struct ChatStylePicker: View {
@@ -50,7 +57,7 @@ struct ChatStylePicker: View {
                         for key in ["accent","background","ink","font","nameFont","bodyFont","badgeFont","amountFont","nameBold","nameItalic","nameUnderline","bodyBold","bodyItalic","bodyUnderline","badgeBold","badgeItalic","badgeUnderline","amountBold","amountItalic","amountUnderline","cardOpacity"] { settings[key]=nil };changed()
                     } label: {
                         VStack(alignment:.leading,spacing:0) {
-                            if let image=ChatStylePreviews.images[style.id] {
+                            if let image=(lower ? ChatStylePreviews.highlightImages : ChatStylePreviews.chatImages)[style.id] {
                                 Image(nsImage:image).resizable().scaledToFit().padding(.horizontal,5).padding(.top,7)
                             }
                             HStack { Text(style.name).font(.system(size:11,weight:.semibold));Spacer(minLength:0)
@@ -65,10 +72,10 @@ struct ChatStylePicker: View {
             Text("Texto e espaçamento").font(.subheadline.bold())
             let legacyFont = settings.string("font", selected.layout == 5 ? "Menlo" : "Helvetica Neue")
             InstalledFontPicker(title: "Fonte do nome", selection: Binding(get: { settings.string("nameFont", legacyFont) }, set: { settings["nameFont"]=$0; changed() }))
-            slider("Nome da pessoa",key:"nameSize",fallback:20,range:12...48)
+            slider("Nome da pessoa",key:"nameSize",fallback:lower ? 26 : 20,range:12...48)
             FontStyleControls(title:"nome",settings:$settings,prefix:"name",defaultBold:true,changed:changed)
             InstalledFontPicker(title: "Fonte da mensagem", selection: Binding(get: { settings.string("bodyFont", legacyFont) }, set: { settings["bodyFont"]=$0; changed() }))
-            slider("Mensagem",key:"fontSize",fallback:24,range:14...64)
+            slider("Mensagem",key:"fontSize",fallback:lower ? 22 : 24,range:14...64)
             FontStyleControls(title:"mensagem",settings:$settings,prefix:"body",changed:changed)
             if lower {
                 InstalledFontPicker(title: "Fonte da identificação", selection: Binding(get: { settings.string("badgeFont", legacyFont) }, set: { settings["badgeFont"]=$0; changed() }))

@@ -82,5 +82,16 @@ import AppKit
     try smallIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-small.png"))
     try largeIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-large.png"))
     try subscriberIcon.representation(using:.png,properties:[:])!.write(to:previewDirectory.appendingPathComponent("icon-subscriber.png"))
+    let compactSettings: [String: Any] = ["style":3,"layoutWidth":420,"layoutHeight":110,
+                                           "labelSize":26,"valueSize":76,"detailSize":32,"iconSize":120]
+    let compactSubscriber = YouTubeActivityRaster.render(
+        event:.init(id:"compact-subscriber",kind:.subscriber,name:"Exemplo • Marina",total:nil),
+        total:nil,settings:compactSettings)!
+    try compactSubscriber.representation(using:.png,properties:[:])!.write(
+        to:previewDirectory.appendingPathComponent("compact-subscriber-420x110.png"))
+    let compactLikes = YouTubeActivityRaster.render(event:nil,total:1250,subscriberTotal:8500,
+        newPublicSubscribers:3,settings:compactSettings)!
+    try compactLikes.representation(using:.png,properties:[:])!.write(
+        to:previewDirectory.appendingPathComponent("compact-likes-420x110.png"))
     print("PASS: likes, rounded channel total, public subscriber count, dedup, six editable raster styles and authenticated read-only requests")
 }

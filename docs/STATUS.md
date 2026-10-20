@@ -1,3 +1,7 @@
+## Versão 0.1.31 — composição dos cartões de atividade e destaque
+
+Likes e inscritos usam uma grade vertical com espaços próprios para título, valor/nome e detalhes. Tamanho e largura da fonte são limitados pela área real do cartão; os dois indicadores secundários se separam em linhas quando há altura. Os seis presets têm bordas e cores revistas. Destaques de comentários e Super Chats usam cabeçalho com avatar/autor e selo/valor independentes, mensagem em largura ampla e ajuste do valor em cartões compactos. O seletor renderiza miniaturas do destaque, e o Neon perdeu o contorno chamativo. Amostras rasterizadas em tamanhos compacto e largo foram inspecionadas; testes nativos de chat/atividade passaram. Build e publicação finais ainda pendem.
+
 ## Versão 0.1.30 — fontes instaladas em todos os controles de tipografia
 
 O seletor de famílias instaladas no Mac, com busca e aviso de fonte ausente, foi aplicado à faixa de texto, ao nome do convidado, aos indicadores de likes/inscrições e às propriedades genéricas de texto; chat e destaque usam o mesmo controle. A faixa resolve a família pelo AppKit ao desenhar, e a paginação do destaque mede com a mesma fonte da rasterização. A seleção permanece no projeto.

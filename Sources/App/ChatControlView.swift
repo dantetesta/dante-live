@@ -141,7 +141,7 @@ struct ChatControlView: View {
                     Text(chat.status).font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if studio.youtube.trackingLive && !chat.running { Button("Reconectar chat") { studio.youtube.reconnectChat { studio.streaming } } }
+                if studio.youtube.trackingLive && !chat.running && !chat.quotaBlocked { Button("Reconectar chat") { studio.youtube.reconnectChat { studio.streaming } } }
                 Button("Fechar") { dismiss() }.keyboardShortcut(.cancelAction)
             }.padding(24)
             Divider()
@@ -152,6 +152,44 @@ struct ChatControlView: View {
                         Text("Conversa (\(chat.pendingMessages.count))").tag("conversation")
                         Text("Já exibidos (\(chat.displayed.count))").tag("displayed")
                     }.pickerStyle(.segmented).labelsHidden()
+                    VStack(alignment: .leading, spacing: 9) {
+                        HStack(spacing: 12) {
+                            Button("Consultar agora", systemImage: "arrow.clockwise") { chat.refreshNow() }
+                                .disabled(!chat.sessionActive || !chat.running || chat.fetching || chat.refreshQueued || chat.quotaBlocked)
+                            if chat.fetching { ProgressView().controlSize(.small).accessibilityLabel("Consultando chat") }
+                            if chat.refreshQueued { Text("Consulta aguardando intervalo do YouTube").font(.caption).foregroundStyle(.secondary) }
+                            Spacer(minLength: 0)
+                            if let last = chat.lastUpdatedAt { Text("Atualizado às \(last.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
+                        }
+                        Toggle("Atualizar automaticamente enquanto esta janela estiver aberta", isOn: Binding(
+                            get: { chat.panelAutomatic }, set: { chat.setPanelAutomatic($0) }
+                        )).toggleStyle(.switch)
+                        HStack {
+                            Picker("Intervalo da janela", selection: Binding(
+                                get: { chat.panelIntervalSeconds }, set: { chat.setPanelInterval($0) }
+                            )) {
+                                Text("30 segundos").tag(30)
+                                Text("60 segundos").tag(60)
+                            }.disabled(!chat.panelAutomatic)
+                            Picker("Chat visível no Programa", selection: Binding(
+                                get: { chat.onAirIntervalSeconds }, set: { chat.setOnAirInterval($0) }
+                            )) {
+                                Text("10 segundos").tag(10)
+                                Text("15 segundos").tag(15)
+                                Text("30 segundos").tag(30)
+                            }
+                        }
+                        Text("A consulta rápida só ocorre durante a transmissão, com a fonte Chat do YouTube visível na cena em Programa. O intervalo mínimo informado pelo YouTube sempre prevalece.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text("Em 3 horas, \((54_000 / chat.onAirIntervalSeconds).formatted()) unidades seriam gastas só pelo chat neste intervalo, se o YouTube não exigir uma pausa maior. A cota do projeto também é usada por outras funções e dispositivos.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text("Proteção local: até 1.200 consultas de chat (6.000 unidades) em qualquer período de 24 horas neste Mac.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        if !chat.panelAutomatic {
+                            Text("Na consulta manual, começar tarde pode deixar mensagens antigas fora do histórico retornado pelo YouTube.")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                    }.padding(12).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                         TextField("Buscar por nome ou mensagem", text: $query).textFieldStyle(.roundedBorder)
@@ -165,6 +203,10 @@ struct ChatControlView: View {
                     if chat.overflow > 0 {
                         Label("Fila cheia. \(chat.overflow) novos apoios não foram guardados. Consulte o YouTube Studio.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
                     }
+                    if chat.messageOverflow > 0 {
+                        Label("A fila local chegou a 1.000 comentários. \(chat.messageOverflow) mensagens antigas saíram da lista; consulte o YouTube Studio para o histórico.", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             if entries.isEmpty {
@@ -175,7 +217,10 @@ struct ChatControlView: View {
                     }
                 }.padding(20).frame(maxWidth: .infinity)
                 Divider()
+                ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    ChatComposerView(studio: studio, youtube: studio.youtube)
+                    Divider()
                     Label("Destaque escolhido", systemImage: "text.bubble.fill").font(.headline)
                     if let featured = chat.featured {
                         Text(featured.author).font(.title3.bold())
@@ -199,10 +244,10 @@ struct ChatControlView: View {
                     Button("Janela do chat", systemImage: "bubble.left.and.bubble.right") { add("dante_youtube_chat", base: "Chat do YouTube") }
                     Button("Destaque animado", systemImage: "text.bubble") { add("dante_superchat", base: "Destaque do YouTube") }
                     Text("Escolha entre 12 estilos nas Propriedades da fonte. Arraste e redimensione no canvas.").font(.caption).foregroundStyle(.secondary)
-                    Spacer()
                     Label("Mensagens apenas nesta live", systemImage: "clock").font(.caption.weight(.semibold))
                     Text("A conversa e a fila são limpas ao encerrar. Seus estilos e a posição das fontes permanecem salvos.").font(.caption).foregroundStyle(.secondary)
-                }.padding(24).frame(width: 310)
+                }.padding(24)
+                }.frame(width: 310)
             }
         }.frame(width: min(980, (NSScreen.main?.visibleFrame.width ?? 1200) - 80), height: min(720, (NSScreen.main?.visibleFrame.height ?? 900) - 100)).background(Color(nsColor: .windowBackgroundColor)).tint(.teal)
     }
@@ -247,6 +292,61 @@ struct ChatControlView: View {
         while names.contains(name) { name = "\(base) \(index)"; index += 1 }
         if studio.command("source.add", ["scene": studio.sceneName, "type": type, "name": name]) {
             if let item = studio.items.last { studio.selectedItem = item.sceneItemID }
+        }
+    }
+}
+
+private struct ChatComposerView: View {
+    @ObservedObject var studio: StudioModel
+    @ObservedObject var youtube: YouTubeModel
+    @LegacyState private var draft = ""
+    @LegacyState private var feedback: String?
+    @LegacyState private var feedbackIsError = false
+    private var count: Int { draft.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Label("Enviar ao chat do YouTube", systemImage: "paperplane.fill").font(.headline)
+            if let name = youtube.account?.name, let title = youtube.liveShare?.title {
+                Text("\(name) · \(title)").font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+            TextEditor(text: $draft)
+                .frame(height: 78)
+                .padding(4)
+                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.secondary.opacity(0.35)))
+                .accessibilityLabel("Mensagem para o chat da live")
+            HStack {
+                Text("\(count)/200 caracteres").foregroundStyle(count > 200 ? Color.red : Color.secondary)
+                Spacer()
+                Button("Enviar", systemImage: "paperplane") { send() }
+                    .disabled(!youtube.canComposeChatMessage || !studio.streaming || count == 0 || count > 200)
+            }.font(.caption)
+            if youtube.sendingChatMessage { ProgressView("Enviando…").controlSize(.small) }
+            if let feedback {
+                Text(feedback).font(.caption).foregroundStyle(feedbackIsError ? .orange : .green)
+            } else if !youtube.canComposeChatMessage || !studio.streaming {
+                Text("Disponível durante a live do YouTube iniciada por este canal.").font(.caption).foregroundStyle(.secondary)
+            }
+            Text("Links são enviados como texto e podem ser filtrados pelo YouTube. Cada envio custa 20 unidades; limite local de 100 envios em 24 horas.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+    private func send() {
+        let submitted = draft
+        feedback = nil
+        Task {
+            do {
+                try await youtube.sendChatMessage(submitted, isSending: { studio.streaming })
+                if draft == submitted { draft = "" }
+                feedbackIsError = false
+                feedback = "Mensagem confirmada pelo YouTube."
+            } catch {
+                feedbackIsError = true
+                if let apiError = error as? YouTubeAPIError, apiError.definitelyRejected {
+                    feedback = apiError.localizedDescription
+                } else {
+                    feedback = "Envio não confirmado. Confira o chat no YouTube antes de tentar novamente. \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

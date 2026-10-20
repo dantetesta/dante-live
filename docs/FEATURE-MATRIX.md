@@ -1,5 +1,7 @@
 # Matriz de equivalência funcional — estado consolidado
 
+Incremento 0.1.35: consultas de comentários do YouTube por demanda da fonte de chat visível no Programa (10/15/30 s), atualização opcional do painel (30/60 s), consulta manual, teto local de 1.200 consultas em 24 horas e fila de 1.000 comentários. O anfitrião pode escrever e enviar texto pelo painel do chat durante uma live do YouTube iniciada pelo Dante Live, com confirmação da API, teto local de 100 tentativas em 24 horas e sem repetição automática em caso de resposta incerta. URLs são enviadas como texto, sujeitas às regras do YouTube. Validação em live pública pendente.
+
 Referência: OBS Studio 32.2.2, commit `ba2f32bdf791005443988a4955e963663e16b1ed`, árvore `vendor/obs-studio`. Paths de origem são relativos à árvore. SwiftUI/AppKit são a interface do Dante; referências Qt identificam comportamento a reimplementar, sem incorporação do frontend Qt.
 
 **Objetivo permanece equivalência funcional macOS; pendências abaixo não reduzem o escopo.** “Implementado” significa código/controle real existente, não aceitação integral. A coluna Aceitação descreve critérios a completar, inclusive os ainda não executados.

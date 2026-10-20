@@ -212,6 +212,7 @@ final class StudioModel: ObservableObject {
         if warnings != microphoneWarnings { microphoneWarnings = warnings }
         let streamOutput = state.object("outputs").object("stream")
         if youtube.chat.sessionActive && !streaming && !streamOutput.flag("starting") && !streamOutput.flag("reconnecting") && !streamOutput.flag("busy") { youtube.chat.reset() }
+        youtube.chat.updateDemand(programVisible: streaming && ProgramChatVisibility.containsActiveChat(scenes: scenes), panelOpen: showingChat)
         chatRenderer.update(studio: self)
         if let id = selectedItem, !items.contains(where: { $0.sceneItemID == id }) { selectedItem = nil }
         if closeGuestRoom {

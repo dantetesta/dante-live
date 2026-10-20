@@ -1,5 +1,7 @@
 # Chat, destaques e alertas do YouTube
 
+Durante uma live do YouTube iniciada pelo Dante Live, o painel **Chat e destaques** permite ao anfitrião escrever e enviar uma mensagem ao chat pelo canal conectado. O limite é de 200 caracteres; cada envio custa 20 unidades de cota. O Mac limita a 100 tentativas de envio em 24 horas (até 2.000 unidades), inclusive respostas incertas. Uma URL pode ser digitada no texto, mas sua aceitação e exibição dependem das regras do YouTube. O Dante Live só limpa o rascunho após a confirmação da API. Se a resposta se perder, confira o chat no YouTube antes de tentar novamente: o aplicativo não repete o envio automaticamente.
+
 ## Antes de transmitir
 
 1. Adicione **Chat do YouTube** ou **Destaque de comentário** em Adicionar à cena → Elementos.
@@ -12,7 +14,9 @@
 
 ## Durante a live
 
-O chat conectado recebe as mensagens comuns automaticamente. Mostra os cartões mais recentes que cabem na área, com até aproximadamente cinco linhas por comentário. O painel mantém o texto completo. Cada pessoa recebe uma cor consistente de identificação e uma inicial, sem baixar a foto de perfil.
+Durante a transmissão, a consulta rápida acontece somente quando a fonte **Chat do YouTube** está visível na cena em Programa, inclusive em uma cena aninhada visível. O intervalo pode ser de 10, 15 ou 30 segundos; o mínimo enviado pelo YouTube sempre prevalece. Com o painel Chat aberto, a atualização automática opcional consulta a cada 30 ou 60 segundos. **Consultar agora** faz uma leitura manual, respeitando a pausa exigida pelo YouTube. Com o painel fechado e sem chat visível no Programa, não há consultas de comentários. Abrir o painel no modo automático inicia a primeira consulta; iniciar apenas no modo manual pode perder mensagens antigas que o YouTube já não devolve.
+
+O chat mostra os cartões mais recentes que cabem na área, com até aproximadamente cinco linhas por comentário. O painel mantém até 1.000 mensagens comuns recentes da sessão e informa quando as mais antigas precisam sair da fila. Cada pessoa recebe uma cor consistente de identificação e uma inicial, sem baixar a foto de perfil.
 
 Super Chats aguardam aprovação no painel Chat. **Mostrar** publica o destaque; **Ocultar** retira. Texto longo é paginado conforme largura, altura e fonte, sem descartar seu restante. O painel usa a fonte de destaque selecionada, ou a primeira encontrada, como referência para as páginas. Em várias fontes com tamanhos diferentes, o mesmo índice pode corresponder a trechos diferentes; prefira uma fonte de destaque reutilizada.
 
@@ -42,5 +46,7 @@ A conexão OAuth do anfitrião não permite saber quem deu like. Fazer login no 
 ## Evidência e limites
 
 Testes locais verificam consultas autenticadas somente de leitura, primeira resposta sem alertas antigos, agrupamento/redução de likes, fila de cinco segundos, IDs repetidos, reset e cancelamento. Os desenhos são conferidos com dados fictícios e pixels reais do motor; não foi usada uma live pública ou conta bancária nestes testes. A suíte `scripts/test-chat.sh` cobre chat, alertas e renderização nativa; `Tests/CanvasGeometryTests.swift` cobre dimensões independentes com rotação/espelhamento.
+
+Cada chamada a `liveChatMessages.list` custa 5 unidades. Em uma live de três horas, somente o chat a cada 10 segundos consumiria aproximadamente 5.400 unidades; a cada 30 segundos, 1.800. Este Mac limita o chat a 1.200 consultas (6.000 unidades) em qualquer período móvel de 24 horas e pausa a consulta ao atingir o teto. Esses valores ignoram outras funções, dispositivos e chamadas auxiliares. A cota de 10.000 unidades é por projeto/dia, e o app não conhece o consumo total externo. Não há garantia de que a cota não será excedida; erros de cota pausam o chat e aparecem no painel.
 
 Fontes oficiais: [total de likes](https://developers.google.com/youtube/data/reference/rest/v3/videos#statistics.likeCount), [estatísticas do canal](https://developers.google.com/youtube/data/reference/rest/v3/channels#statistics.subscriberCount), [inscritos recentes](https://developers.google.com/youtube/data/reference/rest/v3/subscriptions/list?hl=en), [privacidade das inscrições](https://support.google.com/youtube/answer/7280745?hl=en-EN).

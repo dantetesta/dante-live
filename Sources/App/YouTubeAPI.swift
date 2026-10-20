@@ -9,6 +9,8 @@ struct YouTubeAPIError: LocalizedError {
         case "liveChatDisabled": "O chat está desativado nesta live."
         case "liveChatEnded": "O chat desta live foi encerrado."
         case "liveChatNotFound": "O chat da live não foi encontrado."
+        case "messageTextInvalid", "messageTextRequired": "O YouTube recusou o texto da mensagem. Revise o conteúdo e tente novamente."
+        case "rateLimitExceeded": "O YouTube limitou os envios de mensagens. Aguarde antes de tentar novamente."
         case "quotaExceeded", "dailyLimitExceeded": "A cota da API do YouTube foi atingida. Tente mais tarde."
         case "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions": "O YouTube ainda não permite lives neste canal. Confira a habilitação no YouTube Studio."
         case "invalid_grant", "unauthorized": "A autorização do YouTube expirou ou foi revogada. Conecte o canal novamente."
@@ -132,7 +134,7 @@ struct YouTubePreferences: Codable {
         guard (200..<300).contains(response.statusCode) else {
             // Never surface response bodies or URLs: they may contain credentials.
             let reason = json.object("error").array("errors").first?.string("reason") ?? (json["error"] as? String) ?? (response.statusCode == 401 ? "unauthorized" : "HTTP \(response.statusCode)")
-            let known: Set<String> = ["quotaExceeded", "dailyLimitExceeded", "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions", "invalid_grant", "unauthorized", "forbidden", "insufficientPermissions", "redundantTransition", "liveChatDisabled", "liveChatEnded", "liveChatNotFound", "rateLimitExceeded"]
+            let known: Set<String> = ["quotaExceeded", "dailyLimitExceeded", "liveStreamingNotEnabled", "livePermissionBlocked", "insufficientLivePermissions", "invalid_grant", "unauthorized", "forbidden", "insufficientPermissions", "redundantTransition", "liveChatDisabled", "liveChatEnded", "liveChatNotFound", "messageTextInvalid", "messageTextRequired", "rateLimitExceeded", "pageTokenInvalid"]
             throw YouTubeAPIError(reason: known.contains(reason) ? reason : "HTTP \(response.statusCode)", statusCode: response.statusCode)
         }
         return json
@@ -153,6 +155,19 @@ struct YouTubePreferences: Codable {
         let json = try await call("liveBroadcasts", token: token, query: ["part":"snippet,status,contentDetails", "id":id])
         guard let item = json.array("items").first else { throw StudioError.message("A live não foi encontrada neste canal. Atualize a lista.") }
         return YouTubeBroadcast(item)
+    }
+    func insertChatText(liveChatID: String, text: String, token: String) async throws -> String {
+        let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !liveChatID.isEmpty, !message.isEmpty, message.unicodeScalars.count <= 200 else {
+            throw StudioError.message("Escreva uma mensagem de até 200 caracteres para o chat da live.")
+        }
+        let result = try await call("liveChat/messages", token: token, method: "POST", query: ["part": "snippet"], body: [
+            "snippet": ["liveChatId": liveChatID, "type": "textMessageEvent", "textMessageDetails": ["messageText": message]]
+        ])
+        guard !result.string("id").isEmpty else {
+            throw StudioError.message("O YouTube não confirmou o envio. Confira o chat antes de tentar novamente.")
+        }
+        return result.string("id")
     }
     func createBroadcast(_ draft: YouTubeDraft, at date: Date, token: String) async throws -> YouTubeBroadcast {
         try draft.validate()

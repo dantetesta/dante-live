@@ -337,7 +337,7 @@ enum OverlayComponentScale {
         guard let engine = studio.engine else { return }
         let chat = studio.youtube.chat
         let sources = studio.scenes.flatMap { $0.array("items") }.filter { $0.string("type").hasPrefix("dante_") && ["dante_youtube_chat", "dante_superchat", "dante_youtube_alert"].contains($0.string("type")) }
-        let alerts = sources.filter { $0.string("type") == "dante_youtube_alert" }.map { studio.properties(name:$0.string("name")).object("settings") }
+        let alerts = sources.filter { $0.string("type") == "dante_youtube_alert" && $0.flag("sourceActive") }.map { studio.properties(name:$0.string("name")).object("settings") }
         let activity=studio.youtube.activity
         activity.configure(
             subscribers: alerts.contains { $0.flag("showSubscribers", true) || $0.flag("showNewSubscribers", false) },

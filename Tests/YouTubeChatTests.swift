@@ -5,7 +5,7 @@ import AppKit
         ["id": id, "authorDetails": ["channelId": channel, "displayName": "Canal de teste"],
          "snippet": ["type": paid ? "superChatEvent" : "textMessageEvent", "textMessageDetails": ["messageText": text], "superChatDetails": ["userComment": text, "amountDisplayString": "R$ 10,00"]]]
     }
-    let chat = YouTubeChat()
+    let chat = YouTubeChat(preferences: UserDefaults(suiteName: UUID().uuidString)!)
     chat.ingest([fixture("normal"), fixture("paid", paid: true), fixture("paid", paid: true)])
     precondition(chat.messages.count == 1 && chat.donations.count == 1 && chat.featured == nil)
     chat.show(chat.donations[0]); chat.hide(); precondition(chat.donations.isEmpty && chat.hiddenBeforeAirIDs.contains("paid"))
@@ -26,7 +26,9 @@ import AppKit
     precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil && !chat.wasDisplayed("banned"))
     chat.ingest((0..<550).map { fixture("paid-\($0)", paid: true) })
     precondition(chat.donations.count == 500 && chat.overflow == 50)
-    chat.ingest((0..<200).map { fixture("text-\($0)") }); precondition(chat.messages.count == 100)
+    chat.ingest((0..<200).map { fixture("text-\($0)") }); precondition(chat.messages.count == 200)
+    chat.ingest((200..<1_200).map { fixture("text-\($0)") })
+    precondition(chat.messages.count == 1000 && chat.messageOverflow == 200)
     chat.reset(); precondition(chat.messages.isEmpty && chat.donations.isEmpty && chat.featured == nil && chat.overflow == 0)
     let installedFonts = ChatFontCatalog.availableFamilies()
     precondition(installedFonts.contains("Menlo") && installedFonts.count > 6)
@@ -119,6 +121,31 @@ import AppKit
     chat.reset(); precondition(chat.displayed.isEmpty && chat.hiddenBeforeAirIDs.isEmpty && chat.retiringIDs.isEmpty && chat.onAirID == nil)
     print("PASS: explicit Hide archives immediately with truthful preview status, source-eye retirement waits 30 seconds, search/order, moderation and reset")
 
+    let preview: [[String: Any]] = [["name": "Programa", "items": [
+        ["name": "Chat", "type": "dante_youtube_chat", "visible": true, "sourceActive": false]
+    ]]]
+    precondition(!ProgramChatVisibility.containsActiveChat(scenes: preview))
+    let published: [[String: Any]] = [["name": "Programa", "items": [
+        ["name": "Chat", "type": "dante_youtube_chat", "visible": false, "sourceActive": true]
+    ]]]
+    precondition(ProgramChatVisibility.containsActiveChat(scenes: published))
+    let nestedProgram: [[String: Any]] = preview + [["name": "Cena aninhada", "items": [
+        ["name": "Chat aninhado", "type": "dante_youtube_chat", "visible": true, "sourceActive": true]
+    ]]]
+    precondition(ProgramChatVisibility.containsActiveChat(scenes: nestedProgram))
+    chat.updateDemand(programVisible: false, panelOpen: false)
+    precondition(chat.automaticInterval == nil)
+    chat.updateDemand(programVisible: false, panelOpen: true)
+    precondition(chat.automaticInterval == 30)
+    chat.setPanelAutomatic(false)
+    precondition(chat.automaticInterval == nil)
+    chat.updateDemand(programVisible: true, panelOpen: false)
+    precondition(chat.automaticInterval == 10)
+    chat.setOnAirInterval(15)
+    precondition(chat.automaticInterval == 15)
+    chat.updateDemand(programVisible: false, panelOpen: false)
+    print("PASS: program-active source follows published snapshot, nested chat, panel/manual/on-air demand")
+
     // Fake transport verifies auth/query, late responses after reset, and server pacing.
     var calls = 0
     let api = YouTubeAPI { request in
@@ -135,10 +162,21 @@ import AppKit
         return (try JSONSerialization.data(withJSONObject: json), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
     chat.start(broadcast: "live", api: api, access: { "fixture" }, isSending: { true })
-    for _ in 0..<50 { if !chat.donations.isEmpty { break }; try await Task.sleep(for: .milliseconds(10)) }
+    try await Task.sleep(for: .milliseconds(120))
+    precondition(calls == 0 && chat.donations.isEmpty)
+    chat.refreshNow()
+    for _ in 0..<150 { if !chat.donations.isEmpty { break }; try await Task.sleep(for: .milliseconds(10)) }
     precondition(chat.donations.count == 1 && calls == 2)
     try await Task.sleep(for: .milliseconds(80)); precondition(calls == 2)
     chat.reset(); precondition(chat.donations.isEmpty && !chat.running)
+    let limitedPreferences = UserDefaults(suiteName: UUID().uuidString)!
+    limitedPreferences.set(Array(repeating: Date().timeIntervalSince1970, count: 1200), forKey: "DanteLive.chatRequestTimes")
+    let limitedChat = YouTubeChat(preferences: limitedPreferences)
+    limitedChat.start(broadcast: "live", api: api, access: { "fixture" }, isSending: { true })
+    limitedChat.refreshNow()
+    for _ in 0..<150 { if !limitedChat.running { break }; try await Task.sleep(for: .milliseconds(10)) }
+    precondition(!limitedChat.running && limitedChat.status.contains("Limite local") && calls == 2)
+    limitedChat.reset()
     let slow = YouTubeAPI { request in
         try? await Task.sleep(for: .milliseconds(100))
         return (try JSONSerialization.data(withJSONObject: ["items": [["id": "live", "snippet": ["liveChatId": "late"]]]]), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
@@ -146,5 +184,5 @@ import AppKit
     chat.start(broadcast: "old", api: slow, access: { "fixture" }, isSending: { true })
     try await Task.sleep(for: .milliseconds(10)); chat.reset()
     try await Task.sleep(for: .milliseconds(140)); precondition(chat.messages.isEmpty && !chat.running)
-    print("PASS: chat transport auth, chat ID, server pacing, cancellation and stale response isolation")
+    print("PASS: chat transport auth, idle/manual polling, server pacing, local quota guard, cancellation and stale response isolation")
 }

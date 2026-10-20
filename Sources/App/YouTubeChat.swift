@@ -50,7 +50,17 @@ struct ChatMessage: Identifiable, Equatable {
     }
 }
 
-/// Session-only state. Nothing in this model is Codable or written to disk.
+/// The engine reports activity for the source actually shown by the program.
+/// In Studio Mode the editable scene may differ from the published snapshot.
+enum ProgramChatVisibility {
+    static func containsActiveChat(scenes: [[String: Any]]) -> Bool {
+        scenes.contains { scene in
+            scene.array("items").contains { $0.string("type") == "dante_youtube_chat" && $0.flag("sourceActive") }
+        }
+    }
+}
+
+/// Messages are session-only. Only the operator's polling choices are stored.
 @MainActor final class YouTubeChat: ObservableObject {
     @Published private(set) var messages: [ChatMessage] = []
     @Published private(set) var donations: [ChatMessage] = []
@@ -62,8 +72,8 @@ struct ChatMessage: Identifiable, Equatable {
     @Published private(set) var retiringIDs = Set<String>()
     private var onAir: ChatMessage?
     private var retirements: [String: (message: ChatMessage, deadline: TimeInterval)] = [:]
-    var pendingMessages: [ChatMessage] { messages.filter { message in !displayed.contains { $0.id == message.id } } }
-    var pendingDonations: [ChatMessage] { donations.filter { message in !displayed.contains { $0.id == message.id } } }
+    var pendingMessages: [ChatMessage] { let shown = Set(displayed.map(\.id)); return messages.filter { !shown.contains($0.id) } }
+    var pendingDonations: [ChatMessage] { let shown = Set(displayed.map(\.id)); return donations.filter { !shown.contains($0.id) } }
     func wasDisplayed(_ id: String) -> Bool { displayed.contains { $0.id == id } }
     /// Called from the program-source state, not from selecting a row in the UI.
     func updatePresentation(visible: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
@@ -90,13 +100,81 @@ struct ChatMessage: Identifiable, Equatable {
     }
     @Published private(set) var status = "O chat será conectado quando a live do YouTube começar."
     @Published private(set) var running = false
+    @Published private(set) var fetching = false
+    @Published private(set) var refreshQueued = false
+    @Published private(set) var lastUpdatedAt: Date?
+    @Published private(set) var quotaBlocked = false
+    @Published private(set) var panelAutomatic: Bool
+    @Published private(set) var panelIntervalSeconds: Int
+    @Published private(set) var onAirIntervalSeconds: Int
     private(set) var sessionActive = false
     @Published private(set) var overflow = 0
+    @Published private(set) var messageOverflow = 0
     @Published private(set) var revision = 0
     private var seen = Set<String>(), seenOrder: [String] = []
     private var task: Task<Void, Never>?
     private var generation = UUID()
     private var resumeCursor = ""
+    private var liveChatID = ""
+    var resolvedLiveChatID: String? { sessionActive && !liveChatID.isEmpty ? liveChatID : nil }
+    private var nextRequestAt = Date.distantPast
+    private var lastRequestAt: Date?
+    private var panelOpen = false
+    private var programChatVisible = false
+    private let preferences: UserDefaults
+    private var chatRequestTimes: [TimeInterval]
+    private let chatRequestLimit = 1200 // 6,000 units for chat in any rolling 24 hours on this Mac.
+    init(preferences: UserDefaults = .standard) {
+        self.preferences = preferences
+        chatRequestTimes = preferences.array(forKey: "DanteLive.chatRequestTimes") as? [TimeInterval] ?? []
+        panelAutomatic = preferences.object(forKey: "DanteLive.chatPanelAutomatic") as? Bool ?? true
+        let panel = preferences.integer(forKey: "DanteLive.chatPanelInterval")
+        panelIntervalSeconds = [30, 60].contains(panel) ? panel : 30
+        let onAir = preferences.integer(forKey: "DanteLive.chatOnAirInterval")
+        onAirIntervalSeconds = [10, 15, 30].contains(onAir) ? onAir : 10
+    }
+    var automaticInterval: TimeInterval? {
+        if programChatVisible { return TimeInterval(onAirIntervalSeconds) }
+        if panelOpen && panelAutomatic { return TimeInterval(panelIntervalSeconds) }
+        return nil
+    }
+    func updateDemand(programVisible: Bool, panelOpen: Bool) {
+        programChatVisible = programVisible
+        self.panelOpen = panelOpen
+    }
+    func setPanelAutomatic(_ value: Bool) {
+        panelAutomatic = value
+        preferences.set(value, forKey: "DanteLive.chatPanelAutomatic")
+    }
+    func setPanelInterval(_ seconds: Int) {
+        guard [30, 60].contains(seconds) else { return }
+        panelIntervalSeconds = seconds
+        preferences.set(seconds, forKey: "DanteLive.chatPanelInterval")
+    }
+    func setOnAirInterval(_ seconds: Int) {
+        guard [10, 15, 30].contains(seconds) else { return }
+        onAirIntervalSeconds = seconds
+        preferences.set(seconds, forKey: "DanteLive.chatOnAirInterval")
+    }
+    func refreshNow() {
+        guard sessionActive, running, !quotaBlocked else { return }
+        refreshQueued = true
+    }
+    private func registerChatRequest(now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        chatRequestTimes.removeAll { $0 <= now - 86_400 || $0 > now }
+        guard chatRequestTimes.count < chatRequestLimit else { return false }
+        chatRequestTimes.append(now)
+        preferences.set(chatRequestTimes, forKey: "DanteLive.chatRequestTimes")
+        return true
+    }
+    private var hasLocalChatBudget: Bool {
+        let now = Date().timeIntervalSince1970
+        return chatRequestTimes.filter { $0 > now - 86_400 && $0 <= now }.count < chatRequestLimit
+    }
+    private func pauseForLocalBudget() {
+        fetching = false; running = false
+        status = "Limite local de 6.000 unidades do chat em 24 horas atingido. Aguarde a janela móvel liberar consultas; a cota real do projeto pode ser diferente."
+    }
     var featureText: String { featured.map { $0.pages[min(page, $0.pages.count - 1)] } ?? "" }
     func show(_ message: ChatMessage) { featured = message; page = 0; revision += 1 }
     private func archive(_ message: ChatMessage, aired: Bool) {
@@ -132,9 +210,11 @@ struct ChatMessage: Identifiable, Equatable {
     }
     func dismiss(_ id: String) { removeMessage(id) }
     func reset() {
-        task?.cancel(); task = nil; generation = UUID(); running = false; sessionActive = false; resumeCursor = ""
+        task?.cancel(); task = nil; generation = UUID(); running = false; sessionActive = false; resumeCursor = ""; liveChatID = ""
+        fetching = false; refreshQueued = false; lastUpdatedAt = nil; quotaBlocked = false
+        nextRequestAt = .distantPast; lastRequestAt = nil; panelOpen = false; programChatVisible = false
         displayed.removeAll(); hiddenBeforeAirIDs.removeAll(); retirements.removeAll(); retiringIDs.removeAll(); onAir = nil; onAirID = nil
-        messages.removeAll(); donations.removeAll(); seen.removeAll(); seenOrder.removeAll(); featured = nil; page = 0; overflow = 0; revision += 1
+        messages.removeAll(); donations.removeAll(); seen.removeAll(); seenOrder.removeAll(); featured = nil; page = 0; overflow = 0; messageOverflow = 0; revision += 1
         status = "O chat será conectado quando a live do YouTube começar."
     }
     func ingest(_ items: [[String: Any]]) {
@@ -158,7 +238,7 @@ struct ChatMessage: Identifiable, Equatable {
                 } else { messages.append(message) }
             }
         }
-        if messages.count > 100 { messages.removeFirst(messages.count - 100) }
+        if messages.count > 1000 { let removed = messages.count - 1000; messages.removeFirst(removed); messageOverflow += removed }
         if seenOrder.count > 10_000 {
             for id in seenOrder.prefix(seenOrder.count - 10_000) { seen.remove(id) }
             seenOrder.removeFirst(seenOrder.count - 10_000)
@@ -173,48 +253,84 @@ struct ChatMessage: Identifiable, Equatable {
     }
     func start(broadcast: String, api: YouTubeAPI, access: @escaping @MainActor () async throws -> String, isSending: @escaping @MainActor () -> Bool, preserveQueue: Bool = false) {
         if preserveQueue { task?.cancel(); generation = UUID() } else { reset() }
-        running = true; sessionActive = true; status = "Conectando ao chat…"; let session = generation
+        running = true; sessionActive = true; fetching = false; quotaBlocked = false
+        status = "Chat pronto. As consultas começam quando o chat estiver no Programa ou esta janela solicitar atualização."
+        let session = generation
         task = Task { [weak self] in
-            var chatID = "", cursor = self?.resumeCursor ?? "", failures = 0
+            var failures = 0
             while !Task.isCancelled {
                 guard let self, self.generation == session else { return }
                 guard isSending() else { self.reset(); return }
+                let interval = self.automaticInterval
+                if interval == nil && !self.refreshQueued {
+                    let paused = "Consultas pausadas • abra a janela com atualização automática, consulte manualmente ou exiba o chat no Programa."
+                    if self.status != paused { self.status = paused }
+                    do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                    continue
+                }
+                let automaticDue = self.lastRequestAt?.addingTimeInterval(interval ?? 0) ?? .distantPast
+                let due = max(self.nextRequestAt, self.refreshQueued ? .distantPast : automaticDue)
+                let wait = due.timeIntervalSinceNow
+                if wait > 0 {
+                    do { try await Task.sleep(for: .seconds(min(1, wait))) } catch { return }
+                    continue
+                }
+                self.refreshQueued = false
+                guard self.hasLocalChatBudget else { self.pauseForLocalBudget(); return }
+                self.fetching = true
                 do {
                     let token = try await access()
-                    if chatID.isEmpty {
+                    if self.liveChatID.isEmpty {
                         let event = try await api.broadcast(broadcast, token: token)
-                        chatID = event.liveChatID ?? ""
-                        if chatID.isEmpty {
+                        try Task.checkCancellation()
+                        guard self.generation == session else { return }
+                        self.liveChatID = event.liveChatID ?? ""
+                        if self.liveChatID.isEmpty {
+                            self.fetching = false
                             self.status = "Aguardando o chat da live. Confira se ele está habilitado no YouTube."
                             try await Task.sleep(for: .seconds(10)); continue
                         }
                     }
-                    var query = ["liveChatId": chatID, "part": "snippet,authorDetails", "maxResults": "200", "hl": "pt-BR"]
-                    if !cursor.isEmpty { query["pageToken"] = cursor }
+                    var query = ["liveChatId": self.liveChatID, "part": "snippet,authorDetails", "maxResults": "500", "hl": "pt-BR"]
+                    if !self.resumeCursor.isEmpty { query["pageToken"] = self.resumeCursor }
+                    guard self.registerChatRequest() else {
+                        self.pauseForLocalBudget()
+                        return
+                    }
+                    self.lastRequestAt = Date()
                     let response = try await api.call("liveChat/messages", token: token, query: query)
                     try Task.checkCancellation()
                     guard self.generation == session else { return }
-                    self.ingest(response.array("items")); cursor = response.string("nextPageToken"); self.resumeCursor = cursor
+                    self.fetching = false
+                    self.ingest(response.array("items")); self.resumeCursor = response.string("nextPageToken")
+                    self.lastUpdatedAt = Date()
+                    self.nextRequestAt = Date().addingTimeInterval(max(5, response.number("pollingIntervalMillis", 5000) / 1000))
                     if response["offlineAt"] != nil { self.reset(); self.status = "Chat encerrado pelo YouTube."; return }
-                    guard !cursor.isEmpty else {
+                    guard !self.resumeCursor.isEmpty else {
                         self.running = false; self.status = "O YouTube não forneceu a próxima página do chat. A fila foi preservada."; return
                     }
-                    self.status = "Chat conectado • destaques sob seu controle"; failures = 0
-                    // Respect the server cadence, with a floor to limit quota consumption.
-                    let seconds = max(5, response.number("pollingIntervalMillis", 5000) / 1000)
-                    try await Task.sleep(for: .seconds(seconds))
-                } catch is CancellationError { return }
+                    self.status = "Chat atualizado • destaques sob seu controle"; failures = 0
+                } catch is CancellationError { self.fetching = false; return }
                 catch {
                     guard self.generation == session, !Task.isCancelled else { return }
+                    self.fetching = false
                     if let apiError = error as? YouTubeAPIError,
                        ["quotaExceeded", "dailyLimitExceeded", "liveChatDisabled", "liveChatEnded", "liveChatNotFound", "forbidden", "insufficientPermissions", "unauthorized", "invalid_grant"].contains(apiError.reason) {
                         self.running = false
+                        self.quotaBlocked = ["quotaExceeded", "dailyLimitExceeded"].contains(apiError.reason)
                         self.status = "Chat indisponível: \(error.localizedDescription)"
                         if apiError.reason == "liveChatEnded" { self.reset(); self.status = "Chat encerrado pelo YouTube." }
                         return
                     }
+                    if let apiError = error as? YouTubeAPIError, apiError.reason == "pageTokenInvalid" {
+                        self.resumeCursor = ""
+                        self.nextRequestAt = Date().addingTimeInterval(5)
+                        self.status = "O YouTube invalidou o ponto de retomada. A próxima consulta trará mensagens recentes; parte do intervalo pode faltar."
+                        continue
+                    }
                     failures += 1; self.status = "Reconectando ao chat… A fila foi preservada."
-                    do { try await Task.sleep(for: .seconds(min(60, pow(2, Double(min(failures, 5))) * 2))) } catch { return }
+                    let isRateLimited = (error as? YouTubeAPIError)?.reason == "rateLimitExceeded"
+                    self.nextRequestAt = Date().addingTimeInterval(isRateLimited ? 60 : min(60, pow(2, Double(min(failures, 5))) * 2))
                 }
             }
         }

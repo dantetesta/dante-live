@@ -23,13 +23,23 @@ import CryptoKit
     try JSONEncoder().encode(prefs).write(to: file)
     var vaultData = [prefix + "-client":String(decoding: try JSONEncoder().encode(client), as: UTF8.self), account.tokenAccount:String(decoding: try JSONEncoder().encode(YouTubeTokens(access: "fixture-access", refresh: "fixture-refresh", expires: Date().addingTimeInterval(3600))), as: UTF8.self)]
     let vault = LiveKeyVault(read: { vaultData[$0] ?? "" }, save: { vaultData[$1] = $0 }, delete: { vaultData[$0] = nil })
-    var requests: [URLRequest] = []; var bound = false; var creates = 0; var failStreamOnce = true; var ambiguous = false; var eventExists = false
-    func event() -> [String:Any] { ["id":"video-1", "snippet":["title":draft.title,"description":draft.description,"scheduledStartTime":"2026-12-01T12:00:00Z"],"status":["privacyStatus":"private","lifeCycleStatus":"ready"],"contentDetails":["boundStreamId":bound ? "stream-1" : "","enableAutoStart":true]] }
+    var requests: [URLRequest] = []; var bound = false; var creates = 0; var failStreamOnce = true; var ambiguous = false; var eventExists = false; var chatPosts = 0; var chatTimeout = false
+    func event() -> [String:Any] { ["id":"video-1", "snippet":["title":draft.title,"description":draft.description,"scheduledStartTime":"2026-12-01T12:00:00Z","liveChatId":"chat-1"],"status":["privacyStatus":"private","lifeCycleStatus":"ready"],"contentDetails":["boundStreamId":bound ? "stream-1" : "","enableAutoStart":true]] }
     let api = YouTubeAPI { request in
         requests.append(request)
         precondition(request.value(forHTTPHeaderField: "Authorization") == "Bearer fixture-access")
         let path = request.url!.path; let method = request.httpMethod!; var response: [String:Any] = [:]; var status = 200
-        if path.hasSuffix("liveBroadcasts"), method == "POST" {
+        if path.hasSuffix("liveChat/messages"), method == "POST" {
+            chatPosts += 1
+            let parts = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!.queryItems!
+            precondition(parts.contains { $0.name == "part" && $0.value == "snippet" })
+            let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String:Any]
+            let snippet = body.object("snippet")
+            precondition(snippet.string("liveChatId") == "chat-1" && snippet.string("type") == "textMessageEvent")
+            precondition(snippet.object("textMessageDetails").string("messageText") == "Confira https://example.com")
+            if chatTimeout { throw URLError(.timedOut) }
+            response = ["id":"posted-1"]
+        } else if path.hasSuffix("liveBroadcasts"), method == "POST" {
             creates += 1
             if ambiguous { throw URLError(.timedOut) }
             let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String:Any]
@@ -40,7 +50,13 @@ import CryptoKit
             let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!.queryItems!
             precondition(query.contains { $0.name == "id" && $0.value == "video-1" }); precondition(query.contains { $0.name == "streamId" && $0.value == "stream-1" })
             bound = true; response = event()
-        } else if path.hasSuffix("liveBroadcasts") { response = ["items":eventExists ? [event()] : []] }
+        } else if path.hasSuffix("liveBroadcasts") {
+            var selected = event()
+            if URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.contains(where: { $0.name == "id" && $0.value == "video-test" }) == true {
+                selected["id"] = "video-test"
+            }
+            response = ["items":eventExists ? [selected] : []]
+        }
         else if path.hasSuffix("liveStreams"), method == "POST" {
             if failStreamOnce { failStreamOnce = false; status = 403; response = ["error":["errors":[["reason":"quotaExceeded"]]]] }
             else { response = ["id":"stream-1"] }
@@ -53,7 +69,8 @@ import CryptoKit
         }
         return (try JSONSerialization.data(withJSONObject: response), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
     }
-    let model = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault)
+    let sendDefaults = UserDefaults(suiteName: UUID().uuidString)!
+    let model = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault, sendPreferences: sendDefaults)
     func wait() async throws { for _ in 0..<100 { if !model.busy { return }; try await Task.sleep(for: .milliseconds(10)) }; preconditionFailure("YouTube fixture did not finish") }
     var dated = YouTubeBroadcast(event())
     dated.scheduledAt = "2026-10-17T02:30:46Z"
@@ -241,7 +258,27 @@ import CryptoKit
     do { try interactive.validateVideoLatency(output); preconditionFailure("4K must require Normal latency") } catch is StudioError { }
     interactive.latency = "normal"; try interactive.validateVideoLatency(output)
     output.width = 2560; output.height = 1440; interactive.latency = "ultraLow"; try interactive.validateVideoLatency(output)
-    model.watchStarted(launched, isSending: { false })
+    do { try await model.sendChatMessage("Antes da live", isSending: { true }); preconditionFailure("Expected live guard") } catch is StudioError { }
+    try check(chatPosts == 0)
+    model.watchStarted(launched, isSending: { true })
+    try check(model.canComposeChatMessage)
+    do { try await model.sendChatMessage("Sem envio", isSending: { false }); preconditionFailure("Expected output guard") } catch is StudioError { }
+    do { try await model.sendChatMessage(String(repeating: "x", count: 201), isSending: { true }); preconditionFailure("Expected length guard") } catch is StudioError { }
+    try check(chatPosts == 0)
+    try await model.sendChatMessage("Confira https://example.com", isSending: { true })
+    try check(chatPosts == 1 && !model.sendingChatMessage)
+    chatTimeout = true
+    do { try await model.sendChatMessage("Confira https://example.com", isSending: { true }); preconditionFailure("Expected uncertain send") } catch is URLError { }
+    try check(chatPosts == 2 && !model.sendingChatMessage) // No automatic retry after an ambiguous response.
+    chatTimeout = false
+    try check((sendDefaults.array(forKey: "DanteLive.chatSendTimes") as? [TimeInterval])?.count == 2)
+    sendDefaults.set(Array(repeating: Date().timeIntervalSince1970, count: 100), forKey: "DanteLive.chatSendTimes")
+    let limitedSender = YouTubeModel(directory: fixtureDirectory, api: api, vault: vault, sendPreferences: sendDefaults)
+    limitedSender.watchStarted(launched, isSending: { true })
+    do { try await limitedSender.sendChatMessage("Confira https://example.com", isSending: { true }); preconditionFailure("Expected local quota guard") } catch is StudioError { }
+    try check(chatPosts == 2)
+    limitedSender.shutdown()
+    print("PASS: authenticated host chat send, URL text, active-live and size guards, local quota, no retry on timeout")
     try check(model.liveShare?.url.absoluteString == "https://www.youtube.com/watch?v=video-test")
     try check(model.liveShare?.title == launched.title && model.liveShare?.privacy == "private")
     let rtmp = LiveLaunch(channel: "RTMP", title: "RTMP", thumbnailURL: nil, server: "rtmps://example.invalid", key: "test-key-not-for-sharing")

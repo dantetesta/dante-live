@@ -42,6 +42,7 @@ struct LiveShareInfo: Equatable {
     @Published var message: String?
     @Published private(set) var clientConfigured = false
     @Published private(set) var remoteLive = false
+    @Published private(set) var sendingChatMessage = false
     @Published private(set) var liveShare: LiveShareInfo?
     @Published private(set) var draftSaveStatus = "Alterações salvas neste Mac"
     let chat = YouTubeChat()
@@ -56,6 +57,9 @@ struct LiveShareInfo: Equatable {
     private var operation: Task<Void, Never>?
     private var livePoll: Task<Void, Never>?
     private var activeEvent: (account: String, broadcast: String)?
+    private let sendPreferences: UserDefaults
+    private var chatSendTimes: [TimeInterval]
+    private let chatSendLimit = 100 // At most 2,000 write units per rolling 24 hours on this Mac.
     private var tokens: [String: YouTubeTokens] = [:]
     private var client: YouTubeOAuthClient?
     private var url: URL { directory.appendingPathComponent("youtube.json") }
@@ -171,8 +175,10 @@ struct LiveShareInfo: Equatable {
             return false
         }
     }
-    init(directory: URL, api: YouTubeAPI? = nil, vault: LiveKeyVault = .system) {
+    init(directory: URL, api: YouTubeAPI? = nil, vault: LiveKeyVault = .system, sendPreferences: UserDefaults = .standard) {
         self.directory = directory; self.api = api ?? YouTubeAPI(); self.vault = vault
+        self.sendPreferences = sendPreferences
+        chatSendTimes = sendPreferences.array(forKey: "DanteLive.chatSendTimes") as? [TimeInterval] ?? []
         prefix = "youtube-" + SHA256.hash(data: Data(directory.path.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
         if FileManager.default.fileExists(atPath: url.path) {
             do { preferences = try JSONDecoder().decode(YouTubePreferences.self, from: Data(contentsOf: url)) }
@@ -220,6 +226,46 @@ struct LiveShareInfo: Equatable {
     func cancel() { oauth.cancel(); operation?.cancel() }
     var canCancel: Bool { operation != nil }
     var trackingLive: Bool { activeEvent != nil }
+    var canComposeChatMessage: Bool {
+        guard let event = activeEvent else { return false }
+        return account?.id == event.account && chat.sessionActive && !sendingChatMessage
+    }
+    private func reserveChatSend() throws {
+        let now = Date().timeIntervalSince1970
+        chatSendTimes.removeAll { $0 <= now - 86_400 || $0 > now }
+        guard chatSendTimes.count < chatSendLimit else {
+            throw StudioError.message("Limite local de 100 envios em 24 horas atingido. Aguarde para proteger a cota do YouTube.")
+        }
+        chatSendTimes.append(now)
+        sendPreferences.set(chatSendTimes, forKey: "DanteLive.chatSendTimes")
+    }
+    func sendChatMessage(_ text: String, isSending: @escaping @MainActor () -> Bool) async throws {
+        guard canComposeChatMessage, let event = activeEvent, isSending() else {
+            throw StudioError.message("Inicie uma live do YouTube com este canal antes de enviar mensagens ao chat.")
+        }
+        let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, message.unicodeScalars.count <= 200 else {
+            throw StudioError.message("Escreva uma mensagem de até 200 caracteres.")
+        }
+        sendingChatMessage = true
+        defer { sendingChatMessage = false }
+        let token = try await accessToken(event.account)
+        let liveChatID: String
+        if let resolved = chat.resolvedLiveChatID { liveChatID = resolved }
+        else {
+            let broadcast = try await api.broadcast(event.broadcast, token: token)
+            guard broadcast.id == event.broadcast, let resolved = broadcast.liveChatID, !resolved.isEmpty else {
+                throw StudioError.message("O YouTube ainda não disponibilizou o chat desta live.")
+            }
+            liveChatID = resolved
+        }
+        guard activeEvent?.account == event.account, activeEvent?.broadcast == event.broadcast,
+              account?.id == event.account, chat.sessionActive, isSending() else {
+            throw StudioError.message("A live mudou antes do envio. A mensagem não foi enviada.")
+        }
+        try reserveChatSend() // Count even an ambiguous timeout: the server may have accepted it.
+        _ = try await api.insertChatText(liveChatID: liveChatID, text: message, token: token)
+    }
     func shutdown() { activity.reset(); chat.reset(); cancel(); livePoll?.cancel(); edits.flush() }
     private func run(_ work: @escaping @MainActor () async throws -> Void) {
         guard !busy, writable else { return }; busy = true; message = nil

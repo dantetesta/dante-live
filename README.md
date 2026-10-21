@@ -21,6 +21,10 @@ Versão experimental **0.1.36**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.37
+
+A janela **Conversa dos participantes** pode ser arrastada pelo cabeçalho para outra posição no estúdio. Ela permanece dentro da janela do aplicativo, sem mudar o chat dos convidados nem aparecer na transmissão.
+
 ## Novidades da 0.1.36
 
 O convidado prepara seus dispositivos ao abrir o convite e, depois de entrar, acompanha o retorno da live em uma área ampla. Câmera, microfone e compartilhamento de tela ficam à mão; as configurações podem ser abertas quando necessário.

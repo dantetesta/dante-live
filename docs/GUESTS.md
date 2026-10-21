@@ -15,6 +15,8 @@ Na 0.1.24, a sala aceita três convidados. O retorno individual usa as trilhas i
 
 O anfitrião abre **Conversa dos participantes** no estúdio; o convidado abre **Conversa** no navegador. Este chat não entra na cena, no retorno em vídeo nem nos comentários públicos do YouTube. **Todos** envia ao grupo. Escolher uma pessoa na lista ou escrever `@nome` envia somente ao destinatário e ao remetente; uma menção ambígua ou indisponível é recusada em vez de ser enviada ao grupo. O servidor valida convite e cliente, limita mensagens a 2.000 caracteres/4.000 bytes e aceita no máximo uma por remetente a cada meio segundo. Até 200 mensagens ficam apenas na memória e são apagadas ao encerrar a sala. O teste local com três navegadores confirmou que mensagem privada entre convidados não aparece ao terceiro convidado nem no painel do anfitrião.
 
+Na versão 0.1.37, o painel do anfitrião também pode ser arrastado pelo cabeçalho. A posição permanece durante a sessão e se ajusta aos limites da janela do estúdio.
+
 ## Conexão e segurança
 
 O servidor escuta somente em loopback. O helper cloudflared cria um endereço HTTPS temporário para página e sinalização. A mídia usa WebRTC, diretamente quando possível; não passa automaticamente pela ponte HTTP. Quick Tunnel é um serviço de teste, sem SLA, e o endereço muda ao encerrar a sala. Não é uma infraestrutura de produção garantida.

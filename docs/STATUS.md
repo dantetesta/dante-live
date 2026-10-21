@@ -1,3 +1,7 @@
+## 0.1.37 — conversa dos participantes móvel
+
+O painel de conversa do anfitrião pode ser arrastado pelo cabeçalho. O movimento respeita os limites da janela e não captura o botão de fechar nem os campos de mensagem. A posição permanece durante a sessão enquanto o estúdio está aberto e se ajusta quando a janela muda de tamanho. Build Universal 2 e suíte local do aplicativo passaram; o gesto do painel ainda precisa de conferência manual no aplicativo instalado.
+
 ## 0.1.36 — palco do convidado, conversa interna e edição no canvas
 
 O convite agora começa com uma preparação de câmera e microfone. Depois da entrada, o retorno do programa ocupa a maior parte do navegador; prévia local e controles de câmera, microfone, tela e saída continuam acessíveis, enquanto as configurações ficam em um painel. O layout foi verificado em sete tamanhos de tela com mídia sintética no Chrome.

@@ -4,18 +4,31 @@ import SwiftUI
 /// enters the program, recording, projector or guest return video.
 struct GuestRoomChatView: View {
     @ObservedObject var guests: GuestModel
+    @Binding var offset: CGSize
+    let containerSize: CGSize
     @LegacyState private var draft = ""
     @LegacyState private var recipient = "all"
+    @GestureState private var dragTranslation = CGSize.zero
+
+    private let panelSize = CGSize(width: 380, height: 465)
+    private let edgeInset: CGFloat = 22
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.teal)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Conversa dos participantes").font(.headline)
-                    Text("Só no estúdio e nos convites").font(.caption2).foregroundStyle(.secondary)
+                HStack {
+                    Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.teal)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Conversa dos participantes").font(.headline)
+                        Text("Só no estúdio e nos convites").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Spacer()
                 }
-                Spacer()
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 3)
+                    .updating($dragTranslation) { value, state, _ in state = value.translation }
+                    .onEnded { value in offset = constrained(translated(by: value.translation)) })
+                .help("Arraste para mover a conversa")
                 Button { guests.chatOpen = false } label: { Image(systemName: "xmark") }
                     .buttonStyle(.plain).accessibilityLabel("Fechar conversa")
             }.padding(14)
@@ -72,7 +85,21 @@ struct GuestRoomChatView: View {
         .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.teal.opacity(0.45)))
         .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+        .offset(constrained(translated(by: dragTranslation)))
+        .onAppear { offset = constrained(offset) }
+        .onChange(of: containerSize) { _, _ in offset = constrained(offset) }
         .accessibilityElement(children: .contain)
+    }
+
+    private func translated(by translation: CGSize) -> CGSize {
+        CGSize(width: offset.width + translation.width, height: offset.height + translation.height)
+    }
+
+    private func constrained(_ proposed: CGSize) -> CGSize {
+        CGSize(
+            width: min(edgeInset, max(-max(0, containerSize.width - panelSize.width - edgeInset), proposed.width)),
+            height: min(edgeInset, max(-max(0, containerSize.height - panelSize.height - edgeInset), proposed.height))
+        )
     }
 
     private func send() {

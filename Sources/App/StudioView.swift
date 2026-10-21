@@ -5,6 +5,7 @@ struct StudioView: View {
     @ObservedObject var model: StudioModel
     @AppStorage("DanteLive.showScenesSidebar") private var showScenes = true
     @AppStorage("DanteLive.showPropertiesSidebar") private var showProperties = true
+    @LegacyState private var roomChatOffset = CGSize.zero
     var body: some View {
         VStack(spacing: 0) {
             topBar
@@ -67,9 +68,17 @@ struct StudioView: View {
         .frame(minWidth: 1030, minHeight: 650)
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(.teal)
-        .overlay(alignment: .bottomTrailing) {
-            if model.guests.chatOpen {
-                GuestRoomChatView(guests: model.guests).padding(22)
+        .overlay {
+            GeometryReader { geometry in
+                if model.guests.chatOpen {
+                    GuestRoomChatView(
+                        guests: model.guests,
+                        offset: $roomChatOffset,
+                        containerSize: geometry.size
+                    )
+                    .padding(22)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                }
             }
         }
         .studioPanel(isPresented: $model.showingAdd, title: "Adicionar à cena", onDismiss: {

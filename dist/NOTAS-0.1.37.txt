@@ -1,0 +1,7 @@
+Dante Live 0.1.37 — macOS 14+ (versão experimental)
+
+• A janela Conversa dos participantes pode ser arrastada pelo cabeçalho e colocada em outra posição do estúdio. Ela permanece dentro da área visível e não interfere no botão de fechar ou na escrita das mensagens.
+
+Validação: build Universal 2 e suíte local do aplicativo aprovados. A interação visual com o painel no aplicativo instalado, hardware Intel físico e uma live pública longa ainda não foram validados nesta versão.
+
+Instalação: abra o DMG e arraste Dante Live para Aplicativos. A atualização pelo aplicativo usa o catálogo Sparkle após a publicação da versão.

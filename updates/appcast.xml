@@ -6,6 +6,24 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.37</title>
+      <pubDate>Wed, 21 Oct 2026 03:04:03 +0000</pubDate>
+      <sparkle:version>38</sparkle:version>
+      <sparkle:shortVersionString>0.1.37</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">Dante Live 0.1.37 — macOS 14+ (versão experimental)
+
+• A janela Conversa dos participantes pode ser arrastada pelo cabeçalho e colocada em outra posição do estúdio. Ela permanece dentro da área visível e não interfere no botão de fechar ou na escrita das mensagens.
+• O banner de parceiros deixa de cobrir o controle Modo estúdio. Ele aparece apenas quando há espaço para ele e para os demais controles da barra superior.
+
+Validação: build Universal 2 e suíte local do aplicativo aprovados. A barra superior foi renderizada em quatro larguras de janela sem sobreposição; a interação com o painel no aplicativo instalado, hardware Intel físico e uma live pública longa ainda não foram validados nesta versão.
+
+Instalação: abra o DMG e arraste Dante Live para Aplicativos. A atualização pelo aplicativo usa o catálogo Sparkle após a publicação da versão.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.37/Dante-Live-0.1.37-macOS-universal.dmg" length="98228450" type="application/octet-stream" sparkle:edSignature="kEcptHeRwsW0thcGlZvlytYUUaJCiJksTcpoDck6kwelyByaUHFNioLXY2lJWpEMGmJDvies/JiqEjEk1MRrDw=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.36</title>
       <pubDate>Tue, 20 Oct 2026 19:46:14 +0000</pubDate>
       <sparkle:version>37</sparkle:version>
@@ -631,6 +649,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: VdAH6qjlG9KLdgIQTknXtQrzovNHNoMoPLrvauXO3w6xYFsTa4UFkf7fC2vR8tF4KzdywdKGeT/TXEnEi1XeAA==
-length: 58922
+edSignature: 2QFaIGWW5xRjSf//SEMuGAd2nWuEbBbYCvmkLfvHIZi1CozhjDlpF3mlc3FVttPFOEewJKF+Ayah2HY0sIrOAw==
+length: 60597
 -->

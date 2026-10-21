@@ -1,6 +1,6 @@
 # Matriz de equivalência funcional — estado consolidado
 
-Incremento 0.1.37: painel da conversa interna arrastável pelo cabeçalho, limitado à área visível do estúdio e com posição preservada durante a sessão. Build Universal 2 e suíte local do app passaram; arrasto visual no aplicativo instalado ainda pendente.
+Incremento 0.1.37: painel da conversa interna arrastável pelo cabeçalho, limitado à área visível do estúdio e com posição preservada durante a sessão; banner de parceiros participa do layout da barra superior e só aparece quando não comprime os controles. MCP revisado sem mudança de contrato porque ambas são alterações da interface local. A barra do StudioView foi renderizada em quatro larguras, sem colisão visual; gesto no aplicativo instalado ainda pendente.
 
 Incremento 0.1.36: página de convidado em duas etapas com retorno do programa em destaque e controles persistentes; conversa interna autenticada com mensagens gerais e privadas por seleção ou `@nome`, isolada do chat público e do vídeo; seleção e movimento diretos de fontes do convidado no canvas; fechamento do alerta de microfone sem repetição até recuperação e nova falha. Layout, WebRTC local e regras de silêncio foram testados com mídia sintética. Redes externas, sessão longa, dispositivos físicos e Intel físico permanecem sem validação.
 

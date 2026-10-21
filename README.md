@@ -23,7 +23,7 @@ Versão experimental **0.1.36**. Assinado com Developer ID e notarizado pela App
 
 ## Novidades da 0.1.37
 
-A janela **Conversa dos participantes** pode ser arrastada pelo cabeçalho para outra posição no estúdio. Ela permanece dentro da janela do aplicativo, sem mudar o chat dos convidados nem aparecer na transmissão.
+A janela **Conversa dos participantes** pode ser arrastada pelo cabeçalho para outra posição no estúdio. Ela permanece dentro da janela do aplicativo, sem mudar o chat dos convidados nem aparecer na transmissão. O banner de parceiros agora participa do layout da barra superior e some quando não há espaço, deixando o controle Modo estúdio livre.
 
 ## Novidades da 0.1.36
 

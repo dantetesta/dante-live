@@ -2,6 +2,8 @@
 
 Publicar somente a partir do checkout público limpo, branch `main`. Aumente `CFBundleShortVersionString` e `CFBundleVersion`, atualize os avisos/estado, revise e envie o código ao GitHub antes de iniciar. Uma versão publicada nunca deve ter seus arquivos sobrescritos.
 
+Em toda melhoria, recurso novo ou correção, revise o MCP local antes da release: determine se as ferramentas, os esquemas de entrada/saída, as autorizações e a documentação precisam acompanhar a mudança. Registre explicitamente quando a alteração for apenas da interface e o contrato MCP permanecer igual.
+
 ```sh
 export DANTE_SIGN_IDENTITY="IDENTIDADE_DEVELOPER_ID_DO_KEYCHAIN"
 export DANTE_NOTARY_PROFILE="PERFIL_LOCAL_DO_NOTARYTOOL"

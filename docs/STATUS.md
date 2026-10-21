@@ -1,6 +1,6 @@
 ## 0.1.37 — conversa dos participantes móvel
 
-O painel de conversa do anfitrião pode ser arrastado pelo cabeçalho. O movimento respeita os limites da janela e não captura o botão de fechar nem os campos de mensagem. A posição permanece durante a sessão enquanto o estúdio está aberto e se ajusta quando a janela muda de tamanho. Build Universal 2 e suíte local do aplicativo passaram; o gesto do painel ainda precisa de conferência manual no aplicativo instalado.
+O painel de conversa do anfitrião pode ser arrastado pelo cabeçalho. O movimento respeita os limites da janela e não captura o botão de fechar nem os campos de mensagem. A posição permanece durante a sessão enquanto o estúdio está aberto e se ajusta quando a janela muda de tamanho. O banner de parceiros foi retirado da sobreposição central e inserido na disposição da barra: só aparece quando a marca, o banner e os controles cabem juntos. O MCP local foi revisado; ele controla cenas e fontes, não a posição de painéis do anfitrião, portanto seu contrato não muda. A barra real do StudioView foi renderizada isoladamente em 1200, 1550, 1800 e 2200 px, sem sobreposição do banner nos controles. O gesto da conversa e a barra no aplicativo instalado ainda precisam de conferência manual.
 
 ## 0.1.36 — palco do convidado, conversa interna e edição no canvas
 

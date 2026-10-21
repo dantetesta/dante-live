@@ -106,6 +106,24 @@ struct StudioView: View {
         .alert("Dante Live", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) { Button("Entendi") { model.error = nil } } message: { Text(model.error ?? "") }
     }
     var topBar: some View {
+        ViewThatFits(in: .horizontal) {
+            topBarRow(showPartner: true)
+            topBarRow(showPartner: false)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+    private func topBarRow(showPartner: Bool) -> some View {
+        HStack(spacing: 14) {
+            topBarIdentity.fixedSize(horizontal: showPartner, vertical: false)
+            Spacer(minLength: 16)
+            if showPartner {
+                PartnerCarouselView().frame(width: 400, height: 55)
+                Spacer(minLength: 16)
+            }
+            topBarActions.fixedSize(horizontal: showPartner, vertical: false)
+        }
+    }
+    private var topBarIdentity: some View {
         HStack(spacing: 14) {
             Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage()).resizable().interpolation(.high).scaledToFit().frame(width: 40, height: 40).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) { Text("DANTE LIVE").font(.headline.weight(.heavy)); Text("Estúdio de produção • \(appVersion)").font(.caption2).foregroundStyle(.secondary) }
@@ -128,7 +146,10 @@ struct StudioView: View {
             }
             .disabled(!model.canSwitchProfile)
             .help("Trocar o conjunto de cenas. O último perfil usado abre automaticamente.")
-            Spacer()
+        }
+    }
+    private var topBarActions: some View {
+        HStack(spacing: 14) {
             Toggle("Modo estúdio", isOn: Binding(get: { model.studioMode }, set: { model.setStudio($0) })).toggleStyle(.switch).controlSize(.small)
             Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(model.undoCount == 0 || model.active || model.guests.inUse).help("Desfazer ⌘Z")
             Button { model.redo() } label: { Image(systemName: "arrow.uturn.forward") }.disabled(model.redoCount == 0 || model.active || model.guests.inUse).help("Refazer ⇧⌘Z")
@@ -143,15 +164,6 @@ struct StudioView: View {
                 if model.streaming { model.confirmEndLive() }
                 else { model.beginLive() }
             } label: { Label(model.streaming ? "Encerrar live" : "Transmitir", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.borderedProminent).disabled(model.preparingLive || model.updateInstalling)
-        }.padding(.horizontal, 16).padding(.vertical, 12)
-        .overlay {
-            GeometryReader { geometry in
-                if geometry.size.width >= 1550 {
-                    PartnerCarouselView()
-                        .frame(width: 400, height: 55)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                }
-            }
         }
     }
     private func collapsedSidebar(title: String, icon: String, action: @escaping () -> Void) -> some View {

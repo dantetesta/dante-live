@@ -23,7 +23,16 @@ The separate source-preparation ZIP made by package.sh is still only a partial
 local convenience archive. Public releases use corresponding-source.zip instead.
 
 BUILD PROCEDURE
-For Dante, follow dante-live/docs/BUILD.md. scripts/build.sh compiles the Swift
+The Dante source archive contains only Sources/, packaging/, LICENSE and the
+required build/package shell scripts. Tests, internal documentation and agent
+context are not included. From dante-live/, run scripts/fetch-reference.sh and
+scripts/build.sh on a Mac with the Swift compiler and Command Line Tools. The
+default output is build/Dante Live.app; DANTE_BUILD_DIR selects another directory.
+An existing OBS 32.2.2 application is read only input for the runtime closure;
+OBS_APP may select that reference path. The build uses pinned vendor sources
+and dependencies under dante-live/vendor; arrange the upstream trees described
+in SOURCE-MANIFEST.json there or let the supplied fetch scripts obtain them.
+scripts/build.sh compiles the Swift
 application and Objective-C++ bridge for both macOS architectures, the custom-only
 RTMP services module, and the patched obs-outputs plugin. build-outputs.sh applies
 packaging/patches/obs-outputs-connect-lifecycle.patch to an isolated OBS source copy.

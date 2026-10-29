@@ -46,8 +46,64 @@ enum ProjectStoreTests {
         let reopened = try ProductionProfiles(directory: directory)
         precondition(reopened.selectedID == "default" && reopened.profiles.first(where: { $0.id == added.id })?.name == "Tema B")
         precondition(FileManager.default.fileExists(atPath: store.backup.path), "legacy project was moved")
+        let removedDirectory = profiles.directory(for: added.id)!
+        let testTrash = directory.appendingPathComponent("test-trash")
+        let moveToTrash: (URL) throws -> URL = { source in
+            try FileManager.default.moveItem(at: source, to: testTrash)
+            return testTrash
+        }
+        // Refuse the initial profile, the active profile and stale IDs before IO.
+        for id in ["default", "missing"] {
+            var refused = false
+            do { try profiles.remove(id, moveToTrash: { _ in preconditionFailure("Protected profile reached trash") }) }
+            catch { refused = true }
+            precondition(refused)
+        }
+        try profiles.select(added.id)
+        var activeRefused = false
+        do { try profiles.remove(added.id, moveToTrash: moveToTrash) } catch { activeRefused = true }
+        precondition(activeRefused && FileManager.default.fileExists(atPath: removedDirectory.path))
+        try profiles.select("default")
+        var trashRefused = false
+        do { try profiles.remove(added.id, moveToTrash: { _ in throw StudioError.message("Trash unavailable fixture") }) }
+        catch { trashRefused = true }
+        precondition(trashRefused && profiles.profiles.count == 2)
+        let afterTrashFailure = try ProductionProfiles(directory: directory)
+        precondition(afterTrashFailure.profiles.count == 2)
+
+        // Force catalog persistence to fail after staging the folder; restore it.
+        let catalogURL = directory.appendingPathComponent("production-profiles.json")
+        let catalogData = try Data(contentsOf: catalogURL)
+        try FileManager.default.removeItem(at: catalogURL)
+        try FileManager.default.createDirectory(at: catalogURL, withIntermediateDirectories: false)
+        var saveRefused = false
+        do { try profiles.remove(added.id, moveToTrash: moveToTrash) } catch { saveRefused = true }
+        precondition(saveRefused && profiles.profiles.count == 2)
+        precondition(FileManager.default.fileExists(atPath: removedDirectory.path))
+        precondition(!FileManager.default.fileExists(atPath: testTrash.path))
+        try FileManager.default.removeItem(at: catalogURL)
+        try catalogData.write(to: catalogURL)
+
+        try profiles.remove(added.id, moveToTrash: moveToTrash)
+        precondition(profiles.profiles.count == 1 && profiles.selectedID == "default")
+        precondition(!FileManager.default.fileExists(atPath: removedDirectory.path))
+        precondition(FileManager.default.fileExists(atPath: testTrash.appendingPathComponent("studio.json").path))
+        let afterRemoval = try ProductionProfiles(directory: directory)
+        let preservedLegacy = try Data(contentsOf: store.backup)
+        precondition(afterRemoval.profiles == profiles.profiles)
+        precondition(preservedLegacy == legacy, "initial project changed during removal")
+
+        // A missing private folder must not leave an unremovable stale entry.
+        let missing = try profiles.create(name: "Pasta ausente", project: "{}")
+        let missingDirectory = profiles.directory(for: missing.id)!
+        try profiles.select("default")
+        try FileManager.default.removeItem(at: missingDirectory)
+        try profiles.remove(missing.id, moveToTrash: { _ in preconditionFailure("Missing folder reached trash") })
+        let afterMissingRemoval = try ProductionProfiles(directory: directory)
+        precondition(afterMissingRemoval.profiles.count == 1)
         print("PASS: atomic persistence, previous-version recovery, invalid save rejection, corrupt-file preservation")
         print("PASS: inline credential rejection, rejected-current quarantine without data loss")
         print("PASS: profile catalog preserves legacy project, isolates files and reopens last selection")
+        print("PASS: profile removal persists, protects initial/active profiles, preserves projects on trash/catalog failure, handles missing folders")
     }
 }

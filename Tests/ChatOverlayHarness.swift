@@ -17,6 +17,7 @@ let appVersion = "Chat QA"
         precondition(!ChatCanvasExamples.allowed(active:false,preparing:false,countdown:3,session:false))
         precondition(!ChatCanvasExamples.allowed(active:false,preparing:false,countdown:nil,session:true))
         let studio = StudioModel(projectDirectory: fixture)
+        try await runGuestChatWindowTests(guests: studio.guests)
         studio.youtube = YouTubeModel(directory: fixture, api: YouTubeAPI { _ in throw URLError(.notConnectedToInternet) }, vault: LiveKeyVault(read: { _ in "" }, save: { _,_ in }, delete: { _ in }))
         let chat = studio.youtube.chat
         let examples: [[String: Any]] = [

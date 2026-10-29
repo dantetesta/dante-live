@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ProductionProfilesView: View {
     @ObservedObject var model: StudioModel
+    @LegacyState private var profileToRemove: ProductionProfile?
+    @LegacyState private var confirmingRemoval = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -24,7 +26,7 @@ struct ProductionProfilesView: View {
                                 .font(.title2).foregroundStyle(profile.id == model.selectedProfileID ? .teal : .secondary)
                                 .frame(width: 34)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(profile.name).font(.headline)
+                                Text(profile.name).font(.headline).lineLimit(1).help(profile.name)
                                 Text(profile.id == model.selectedProfileID ? "Aberto agora" : "Usado em \(profile.lastOpened.formatted(date: .abbreviated, time: .shortened))")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -40,6 +42,13 @@ struct ProductionProfilesView: View {
                                 Label("Ativo", systemImage: "checkmark.circle.fill")
                                     .font(.caption.weight(.semibold)).foregroundStyle(.green)
                             }
+                            Button("Remover", systemImage: "trash", role: .destructive) {
+                                profileToRemove = profile
+                                confirmingRemoval = true
+                            }
+                            .disabled(!model.canSwitchProfile || profile.id == "default" || profile.id == model.selectedProfileID)
+                            .help(profile.id == "default" ? "O perfil inicial é preservado." : profile.id == model.selectedProfileID ? "Carregue outro perfil antes de remover este." : "Remover este perfil e enviar seu projeto para a Lixeira.")
+                            .accessibilityLabel("Remover perfil \(profile.name)")
                         }
                         .padding(14)
                         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
@@ -56,5 +65,11 @@ struct ProductionProfilesView: View {
         }
         .padding(24)
         .frame(width: 720, height: 480)
+        .alert("Remover perfil?", isPresented: $confirmingRemoval, presenting: profileToRemove) { profile in
+            Button("Cancelar", role: .cancel) {}
+            Button("Remover", role: .destructive) { model.removeProfile(profile.id) }
+        } message: { profile in
+            Text("O perfil “\(profile.name)” será removido da lista e seu projeto irá para a Lixeira. Arquivos de mídia originais, outros perfis, contas e configurações de transmissão serão preservados.")
+        }
     }
 }

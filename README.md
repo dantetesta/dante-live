@@ -21,6 +21,14 @@ Versão experimental **0.1.37**. Assinado com Developer ID e notarizado pela App
 
 ---
 
+## Novidades da 0.1.38
+
+O gestor de perfis ganhou **Remover**, com confirmação e envio do projeto para a Lixeira. Para remover o perfil aberto, carregue outro antes; o perfil inicial é preservado. A remoção fica bloqueada durante live, preparação ou uso da sala de convidados.
+
+A conversa dos participantes abre em uma janela nativa independente, que pode ser movida para fora do estúdio pelo título. Mensagens gerais e privadas continuam fora da imagem transmitida.
+
+O MCP foi revisado: as descrições agora refletem o suporte existente a câmera e microfone, e o teste confere a lista completa de ferramentas e seus esquemas. A remoção de perfis continua no gestor nativo. [Validação e limites](docs/STATUS.md).
+
 ## Novidades da 0.1.37
 
 A janela **Conversa dos participantes** pode ser arrastada pelo cabeçalho para outra posição no estúdio. Ela permanece dentro da janela do aplicativo, sem mudar o chat dos convidados nem aparecer na transmissão. O banner de parceiros agora participa do layout da barra superior e some quando não há espaço, deixando o controle Modo estúdio livre.

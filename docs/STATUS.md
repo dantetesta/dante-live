@@ -1,3 +1,15 @@
+## 0.1.38 — perfis e conversa em janela própria
+
+O gestor oferece **Remover** com confirmação para perfis adicionais inativos. O projeto privado vai para a Lixeira, com restauração da pasta se a gravação do catálogo falhar. O perfil inicial e o ativo são protegidos: carregue outro perfil antes de remover o aberto. Live, preparação, sala de convidados, instalação de atualização ou recuperação pendente bloqueiam a remoção. Arquivos de mídia externos e configurações globais são preservados.
+
+A conversa dos participantes usa um NSPanel nativo independente, com fechamento e reabertura sincronizados ao estado da sala. O teste confirmou movimento para fora dos limites do estúdio; arraste físico entre monitores e sessão real continuam pendentes.
+
+MCP revisado: descrições corrigidas para câmera macOS e microfone CoreAudio já permitidos. Lista completa de ferramentas e esquemas testados. Gestão de perfis e posição das janelas do anfitrião continuam fora do contrato; as autorizações não foram ampliadas.
+
+O build Universal 2 (arm64 + x86_64), alvo macOS 14, passou na auditoria de 38 Mach-O sem Qt/CEF. Passaram as suítes locais de aplicativo (incluindo remoção/rollback de perfis com Lixeira isolada de teste, visualizador e nome do convidado), protocolo MCP, chat, captura, gráficos e áudio sintético de aba. O teste de áudio de aba confirmou sinal no medidor libobs, rejeição de token inválido e silêncio ao parar; não representa captura real de uma aba do usuário.
+
+A revisão visual automatizada do gestor encontrou timeout de acessibilidade. Intel físico, macOS 14 físico, convidados reais em redes distintas e sessões longas permanecem pendentes. O aplicativo instalado não foi substituído.
+
 ## 0.1.37 — conversa dos participantes móvel
 
 O painel de conversa do anfitrião pode ser arrastado pelo cabeçalho. O movimento respeita os limites da janela e não captura o botão de fechar nem os campos de mensagem. A posição permanece durante a sessão enquanto o estúdio está aberto e se ajusta quando a janela muda de tamanho. O banner de parceiros foi retirado da sobreposição central e inserido na disposição da barra: só aparece quando a marca, o banner e os controles cabem juntos. O MCP local foi revisado; ele controla cenas e fontes, não a posição de painéis do anfitrião, portanto seu contrato não muda. A barra real do StudioView foi renderizada isoladamente em 1200, 1550, 1800 e 2200 px, sem sobreposição do banner nos controles. O gesto da conversa e a barra no aplicativo instalado ainda precisam de conferência manual.

@@ -444,6 +444,20 @@ final class StudioModel: ObservableObject {
             profiles = index.profiles
         } catch { self.error = error.localizedDescription }
     }
+    func removeProfile(_ id: String) {
+        do {
+            refresh()
+            guard canSwitchProfile else {
+                throw StudioError.message("Para remover um perfil, encerre a live e a sala de convidados e conclua a preparação em andamento.")
+            }
+            guard var index = profileIndex else { throw StudioError.message("Catálogo de perfis indisponível.") }
+            let name = index.profiles.first(where: { $0.id == id })?.name ?? ""
+            try index.remove(id)
+            profileIndex = index
+            profiles = index.profiles
+            notice = "Perfil removido: \(name)"
+        } catch { self.error = error.localizedDescription }
+    }
     func properties(name: String? = nil, type: String? = nil) -> [String: Any] {
         guard let engine else { return [:] }
         if let type { return jsonObject(copied(dante_engine_type_properties(engine, type))) }

@@ -52,3 +52,36 @@ private struct PanelFixtureContent: View {
     owner.contentView = nil; owner.close()
     print("PASS: simultaneous nonmodal movable panels, studio remains operable, independent close/bindings/callbacks and reopen")
 }
+
+private struct GuestChatPanelFixture: View {
+    @ObservedObject var guests: GuestModel
+    var body: some View {
+        Text("Estúdio").frame(width: 400, height: 200)
+            .background(GuestRoomChatWindowPresenter(guests: guests))
+    }
+}
+
+@MainActor func runGuestChatWindowTests(guests: GuestModel) async throws {
+    let owner = NSWindow(contentRect: NSRect(x: 120, y: 120, width: 400, height: 200),
+                         styleMask: [.titled, .closable], backing: .buffered, defer: false)
+    owner.isReleasedWhenClosed = false
+    owner.contentView = NSHostingView(rootView: GuestChatPanelFixture(guests: guests))
+    owner.makeKeyAndOrderFront(nil)
+    guests.chatOpen = true
+    try await Task.sleep(for: .milliseconds(180))
+    let chat = NSApp.windows.first { $0.title == "Conversa dos participantes" && $0.isVisible }!
+    precondition(chat is NSPanel && chat.isMovable && chat.sheetParent == nil)
+    chat.setFrameOrigin(NSPoint(x: owner.frame.maxX + 40, y: owner.frame.minY))
+    precondition(chat.frame.minX > owner.frame.maxX)
+    chat.performClose(nil)
+    try await Task.sleep(for: .milliseconds(120))
+    precondition(!guests.chatOpen)
+    guests.chatOpen = true
+    try await Task.sleep(for: .milliseconds(120))
+    precondition(NSApp.windows.contains { $0.title == "Conversa dos participantes" && $0.isVisible })
+    guests.chatOpen = false
+    try await Task.sleep(for: .milliseconds(120))
+    owner.contentView = nil
+    owner.close()
+    print("PASS: participant chat opens as independent movable window, closes and reopens through its binding")
+}

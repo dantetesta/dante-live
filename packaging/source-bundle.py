@@ -18,19 +18,19 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
         def add(path, name, **metadata):
             archive.write(path, name)
             manifest['archives'].append(dict(archive=name, sha256=sha(path), **metadata))
-        def tree(path, name, commit, url, exclude_agent_files=False):
+        def tree(path, name, commit, url, exclude_agent_files=False, include_paths=None):
             if git(path, 'rev-parse', 'HEAD') != commit:
                 raise SystemExit('Source revision mismatch: '+name)
             if git(path, 'status', '--porcelain', '--untracked-files=no'):
                 raise SystemExit('Tracked source modifications: '+name)
             files = git(path, 'ls-files').splitlines()
-            forbidden = {'AGENTS.md', 'CLAUDE.md', 'MEMORY.md', '.env'}
-            omitted = [f for f in files if pathlib.PurePosixPath(f).name in forbidden]
+            forbidden = {'agents.md', 'claude.md', 'memory.md', 'gemini.md', 'qwen.md', 'skill.md', '.env'}
+            omitted = [f for f in files if pathlib.PurePosixPath(f).name.lower() in forbidden]
             if omitted and not exclude_agent_files:
                 raise SystemExit('Internal or environment file in source: '+name)
             tar = temp/(name.replace('/', '-')+'.tar.gz')
             subprocess.run(['git','-C',str(path),'archive','--format=tar.gz',
-                            '-o',str(tar),commit,'--','.',*[':(exclude)'+f for f in omitted]],check=True)
+                            '-o',str(tar),commit,'--',*(include_paths or ['.']),*[':(exclude)'+f for f in omitted]],check=True)
             add(tar, 'sources/'+tar.name, extract_to=name, commit=commit, url=url, omitted_agent_files=omitted)
             # Export gitlinks as distinct archives; no Git database or credentials.
             for entry in git(path, 'ls-tree', '-r', 'HEAD').splitlines():
@@ -43,7 +43,12 @@ with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
                     elif name != 'obs-studio':
                         raise SystemExit('Missing submodule: '+name+'/'+filename)
                     # OBS browser/websocket are excluded from the shipped runtime.
-        tree(repo, 'dante-live', git(repo,'rev-parse','HEAD'), 'https://github.com/dantetesta/dante-live')
+        # This legal source deliverable contains the application and the controls
+        # needed to rebuild/package it, not internal docs, tests or agent context.
+        tree(repo, 'dante-live', git(repo,'rev-parse','HEAD'), 'https://github.com/dantetesta/dante-live',
+             include_paths=['Sources', 'packaging', 'LICENSE', 'scripts/build.sh',
+                            'scripts/build-capture.sh', 'scripts/build-outputs.sh',
+                            'scripts/fetch-reference.sh', 'scripts/package.sh'])
         for name, commit, url in [
             ('obs-studio','ba2f32bdf791005443988a4955e963663e16b1ed','https://github.com/obsproject/obs-studio'),
             ('obs-deps',lock['obs_deps_commit'],'https://github.com/obsproject/obs-deps'),

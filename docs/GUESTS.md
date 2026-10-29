@@ -17,6 +17,8 @@ O anfitrião abre **Conversa dos participantes** no estúdio; o convidado abre *
 
 Na versão 0.1.37, o painel do anfitrião também pode ser arrastado pelo cabeçalho. A posição permanece durante a sessão e se ajusta aos limites da janela do estúdio.
 
+Em desenvolvimento: a conversa do anfitrião abre em janela nativa separada, movível inclusive para outro monitor. Fechar essa janela marca a conversa como fechada; o botão no estúdio pode abri-la novamente. O histórico da sala permanece enquanto a sala existir. Esta mudança ainda não foi publicada.
+
 ## Conexão e segurança
 
 O servidor escuta somente em loopback. O helper cloudflared cria um endereço HTTPS temporário para página e sinalização. A mídia usa WebRTC, diretamente quando possível; não passa automaticamente pela ponte HTTP. Quick Tunnel é um serviço de teste, sem SLA, e o endereço muda ao encerrar a sala. Não é uma infraestrutura de produção garantida.

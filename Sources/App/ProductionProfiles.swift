@@ -92,6 +92,39 @@ struct ProductionProfiles {
         self = next
     }
 
+    mutating func remove(_ id: String) throws {
+        try remove(id, moveToTrash: { directory in
+            var destination: NSURL?
+            try FileManager.default.trashItem(at: directory, resultingItemURL: &destination)
+            guard let destination else { throw StudioError.message("Não foi possível localizar o perfil na Lixeira.") }
+            return destination as URL
+        })
+    }
+
+    /// Move only an inactive profile's private folder. Never trash the shared
+    /// base directory, which also holds global settings and the initial project.
+    mutating func remove(_ id: String, moveToTrash: (URL) throws -> URL) throws {
+        guard let directory = directory(for: id) else { throw StudioError.message("Perfil não encontrado.") }
+        guard id != "default" else { throw StudioError.message("O perfil inicial não pode ser removido.") }
+        guard id != selectedID else { throw StudioError.message("Carregue outro perfil antes de remover este.") }
+        let trashed = FileManager.default.fileExists(atPath: directory.path) ? try moveToTrash(directory) : nil
+        var next = self
+        next.profiles.removeAll { $0.id == id }
+        do {
+            try next.persist()
+        } catch {
+            let persistenceError = error
+            if let trashed {
+                do { try FileManager.default.moveItem(at: trashed, to: directory) }
+                catch {
+                    throw StudioError.message("Não foi possível atualizar o catálogo nem restaurar a pasta do perfil. Os arquivos foram preservados em \(trashed.path).")
+                }
+            }
+            throw persistenceError
+        }
+        self = next
+    }
+
     private func validatedName(_ name: String) throws -> String {
         let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, title.count <= 80, !title.contains("\n"), !title.contains("\r") else {

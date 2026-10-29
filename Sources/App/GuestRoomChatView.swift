@@ -1,38 +1,27 @@
 import SwiftUI
 
+/// Observe the guest model directly: StudioView does not publish nested guest
+/// state, so its own updates cannot drive the window's open/close binding.
+struct GuestRoomChatWindowPresenter: View {
+    @ObservedObject var guests: GuestModel
+
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            .studioPanel(isPresented: $guests.chatOpen, title: "Conversa dos participantes") {
+                GuestRoomChatView(guests: guests)
+            }
+    }
+}
+
 /// Studio-only communication. This view is outside the engine canvas and never
 /// enters the program, recording, projector or guest return video.
 struct GuestRoomChatView: View {
     @ObservedObject var guests: GuestModel
-    @Binding var offset: CGSize
-    let containerSize: CGSize
     @LegacyState private var draft = ""
     @LegacyState private var recipient = "all"
-    @GestureState private var dragTranslation = CGSize.zero
-
-    private let panelSize = CGSize(width: 380, height: 465)
-    private let edgeInset: CGFloat = 22
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                HStack {
-                    Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.teal)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Conversa dos participantes").font(.headline)
-                        Text("Só no estúdio e nos convites").font(.caption2).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 3)
-                    .updating($dragTranslation) { value, state, _ in state = value.translation }
-                    .onEnded { value in offset = constrained(translated(by: value.translation)) })
-                .help("Arraste para mover a conversa")
-                Button { guests.chatOpen = false } label: { Image(systemName: "xmark") }
-                    .buttonStyle(.plain).accessibilityLabel("Fechar conversa")
-            }.padding(14)
-            Divider()
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
@@ -81,25 +70,9 @@ struct GuestRoomChatView: View {
                 if let error = guests.chatError { Text(error).font(.caption2).foregroundStyle(.red) }
             }.padding(12)
         }
-        .frame(width: 380, height: 465)
-        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.teal.opacity(0.45)))
-        .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
-        .offset(constrained(translated(by: dragTranslation)))
-        .onAppear { offset = constrained(offset) }
-        .onChange(of: containerSize) { _, _ in offset = constrained(offset) }
+        .frame(width: 380, height: 440)
+        .background(Color(nsColor: .windowBackgroundColor))
         .accessibilityElement(children: .contain)
-    }
-
-    private func translated(by translation: CGSize) -> CGSize {
-        CGSize(width: offset.width + translation.width, height: offset.height + translation.height)
-    }
-
-    private func constrained(_ proposed: CGSize) -> CGSize {
-        CGSize(
-            width: min(edgeInset, max(-max(0, containerSize.width - panelSize.width - edgeInset), proposed.width)),
-            height: min(edgeInset, max(-max(0, containerSize.height - panelSize.height - edgeInset), proposed.height))
-        )
     }
 
     private func send() {

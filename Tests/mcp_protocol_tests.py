@@ -19,8 +19,15 @@ assert [answer["id"] for answer in answers] == [1, 2, 3, 4]
 assert answers[0]["result"]["protocolVersion"] == "2025-11-25"
 assert "tools" in answers[0]["result"]["capabilities"]
 names = {tool["name"] for tool in answers[1]["result"]["tools"]}
-assert {"studio_overview", "scene_create", "source_add", "item_transform"} <= names
-assert "stream.start" not in names
+assert names == {
+    "studio_overview", "scene_items", "source_types", "source_options",
+    "scene_create", "scene_rename", "scene_select", "source_add", "source_update",
+    "source_reuse", "item_transform", "item_visibility", "item_order", "studio_undo",
+}, "MCP tool changes require explicit contract review"
+for tool in answers[1]["result"]["tools"]:
+    schema = tool["inputSchema"]
+    assert schema["type"] == "object" and schema["additionalProperties"] is False
+    assert set(schema["required"]) <= set(schema["properties"])
 assert answers[2]["error"]["code"] == -32602
 assert answers[3]["result"]["content"][0]["type"] == "text"
 assert isinstance(answers[3]["result"]["isError"], bool)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Package pinned corresponding sources separately from the runtime installer."""
-import hashlib, json, os, pathlib, plistlib, subprocess, tempfile, zipfile
+import hashlib, json, os, pathlib, plistlib, subprocess, tarfile, tempfile, zipfile
 root = pathlib.Path(__file__).resolve().parent.parent
 repo = pathlib.Path(os.environ.get('DANTE_SOURCE_REPO', str(root))).resolve()
 lock = json.loads((root/'packaging/source-lock.json').read_text())
@@ -12,10 +12,33 @@ def git(path, *args):
 def sha(path):
     return hashlib.file_digest(path.open('rb'), 'sha256').hexdigest()
 manifest = {'version': version, 'archives': []}
+def agent_context(filename):
+    parts = pathlib.PurePosixPath(filename).parts
+    lowered = tuple(part.lower() for part in parts)
+    if not lowered: return False
+    if lowered[-1] in {'agents.md', 'claude.md', 'memory.md', 'gemini.md', 'qwen.md',
+                       'skill.md', 'copilot-instructions.md'}: return True
+    if any(part in {'.agents', '.claude', '.codex', '.gemini'} for part in lowered): return True
+    return any(lowered[i:i+2] in {('agents', 'skills'), ('.github', 'agents'),
+                                 ('.github', 'instructions'), ('.github', 'prompts')}
+               for i in range(len(lowered)-1))
 with tempfile.TemporaryDirectory(prefix='dante-source-') as temporary:
     temp = pathlib.Path(temporary)
     with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_STORED) as archive:
         def add(path, name, **metadata):
+            # Some pinned upstream tarballs now include AI-agent instructions.
+            # Keep the upstream cache immutable and filter only the exported copy.
+            with tarfile.open(path, 'r:*') as upstream:
+                omitted = [member.name for member in upstream.getmembers() if agent_context(member.name)]
+            if omitted:
+                original = path
+                path = temp/('filtered-'+path.name)
+                with tarfile.open(original, 'r:*') as upstream, tarfile.open(path, 'w:gz') as clean:
+                    for member in upstream:
+                        if agent_context(member.name): continue
+                        clean.addfile(member, upstream.extractfile(member) if member.isfile() else None)
+                metadata['upstream_sha256'] = sha(original)
+                metadata['omitted_agent_context'] = omitted
             archive.write(path, name)
             manifest['archives'].append(dict(archive=name, sha256=sha(path), **metadata))
         def tree(path, name, commit, url, exclude_agent_files=False, include_paths=None):

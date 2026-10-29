@@ -15,6 +15,10 @@ Extract each archive into the indicated path, including nested submodules after
 extracting their parent. Tarball sources remain in their original upstream form.
 Upstream source licenses and build files are preserved, including vendored
 libcaption, glad, libnsgif and librtmp within the OBS tree.
+Agent/AI instruction files and skill folders are omitted from exported copies.
+When an upstream tarball requires this filtering, SOURCE-MANIFEST.json records
+its original upstream_sha256, the omitted paths and the exported archive hash.
+The pinned upstream cache remains unchanged.
 
 To regenerate: scripts/fetch-reference.sh, then
 python3 packaging/source-inventory.py --download, then

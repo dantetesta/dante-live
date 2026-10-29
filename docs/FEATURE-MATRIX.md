@@ -1,6 +1,6 @@
 # Matriz de equivalência funcional — estado consolidado
 
-Versão 0.1.38: remoção de perfis adicionais inativos com confirmação e Lixeira, preservando o perfil inicial/ativo e os bloqueios de operação. Falha de catálogo restaura os arquivos. A conversa dos participantes usa janela nativa independente. Gestão de perfis e posicionamento de painéis continuam fora do contrato MCP. As suítes locais passaram; validação visual do gestor e hardware físico permanecem pendentes.
+Versão 0.1.38: remoção de perfis adicionais inativos com confirmação e Lixeira, preservando o perfil inicial/ativo e os bloqueios de operação. Falha de catálogo restaura os arquivos. A conversa dos participantes usa janela nativa independente. Gestão de perfis e posicionamento de painéis continuam fora do contrato MCP. As suítes locais passaram. Pré-release 0.1.38 publicada com app/DMG notarizados, hashes públicos e feed Sparkle verificados; validação visual do gestor e hardware físico permanecem pendentes.
 
 Em desenvolvimento: conversa dos participantes do anfitrião em janela nativa independente, arrastável pela barra de título para outro monitor; painel interno removido. Teste local confirmou janela separada, movimento além do estúdio, fechamento e reabertura. MCP revisado sem alteração de ferramentas, esquemas ou autorizações, pois a mudança afeta só a interface local. Publicação e validação em sessão real pendentes.
 

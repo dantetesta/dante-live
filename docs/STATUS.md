@@ -1,5 +1,7 @@
 ## 0.1.38 — perfis e conversa em janela própria
 
+Publicada como pré-release experimental: [Dante Live 0.1.38](https://github.com/dantetesta/dante-live/releases/tag/v0.1.38). Aplicativo e DMG Universal 2 receberam Apple Accepted, tickets anexados e aprovação do Gatekeeper. Os três assets foram baixados sem autenticação e seus SHA-256 conferem; README, changelog, registro da versão e feed Sparkle públicos foram comparados e a assinatura do feed foi verificada. A instalação local permanece na 0.1.37.
+
 O gestor oferece **Remover** com confirmação para perfis adicionais inativos. O projeto privado vai para a Lixeira, com restauração da pasta se a gravação do catálogo falhar. O perfil inicial e o ativo são protegidos: carregue outro perfil antes de remover o aberto. Live, preparação, sala de convidados, instalação de atualização ou recuperação pendente bloqueiam a remoção. Arquivos de mídia externos e configurações globais são preservados.
 
 A conversa dos participantes usa um NSPanel nativo independente, com fechamento e reabertura sincronizados ao estado da sala. O teste confirmou movimento para fora dos limites do estúdio; arraste físico entre monitores e sessão real continuam pendentes.

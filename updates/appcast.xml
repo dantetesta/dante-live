@@ -6,6 +6,27 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <link>https://github.com/dantetesta/dante-live/releases</link>
     <language>pt-BR</language>
     <item>
+      <title>Dante Live 0.1.38</title>
+      <pubDate>Thu, 29 Oct 2026 00:17:09 +0000</pubDate>
+      <sparkle:version>39</sparkle:version>
+      <sparkle:shortVersionString>0.1.38</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:fullReleaseNotesLink>https://github.com/dantetesta/dante-live/releases</sparkle:fullReleaseNotesLink>
+      <description sparkle:format="markdown">## Perfis e conversa dos participantes
+
+- **Remover perfis:** o gestor agora oferece remoção com confirmação para perfis adicionais inativos. O projeto vai para a Lixeira, com restauração da pasta se a gravação do catálogo falhar. O perfil inicial permanece protegido; para remover o perfil aberto, carregue outro primeiro. Operações em andamento bloqueiam a remoção.
+- **Conversa em janela própria:** o chat interno dos participantes abre em uma janela nativa que pode ser movida para fora do estúdio. Mensagens gerais e privadas continuam fora da imagem transmitida.
+- **MCP revisado:** descrições de ferramentas agora refletem o suporte já existente a câmera macOS e microfone CoreAudio. Lista de ferramentas e esquemas conferidos por teste; a remoção de perfis continua no gestor nativo.
+
+### Distribuição e validação
+
+macOS 14 ou superior, Universal 2 (arm64 e x86_64). Aplicativo e DMG assinados com Developer ID e notarizados pela Apple. O arquivo de fontes correspondente é separado do instalador.
+
+As suítes locais de aplicativo, protocolo MCP, chat, captura, gráficos e áudio sintético de aba passaram. O teste de áudio usa Chrome com sinal sintético; não comprova captura de uma aba real do usuário. A revisão visual automatizada do gestor encontrou timeout de acessibilidade. Intel físico, macOS 14 físico, interação entre monitores e sessão longa com convidados reais continuam pendentes.
+</description>
+      <enclosure url="https://github.com/dantetesta/dante-live/releases/download/v0.1.38/Dante-Live-0.1.38-macOS-universal.dmg" length="96776855" type="application/octet-stream" sparkle:edSignature="OJk9VzyJJczEhrBHfUKhI5aJvpZv9GeSgZdKUuzXgLLM/pHMBiLoEpyEZaA2w8ysbHjREjHY/yM+npSV5iWDDQ=="></enclosure>
+    </item>
+    <item>
       <title>Dante Live 0.1.37</title>
       <pubDate>Wed, 21 Oct 2026 03:04:03 +0000</pubDate>
       <sparkle:version>38</sparkle:version>
@@ -649,6 +670,6 @@ Release experimental, assinatura ad hoc, sem notarização Apple. Intel físico,
     </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 2QFaIGWW5xRjSf//SEMuGAd2nWuEbBbYCvmkLfvHIZi1CozhjDlpF3mlc3FVttPFOEewJKF+Ayah2HY0sIrOAw==
-length: 60597
+edSignature: LOUiew2QeZD2wHXcc5ycUeLUgL8xe0w0mlA7b45litSjQxa7aAcmlerbGYsjI+8BpBZdUPSoydIr9uYObk/KAA==
+length: 62823
 -->

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.38",
+  "build": 39,
+  "url": "https://github.com/dantetesta/dante-live/releases/download/v0.1.38/Dante-Live-0.1.38-macOS-universal.dmg",
+  "length": 96776855,
+  "sha256": "e60ae7256903cd49ce90f4c01f764df6ee0510fa465893fe57eac7aaebe4103c",
+  "signature": "OJk9VzyJJczEhrBHfUKhI5aJvpZv9GeSgZdKUuzXgLLM/pHMBiLoEpyEZaA2w8ysbHjREjHY/yM+npSV5iWDDQ==",
+  "minimumSystemVersion": "14.0",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "publishedAt": "2026-10-29T00:17:09.149839+00:00",
+  "changelog": "## Perfis e conversa dos participantes\n\n- **Remover perfis:** o gestor agora oferece remoção com confirmação para perfis adicionais inativos. O projeto vai para a Lixeira, com restauração da pasta se a gravação do catálogo falhar. O perfil inicial permanece protegido; para remover o perfil aberto, carregue outro primeiro. Operações em andamento bloqueiam a remoção.\n- **Conversa em janela própria:** o chat interno dos participantes abre em uma janela nativa que pode ser movida para fora do estúdio. Mensagens gerais e privadas continuam fora da imagem transmitida.\n- **MCP revisado:** descrições de ferramentas agora refletem o suporte já existente a câmera macOS e microfone CoreAudio. Lista de ferramentas e esquemas conferidos por teste; a remoção de perfis continua no gestor nativo.\n\n### Distribuição e validação\n\nmacOS 14 ou superior, Universal 2 (arm64 e x86_64). Aplicativo e DMG assinados com Developer ID e notarizados pela Apple. O arquivo de fontes correspondente é separado do instalador.\n\nAs suítes locais de aplicativo, protocolo MCP, chat, captura, gráficos e áudio sintético de aba passaram. O teste de áudio usa Chrome com sinal sintético; não comprova captura de uma aba real do usuário. A revisão visual automatizada do gestor encontrou timeout de acessibilidade. Intel físico, macOS 14 físico, interação entre monitores e sessão longa com convidados reais continuam pendentes.\n",
+  "notarized": true
+}
